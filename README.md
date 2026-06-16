@@ -1,7 +1,3 @@
-<div align="center">
-  <img width="1200" height="475" alt="CCIS Student Council Hub Banner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
-
 # 🎓 CCIS Student Council Centralized Platform
 
 Welcome to the **College of Computer and Information Sciences (CCIS) Student Council Centralized Platform**. This website serves as a unified digital ecosystem connecting the CCIS student body with the Student Council (SC) executive team. 
