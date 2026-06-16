@@ -4,23 +4,19 @@ Welcome to the **College of Computer and Information Sciences (CCIS) Student Cou
 
 The application features a gorgeous, theme-customizable, highly interactive **Public Student Portal** alongside a robust **Admin Management System** with role-based access control.
 
-> [!NOTE]
-> **AI Studio App**: This repository contains the full source code for the CCIS Centralized Hub.  
-> View your app project in AI Studio: https://ai.studio/apps/a5394985-f06d-432e-8f0c-e5a8383442ad
-
 ---
 
 ## ✨ System Features
 
 ### 1. 🌐 Public Student Portal
 Designed with responsive layouts, modern micro-interactions, and premium typography:
-*   🏠 **Interactive Home Page**: Features a custom-animated GSAP loading screen, a pinned announcements ticker, a featured community photobooth strip, and collapsible FAQs.
+*   🏠 **Interactive Home Page**: Features a custom-animated GSAP loading screen, a pinned announcements ticker, a featured community photobooth strip, the **Academic & Council Calendar (Timetable)** with direct event booking integration, and collapsible FAQs.
 *   ℹ️ **Information Hub**:
-    *   **Officers & Committees**: Complete directories for the Executive Board, Year Level Representatives, and specialized committees (Logistics, Finance, Technical, External Affairs, Developers, etc.).
-    *   **Interactive Calendars**: Overview of general and priority college events.
+    *   **Officers & Committees**: Complete directories for the Executive Board, Year Level Representatives, and specialized committees (Logistics, Finance, Technical, External Affairs, Developers, etc.) with custom ordering.
+    *   **Dynamic Info Tabs**: Clickable organization seals to toggle details between the College itself, the Student Council (Mother Org), and the Computer Society (ComSoc).
 *   📥 **Student Concerns Desk**: A custom ticketing tool allowing students to submit inquiries, reports, or suggestions directly to the council.
-*   📢 **Announcements Board**: Categorized updates (Events, Deadlines, Results, General) with search queries and status badges.
-*   📝 **Event Registration Portal**: Live seat availability check, student profile validation, and instant confirmation tracking (e.g. for *Innovation Challenge 2026*, *Sportsfest 2026*, and workshops).
+*   📢 **Announcements Board**: Categorized updates (Events, Deadlines, Results, General) with search queries, status badges, and scroll-safe centered modals.
+*   📝 **Event Registration Portal**: Live seat availability check, student profile validation, instant confirmation tracking, and a responsive split layout (event details on the left, secure form on the right) utilizing React Portals for perfect viewport modal centering.
 *   📸 **Virtual Photobooth**: Real-time simulated camera sandbox with selectable custom frames, camera toggles, snapshot capture actions, local downloads, and a community gallery feed.
 
 ### 2. 🛡️ Admin Management Portal
@@ -67,7 +63,7 @@ Admin permissions are enforced dynamically across views using the following role
 *   **Styling**: Tailwind CSS v4 with real-time CSS Custom Properties integration.
 *   **Animations**: GSAP (GreenSock Animation Platform) + Tailwind transitions.
 *   **Icons**: Lucide React.
-*   **Data Layer**: Client-side context state simulator initialized with comprehensive UST CCIS mock datasets (defined in `src/admin/data/mockData.ts`).
+*   **Data Layer**: Supabase backend database integration for real-time announcements, events, officers, committees, registrations, FAQs, and custom theme presets.
 
 ---
 
