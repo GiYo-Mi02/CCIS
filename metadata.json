@@ -1,0 +1,6 @@
+{
+  "name": "CCIS Student Council Central",
+  "description": "The official central platform of the CCIS Student Council, featuring real-time announcements, officer directory, event registration, concerns desk, and an interactive photobooth.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
