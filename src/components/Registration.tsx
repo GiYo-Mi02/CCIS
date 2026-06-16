@@ -1,17 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Ticket, Calendar, MapPin, CheckCircle2, QrCode, ClipboardList, Clock, ArrowRight, Shield, X, Download, Printer } from 'lucide-react';
 import { EventItem, Registration } from '../types';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import Pagination from '../admin/components/Pagination';
-import html2canvas from 'html2canvas';
+import html2canvas from 'html2canvas-pro';
 import { QRCodeCanvas } from 'qrcode.react';
 
 interface RegistrationSectionProps {
-  onNavigate?: (tab: string) => void;
+  onNavigate?: (tab: string, eventId?: string) => void;
+  preselectedEventId?: string | null;
+  onClearPreselected?: () => void;
 }
 
-export default function RegistrationSection({ onNavigate }: RegistrationSectionProps) {
+export default function RegistrationSection({ onNavigate, preselectedEventId, onClearPreselected }: RegistrationSectionProps) {
   const { user, profile, updateProfile } = useAuth();
   
   const [events, setEvents] = useState<EventItem[]>([]);
@@ -52,6 +55,17 @@ export default function RegistrationSection({ onNavigate }: RegistrationSectionP
       setSection(profile.section || '');
     }
   }, [profile]);
+
+  // Listen for preselected event redirect
+  useEffect(() => {
+    if (preselectedEventId) {
+      setSelectedEventId(preselectedEventId);
+      setIsModalOpen(true);
+      if (onClearPreselected) {
+        onClearPreselected();
+      }
+    }
+  }, [preselectedEventId]);
 
   // Fetch events and registrations from Supabase
   const fetchData = async () => {
@@ -312,7 +326,7 @@ export default function RegistrationSection({ onNavigate }: RegistrationSectionP
         
         {/* Upper Banner Section */}
         <div className="text-center mb-10">
-          <span className="font-mono text-xs uppercase tracking-[0.2em] text-[#5E6E64] font-bold font-semibold">Portals</span>
+          <span className="font-mono text-xs uppercase tracking-[0.2em] text-[#5E6E64] font-bold font-semibold">Events</span>
           <h1 className="font-sans font-black text-3xl md:text-5xl tracking-tight text-[#1A3C2E] mt-1">
             CCIS Events &amp; Registrations
           </h1>
@@ -476,130 +490,203 @@ export default function RegistrationSection({ onNavigate }: RegistrationSectionP
             </div>
 
             {/* REGISTRATION MODAL WITH PORTAL OVERLAY */}
-            {isModalOpen && (
+            {isModalOpen && createPortal(
               <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs font-sans">
                 
                 {/* Backdrop Click Closes */}
                 <div className="absolute inset-0" onClick={() => setIsModalOpen(false)} />
                 
                 {/* Secure Entry Slot Form Content Card */}
-                <div className="relative w-full max-w-md bg-[#1A3C2E] text-white rounded-3xl border-2 border-[#F5B400] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-fade-in">
-                  <div className="absolute top-0 left-0 right-0 h-1 bg-[#F5B400]" />
+                <div className="relative w-full max-w-4xl bg-white rounded-3xl overflow-hidden shadow-2xl border border-zinc-200 animate-scale-up max-h-[90vh] flex flex-col md:flex-row overflow-y-auto md:overflow-y-hidden">
                   
                   {/* Close button */}
                   <button
                     onClick={() => setIsModalOpen(false)}
-                    className="absolute top-4 right-4 p-1 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+                    className="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/10 text-stone-600 md:bg-white/10 md:text-white hover:bg-black/20 md:hover:bg-white/20 transition-colors"
                   >
-                    <X size={16} />
+                    <X size={18} />
                   </button>
 
-                  <div className="p-6 border-b border-white/10 shrink-0">
-                    <h2 className="font-sans font-black text-xl text-white">
-                      Secure Entry Slot
-                    </h2>
-                    <p className="font-mono text-stone-300 text-[10px] uppercase tracking-wider mt-1.5">
-                      Registering for: <strong className="text-[#F5B400] block truncate mt-0.5">{events.find(e => e.id === selectedEventId)?.title || 'Selected Event'}</strong>
-                    </p>
-                  </div>
+                  {/* Left Column: Event Information */}
+                  <div className="w-full md:w-1/2 p-6 md:p-10 bg-[#FAF7EA]/50 flex flex-col justify-start space-y-6 md:overflow-y-auto md:max-h-[90vh] text-[#1A3C2E]">
+                    <div>
+                      {/* Event Category Tag */}
+                      {events.find(e => e.id === selectedEventId) && (
+                        <span className="inline-block text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded border border-[#1A3C2E]/20 text-[#1A3C2E] bg-[#1A3C2E]/5">
+                          Event Invitation
+                        </span>
+                      )}
+                      <h2 className="font-sans font-black text-2xl md:text-3xl text-[#1A3C2E] leading-tight mt-3">
+                        {events.find(e => e.id === selectedEventId)?.title || 'Selected Event'}
+                      </h2>
+                    </div>
 
-                  <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                    {!user ? (
-                      <div className="text-center py-8 px-2 space-y-4">
-                        <div className="w-14 h-14 bg-[#F5B400]/10 text-[#F5B400] rounded-full flex items-center justify-center mx-auto border border-[#F5B400]/20">
-                          <Shield size={24} />
+                    <div className="space-y-2">
+                      <h4 className="font-sans font-bold text-xs uppercase tracking-wider text-[#5E6E64]">About the Event</h4>
+                      <p className="text-stone-600 text-xs md:text-sm leading-relaxed whitespace-pre-wrap">
+                        {events.find(e => e.id === selectedEventId)?.description || "No description provided for this event."}
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4 pt-6 border-t border-[#1A3C2E]/10">
+                      {/* Date & Time */}
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-[#1A3C2E]/5 rounded-xl text-[#1A3C2E] flex-shrink-0">
+                          <Calendar size={18} />
                         </div>
-                        <h3 className="font-sans font-black text-sm text-white">Authentication Required</h3>
-                        <p className="text-stone-300 text-xs max-w-sm mx-auto leading-relaxed">
-                          You must sign in with your CCIS student account to book seats and claim seat passes.
-                        </p>
+                        <div>
+                          <span className="block text-[9px] font-mono text-stone-500 uppercase tracking-wider">Date &amp; Time</span>
+                          <span className="text-xs md:text-sm font-bold font-sans">
+                            {(() => {
+                              const ev = events.find(e => e.id === selectedEventId);
+                              return ev ? `${new Date(ev.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} at ${ev.time}` : '—';
+                            })()}
+                          </span>
+                        </div>
                       </div>
-                    ) : (
-                      <form onSubmit={handleRegisterSubmit} className="space-y-4 text-stone-850" id="registration-modal-form">
-                        
-                        {registrationError && (
-                          <div className="bg-rose-950/40 border border-rose-500/30 text-rose-200 p-3.5 rounded-2xl text-xs flex items-center gap-2 animate-fade-in font-sans shrink-0">
-                            <span className="text-sm">⚠️</span>
-                            <span>{registrationError}</span>
-                          </div>
-                        )}
 
-                        {/* Read-Only Profile Identity Data Box */}
-                        <div className="bg-white/5 border border-white/10 p-4 rounded-2xl space-y-2.5 text-white">
-                          <div className="space-y-0.5">
-                            <span className="block text-[8.5px] font-mono uppercase tracking-widest text-stone-400">Full Student Name</span>
-                            <span className="text-xs font-black block text-stone-100">{fullName || '—'}</span>
-                          </div>
-                          <div className="space-y-0.5">
-                            <span className="block text-[8.5px] font-mono uppercase tracking-widest text-stone-400">CCIS Institutional Email</span>
-                            <span className="text-xs font-mono block text-stone-200 truncate">{email || '—'}</span>
-                          </div>
-                          <div className="space-y-0.5">
-                            <span className="block text-[8.5px] font-mono uppercase tracking-widest text-stone-400">Student ID Number</span>
-                            <span className="text-xs font-mono block text-stone-200">{studentNum || '—'}</span>
-                          </div>
-                          
-                          <div className="pt-2 border-t border-white/5 text-[9px] text-stone-400 italic">
-                            ℹ️ Pulled from your profile. Need to fix your name, email, or student ID?{' '}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setIsModalOpen(false);
-                                if (onNavigate) onNavigate('account');
-                              }}
-                              className="underline font-bold text-[#F5B400] hover:text-[#ffc522] transition-colors"
-                            >
-                              [Edit your profile]
-                            </button>
-                          </div>
+                      {/* Location / Venue */}
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-[#1A3C2E]/5 rounded-xl text-[#1A3C2E] flex-shrink-0">
+                          <MapPin size={18} />
                         </div>
-
-                        {/* Editable inputs */}
-                        <div className="space-y-1">
-                          <label className="block text-[10px] font-bold text-stone-200 uppercase tracking-widest" htmlFor="reg-college">
-                            Academic Computer Branch (Program)
-                          </label>
-                          <select
-                            id="reg-college"
-                            value={collegeBranch}
-                            onChange={(e) => setCollegeBranch(e.target.value)}
-                            className="w-full bg-white border border-stone-300 focus:border-[#F5B400] text-xs rounded-xl px-3.5 py-2.5 outline-none transition-colors font-semibold text-black"
-                          >
-                            <option value="Computer Science">B.S. in Computer Science (BSCS)</option>
-                            <option value="Information Technology">B.S. in Information Technology (BSIT)</option>
-                            <option value="Information Systems">B.S. in Information Systems (BSIS)</option>
-                            <option value="Data Science">B.S. in Data Science &amp; Informatics</option>
-                          </select>
+                        <div>
+                          <span className="block text-[9px] font-mono text-stone-500 uppercase tracking-wider">Venue / Location</span>
+                          <span className="text-xs md:text-sm font-bold font-sans">
+                            {events.find(e => e.id === selectedEventId)?.location || 'TBA'}
+                          </span>
                         </div>
+                      </div>
 
-                        <div className="space-y-1">
-                          <label className="block text-[10px] font-bold text-stone-200 uppercase tracking-widest" htmlFor="reg-section">
-                            Class Section (e.g. ACSAD, A31)
-                          </label>
-                          <input
-                            type="text"
-                            id="reg-section"
-                            required
-                            value={section}
-                            onChange={(e) => setSection(e.target.value.toUpperCase().replace(/\s/g, ''))}
-                            placeholder="e.g. ACSAD"
-                            className="w-full bg-white border border-stone-300 focus:border-[#F5B400] text-xs rounded-xl px-3.5 py-2.5 outline-none transition-colors font-semibold text-black"
-                          />
+                      {/* Remaining Slots */}
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-[#1A3C2E]/5 rounded-xl text-[#1A3C2E] flex-shrink-0">
+                          <Ticket size={18} />
                         </div>
-
-                        <button
-                          type="submit"
-                          disabled={registering}
-                          className="w-full bg-[#F5B400] hover:bg-[#ffc522] text-[#1A3C2E] py-3 rounded-full font-bold text-xs uppercase tracking-wider shadow-lg transition-transform transform hover:-translate-y-0.5 mt-2 flex items-center justify-center gap-1.5 disabled:opacity-60"
-                        >
-                          {registering ? 'Securing Seat...' : 'Generate Official Ticket'}
-                        </button>
-                      </form>
-                    )}
+                        <div>
+                          <span className="block text-[9px] font-mono text-stone-500 uppercase tracking-wider">Available Capacity</span>
+                          <span className="text-xs md:text-sm font-bold font-sans">
+                            {(() => {
+                              const ev = events.find(e => e.id === selectedEventId);
+                              if (!ev) return '—';
+                              const remaining = Math.max(0, ev.slots - ev.registeredCount);
+                              return `${remaining} / ${ev.slots} seats remaining`;
+                            })()}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
+
+                  {/* Right Column: Registration Form */}
+                  <div className="w-full md:w-1/2 p-6 md:p-10 bg-[#1A3C2E] text-white flex flex-col justify-start space-y-6 md:overflow-y-auto md:max-h-[90vh] border-t md:border-t-0 md:border-l border-white/10">
+                    <div>
+                      <h3 className="font-sans font-black text-xl text-white">Secure Entry Slot</h3>
+                      <p className="font-mono text-stone-300 text-[10px] uppercase tracking-wider mt-1.5">
+                        Claim Seat Pass Ticket
+                      </p>
+                    </div>
+
+                    <div className="flex-grow">
+                      {!user ? (
+                        <div className="text-center py-8 px-2 space-y-4">
+                          <div className="w-14 h-14 bg-[#F5B400]/10 text-[#F5B400] rounded-full flex items-center justify-center mx-auto border border-[#F5B400]/20">
+                            <Shield size={24} />
+                          </div>
+                          <h3 className="font-sans font-black text-sm text-white">Authentication Required</h3>
+                          <p className="text-stone-300 text-xs max-w-sm mx-auto leading-relaxed">
+                            You must sign in with your CCIS student account to book seats and claim seat passes.
+                          </p>
+                        </div>
+                      ) : (
+                        <form onSubmit={handleRegisterSubmit} className="space-y-4 text-stone-850" id="registration-modal-form">
+                          
+                          {registrationError && (
+                            <div className="bg-rose-950/40 border border-rose-500/30 text-rose-200 p-3.5 rounded-2xl text-xs flex items-center gap-2 animate-fade-in font-sans shrink-0">
+                              <span className="text-sm">⚠️</span>
+                              <span>{registrationError}</span>
+                            </div>
+                          )}
+
+                          {/* Read-Only Profile Identity Data Box */}
+                          <div className="bg-white/5 border border-white/10 p-4 rounded-2xl space-y-2.5 text-white">
+                            <div className="space-y-0.5">
+                              <span className="block text-[8.5px] font-mono uppercase tracking-widest text-stone-400">Full Student Name</span>
+                              <span className="text-xs font-black block text-stone-100">{fullName || '—'}</span>
+                            </div>
+                            <div className="space-y-0.5">
+                              <span className="block text-[8.5px] font-mono uppercase tracking-widest text-stone-400">CCIS Institutional Email</span>
+                              <span className="text-xs font-mono block text-stone-200 truncate">{email || '—'}</span>
+                            </div>
+                            <div className="space-y-0.5">
+                              <span className="block text-[8.5px] font-mono uppercase tracking-widest text-stone-400">Student ID Number</span>
+                              <span className="text-xs font-mono block text-stone-200">{studentNum || '—'}</span>
+                            </div>
+                            
+                            <div className="pt-2 border-t border-white/5 text-[9px] text-stone-400 italic">
+                              ℹ️ Pulled from your profile. Need to fix your name, email, or student ID?{' '}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsModalOpen(false);
+                                  if (onNavigate) onNavigate('account');
+                                }}
+                                className="underline font-bold text-[#F5B400] hover:text-[#ffc522] transition-colors bg-transparent border-0 cursor-pointer p-0"
+                              >
+                                [Edit your profile]
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Editable inputs */}
+                          <div className="space-y-1">
+                            <label className="block text-[10px] font-bold text-stone-200 uppercase tracking-widest" htmlFor="reg-college">
+                              Academic Computer Program
+                            </label>
+                            <select
+                              id="reg-college"
+                              value={collegeBranch}
+                              onChange={(e) => setCollegeBranch(e.target.value)}
+                              className="w-full bg-white border border-stone-300 focus:border-[#F5B400] text-xs rounded-xl px-3.5 py-2.5 outline-none transition-colors font-semibold text-black font-sans"
+                            >
+                              <option value="Computer Science">B.S. in Computer Science (BSCS)</option>
+                              <option value="Information Technology">B.S. in Information Technology (BSIT)</option>
+                              <option value="Information Systems">B.S. in Information Systems (BSIS)</option>
+                              <option value="Data Science">B.S. in Data Science &amp; Informatics</option>
+                            </select>
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="block text-[10px] font-bold text-stone-200 uppercase tracking-widest" htmlFor="reg-section">
+                              Class Section (e.g. ACSAD, A31)
+                            </label>
+                            <input
+                              type="text"
+                              id="reg-section"
+                              required
+                              value={section}
+                              onChange={(e) => setSection(e.target.value.toUpperCase().replace(/\s/g, ''))}
+                              placeholder="e.g. ACSAD"
+                              className="w-full bg-white border border-stone-300 focus:border-[#F5B400] text-xs rounded-xl px-3.5 py-2.5 outline-none transition-colors font-semibold text-black"
+                            />
+                          </div>
+
+                          <button
+                            type="submit"
+                            disabled={registering}
+                            className="w-full bg-[#F5B400] hover:bg-[#ffc522] text-[#1A3C2E] py-3 rounded-full font-bold text-xs uppercase tracking-wider shadow-lg transition-transform transform hover:-translate-y-0.5 mt-2 flex items-center justify-center gap-1.5 disabled:opacity-60 cursor-pointer"
+                          >
+                            {registering ? 'Securing Seat...' : 'Generate Official Ticket'}
+                          </button>
+                        </form>
+                      )}
+                    </div>
+                  </div>
+
                 </div>
 
-              </div>
+              </div>,
+              document.body
             )}
 
           </div>

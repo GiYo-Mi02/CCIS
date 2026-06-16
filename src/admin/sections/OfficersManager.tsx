@@ -101,14 +101,14 @@ export default function OfficersManager() {
   };
 
   const handleDeleteAllOfficers = async () => {
-    const { error } = await supabase.from('officers').delete().neq('id', '');
+    const { error } = await supabase.from('officers').delete().not('id', 'is', null);
     if (error) { showToast('Failed to delete all', 'error'); return; }
     setOfficers([]);
     showToast('All officers deleted', 'error');
   };
 
   const handleDeleteAllCommittees = async () => {
-    const { error } = await supabase.from('committees').delete().neq('id', '');
+    const { error } = await supabase.from('committees').delete().not('id', 'is', null);
     if (error) { showToast('Failed to delete all', 'error'); return; }
     setCommittees([]);
     showToast('All committees deleted', 'error');
@@ -164,7 +164,8 @@ export default function OfficersManager() {
           <EmptyState icon={Users} title="No officers yet" description="Add your first officer to get started." />
         ) : (
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
                   <th className="w-10 px-3 py-3"></th>
@@ -203,7 +204,8 @@ export default function OfficersManager() {
               </tbody>
             </table>
           </div>
-        )
+        </div>
+      )
       )}
 
       {/* Committees Tab */}
@@ -256,7 +258,7 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
         <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Name</label>
         <input type="text" value={form.name || ''} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400]" />
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Position</label>
           <input type="text" value={form.position || ''} onChange={(e) => setForm({ ...form, position: e.target.value })} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400]" />

@@ -180,7 +180,7 @@ export default function RegistrationManager() {
 
   const handleDeleteAll = async () => {
     if (!window.confirm('WARNING: Are you sure you want to delete ALL registrations? This cannot be undone.')) return;
-    const { error } = await supabase.from('event_registrations').delete().neq('id', '');
+    const { error } = await supabase.from('event_registrations').delete().not('id', 'is', null);
     if (error) { showToast('Failed to delete all', 'error'); return; }
     showToast('All registrations deleted', 'success');
     setPage(1);
@@ -223,24 +223,26 @@ export default function RegistrationManager() {
   return (
     <div className="space-y-5 animate-fade-in">
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-        <select value={eventFilter} onChange={(e) => handleEventFilterChange(e.target.value)}
-          className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#F5B400] text-[#222B26]">
-          <option value="ALL">All Events</option>
-          {events.map(ev => (<option key={ev.id} value={ev.id}>{ev.title}</option>))}
-        </select>
-        <button onClick={exportCsv}
-          className="border border-[#2E7D32] text-[#2E7D32] hover:bg-[#2E7D32]/5 px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-colors cursor-pointer">
-          <Download size={14} /> Export CSV
-        </button>
-        {totalCount > 0 && (
-          <button onClick={handleDeleteAll}
-            className="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 px-3 py-2 rounded-lg font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer">
-            <Trash size={13} /> Delete All
+      <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 w-full">
+        <div className="flex flex-wrap items-center gap-2">
+          <select value={eventFilter} onChange={(e) => handleEventFilterChange(e.target.value)}
+            className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#F5B400] text-[#222B26] flex-1 sm:flex-initial">
+            <option value="ALL">All Events</option>
+            {events.map(ev => (<option key={ev.id} value={ev.id}>{ev.title}</option>))}
+          </select>
+          <button onClick={exportCsv}
+            className="border border-[#2E7D32] text-[#2E7D32] hover:bg-[#2E7D32]/5 px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-colors cursor-pointer flex-1 sm:flex-initial justify-center">
+            <Download size={14} /> Export CSV
           </button>
-        )}
-        <div className="flex-1" />
-        <div className="relative w-full sm:w-64">
+          {totalCount > 0 && (
+            <button onClick={handleDeleteAll}
+              className="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 px-3 py-2 rounded-lg font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer flex-1 sm:flex-initial justify-center">
+              <Trash size={13} /> Delete All
+            </button>
+          )}
+        </div>
+        <div className="hidden md:block flex-1" />
+        <div className="relative w-full md:w-64">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input type="text" value={search} onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="Search by name or email..."
@@ -271,8 +273,8 @@ export default function RegistrationManager() {
           {stats.total === 0 ? (
             <p className="text-xs text-gray-400 py-6 text-center w-full">No records found</p>
           ) : (
-            <div className="w-full h-24">
-              <ResponsiveContainer width="100%" height="100%">
+            <div className="w-full h-24 min-h-0 min-w-0">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                 <PieChart>
                   <Pie
                     data={chartData}
@@ -307,15 +309,20 @@ export default function RegistrationManager() {
 
       {/* Bulk actions */}
       {selectedIds.size > 0 && (
-        <div className="bg-[#F5B400]/10 border border-[#F5B400]/20 rounded-lg px-4 py-2.5 flex items-center gap-4 animate-fade-in">
-          <span className="text-xs font-bold text-[#1A3C2E]">{selectedIds.size} selected</span>
-          <button onClick={markAttended} className="text-xs font-bold text-[#2E7D32] hover:underline flex items-center gap-1 cursor-pointer">
-            <CheckCircle size={13} /> Mark Attended
-          </button>
-          <button onClick={exportCsv} className="text-xs font-bold text-[#1A3C2E] hover:underline flex items-center gap-1 cursor-pointer">
-            <Download size={13} /> Export Selected
-          </button>
-          <button onClick={() => setSelectedIds(new Set())} className="ml-auto text-xs text-gray-400 hover:text-gray-600">Clear</button>
+        <div className="bg-[#F5B400]/10 border border-[#F5B400]/20 rounded-lg px-4 py-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 animate-fade-in w-full">
+          <div className="flex items-center justify-between sm:justify-start gap-4">
+            <span className="text-xs font-bold text-[#1A3C2E]">{selectedIds.size} selected</span>
+            <button onClick={() => setSelectedIds(new Set())} className="sm:hidden text-xs text-gray-400 hover:text-gray-600 font-bold uppercase tracking-wider">Clear</button>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <button onClick={markAttended} className="text-xs font-bold text-[#2E7D32] hover:underline flex items-center gap-1 cursor-pointer">
+              <CheckCircle size={13} /> Mark Attended
+            </button>
+            <button onClick={exportCsv} className="text-xs font-bold text-[#1A3C2E] hover:underline flex items-center gap-1 cursor-pointer">
+              <Download size={13} /> Export Selected
+            </button>
+          </div>
+          <button onClick={() => setSelectedIds(new Set())} className="hidden sm:block ml-auto text-xs text-gray-400 hover:text-gray-600 font-bold uppercase tracking-wider">Clear</button>
         </div>
       )}
 

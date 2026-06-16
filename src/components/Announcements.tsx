@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
 import { Announcement } from '../types/database';
 import { Search, Calendar, User, ArrowRight, Tag, X, Megaphone, Star } from 'lucide-react';
@@ -163,7 +164,7 @@ export default function Announcements({ previewMode = false, onViewAllClick }: A
         
         {/* Hub Header banner */}
         <div className="text-center mb-12">
-          <span className="font-mono text-xs uppercase tracking-[0.2em] text-[#5E6E64] font-bold">CCIS SC Central Desk</span>
+          <span className="font-mono text-xs uppercase tracking-[0.2em] text-[#5E6E64] font-bold">CCIS SC Announcemet Page</span>
           <h1 className="font-black text-4xl md:text-5xl text-[#1A3C2E] tracking-tight mt-2">Bulletin Board</h1>
           <p className="text-stone-600 max-w-xl mx-auto mt-4 text-sm md:text-base">
             Keep track of official news, academic deadlines, council innovation challenge updates, sportsfest volunteers, and general student advisories.
@@ -293,7 +294,7 @@ function AnnouncementModal({ announcement, onClose, getCategoryColor }: ModalPro
     };
   }, []);
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs font-sans">
       <div className="absolute inset-0" onClick={onClose} />
       
@@ -344,6 +345,7 @@ function AnnouncementModal({ announcement, onClose, getCategoryColor }: ModalPro
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

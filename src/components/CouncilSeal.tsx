@@ -4,16 +4,17 @@ interface CouncilSealProps {
   className?: string;
   size?: number;
   interactive?: boolean;
+  src?: string;
 }
 
-export default function CouncilSeal({ className = '', size = 120, interactive = true }: CouncilSealProps) {
+export default function CouncilSeal({ className = '', size = 120, interactive = true, src = '/images/CCIS-Logo.png' }: CouncilSealProps) {
   const [hasFailed, setHasFailed] = useState(false);
 
   if (!hasFailed) {
     return (
       <img
-        src="/images/ccis_logo.jpg"
-        alt="CCIS Student Council Logo"
+        src={src}
+        alt="CCIS Logo Seal"
         style={{ width: size, height: size }}
         onError={() => setHasFailed(true)}
         className={`object-contain select-none transition-transform duration-500 rounded-full ${

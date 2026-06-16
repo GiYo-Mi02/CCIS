@@ -68,8 +68,9 @@ export default function NavBar({ activeTab, setActiveTab }: NavBarProps) {
 
     checkUnread();
 
+    const channelId = `navbar_unread_messages_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     const channel = supabase
-      .channel('navbar_unread_messages')
+      .channel(channelId)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'messages' },
@@ -157,7 +158,7 @@ export default function NavBar({ activeTab, setActiveTab }: NavBarProps) {
           {/* Left: Brand Logo Block */}
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => handleNavClick('home')}>
             <div className="w-11 h-11 bg-[#FAF7EA] rounded-full flex items-center justify-center shadow-md border border-[#F5B400] overflow-hidden">
-              <CouncilSeal size={38} interactive={false} />
+              <CouncilSeal size={38} interactive={false} src="/images/ccis_logo.jpg" />
             </div>
             <div className="flex flex-col">
               <span className="font-sans font-black uppercase text-sm tracking-tight text-[#FAF7EA]">

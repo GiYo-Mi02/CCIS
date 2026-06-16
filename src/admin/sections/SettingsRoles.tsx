@@ -182,7 +182,7 @@ export default function SettingsRoles() {
     const { error: resetError } = await supabase
       .from('theme_settings')
       .update({ is_active: false })
-      .neq('id', '');
+      .eq('is_active', true);
 
     if (resetError) {
       showToast('Theme synchronization failed', 'error');
@@ -219,30 +219,53 @@ export default function SettingsRoles() {
   };
 
   const handleSaveCustomTheme = async () => {
-    // Check if custom theme preset exists or create new one
     const customName = 'Custom Workspace Palette';
-    const existingCustom = themes.find(t => t.preset_name === customName);
 
-    if (existingCustom) {
-      // Update existing custom theme
+    // 1. Reset all themes to inactive in DB
+    const { error: resetError } = await supabase
+      .from('theme_settings')
+      .update({ is_active: false })
+      .eq('is_active', true);
+
+    if (resetError) {
+      showToast('Theme synchronization failed', 'error');
+      return;
+    }
+
+    // 2. Check if the custom theme already exists
+    const { data: existingTheme, error: selectError } = await supabase
+      .from('theme_settings')
+      .select('*')
+      .eq('preset_name', customName)
+      .maybeSingle();
+
+    if (selectError) {
+      showToast('Failed to check custom theme', 'error');
+      console.error('Select custom theme error:', selectError.message);
+      return;
+    }
+
+    let resultData: ThemeSetting | null = null;
+    let resultError: any = null;
+
+    if (existingTheme) {
+      // Update the existing theme row
       const { data, error } = await supabase
         .from('theme_settings')
         .update({
           primary_color: customPrimary,
           accent_color: customAccent,
           canvas_color: customCanvas,
+          is_active: true
         })
-        .eq('id', existingCustom.id)
+        .eq('id', existingTheme.id)
         .select()
         .single();
-
-      if (error) {
-        showToast('Failed to save colors', 'error');
-      } else {
-        await handleApplyTheme(data as ThemeSetting);
-      }
+      
+      resultData = data as ThemeSetting;
+      resultError = error;
     } else {
-      // Insert new custom theme
+      // Insert a new theme row
       const { data, error } = await supabase
         .from('theme_settings')
         .insert({
@@ -255,14 +278,28 @@ export default function SettingsRoles() {
         .select()
         .single();
 
-      if (error) {
-        showToast('Failed to create theme', 'error');
-      } else {
-        await fetchThemes();
-        await handleApplyTheme(data as ThemeSetting);
-      }
+      resultData = data as ThemeSetting;
+      resultError = error;
+    }
+
+    if (resultError) {
+      showToast('Failed to save colors', 'error');
+      console.error('Save custom theme error:', resultError.message);
+    } else if (resultData) {
+      // 3. Apply active colors live and sync list state
+      setActiveTheme(resultData);
+      
+      applyTheme({
+        primaryGreen: resultData.primary_color,
+        accentGold: resultData.accent_color,
+        bgCream: resultData.canvas_color
+      });
+
+      await fetchThemes();
+      showToast('Custom branding palette active globally!', 'success');
     }
   };
+
 
   const handleResetThemeDefaults = () => {
     setCustomPrimary('#1A3C2E');
@@ -283,17 +320,17 @@ export default function SettingsRoles() {
     <div className="space-y-6 font-sans animate-fade-in">
       
       {/* Title Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 w-full">
         <div>
           <h1 className="text-2xl font-black text-[#1A3C2E]">Privileges & Theme Configurations</h1>
           <p className="text-stone-500 text-sm">Assign coordinator roles, manage team permissions, and customize the website's branding color scheme.</p>
         </div>
 
         {/* Tab switcher */}
-        <div className="flex bg-[#1A3C2E]/5 p-1 rounded-xl flex-shrink-0">
+        <div className="flex bg-[#1A3C2E]/5 p-1 rounded-xl flex-shrink-0 w-full lg:w-auto">
           <button
             onClick={() => setTab('roles')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex-1 lg:flex-initial text-center ${
               tab === 'roles'
                 ? 'bg-[#1A3C2E] text-white shadow-sm'
                 : 'text-[#1A3C2E] hover:bg-[#1A3C2E]/5'
@@ -303,7 +340,7 @@ export default function SettingsRoles() {
           </button>
           <button
             onClick={() => setTab('theme')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex-1 lg:flex-initial text-center ${
               tab === 'theme'
                 ? 'bg-[#1A3C2E] text-white shadow-sm'
                 : 'text-[#1A3C2E] hover:bg-[#1A3C2E]/5'
@@ -319,13 +356,13 @@ export default function SettingsRoles() {
         <div className="space-y-4">
           
           {/* Actions Bar */}
-          <div className="flex items-center justify-between bg-white px-5 py-4 rounded-xl border border-zinc-200 shadow-sm">
-            <span className="text-xs font-bold text-[#1A3C2E] bg-[#1A3C2E]/5 px-3 py-1.5 rounded-full">
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center sm:justify-between bg-white px-5 py-4 rounded-xl border border-zinc-200 shadow-sm w-full">
+            <span className="text-xs font-bold text-[#1A3C2E] bg-[#1A3C2E]/5 px-3 py-1.5 rounded-full w-full sm:w-auto text-center sm:text-left">
               {adminUsers.length} Active Staff Members
             </span>
             <button
               onClick={() => { setShowPromoteModal(true); setPromotingUser(null); }}
-              className="bg-[#F5B400] hover:bg-[#ffc522] text-[#1A3C2E] px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-xs transition-colors focus:outline-none"
+              className="bg-[#F5B400] hover:bg-[#ffc522] text-[#1A3C2E] px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-xs transition-colors focus:outline-none w-full sm:w-auto justify-center"
             >
               <Plus size={14} /> Promote User
             </button>

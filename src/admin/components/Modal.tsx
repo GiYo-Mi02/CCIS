@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 interface ModalProps {
@@ -14,7 +15,7 @@ export default function Modal({ isOpen, onClose, title, children, mode = 'center
   if (!isOpen) return null;
 
   if (mode === 'slideOver') {
-    return (
+    return createPortal(
       <div className="fixed inset-0 z-50 flex justify-end" id="admin-modal-overlay">
         {/* Backdrop */}
         <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
@@ -38,12 +39,13 @@ export default function Modal({ isOpen, onClose, title, children, mode = 'center
             {children}
           </div>
         </div>
-      </div>
+      </div>,
+      document.body
     );
   }
 
   // Center modal
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" id="admin-modal-overlay">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
@@ -67,6 +69,7 @@ export default function Modal({ isOpen, onClose, title, children, mode = 'center
           {children}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

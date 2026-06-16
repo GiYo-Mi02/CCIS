@@ -86,7 +86,7 @@ export default function EventCalendar() {
   };
 
   const handleDeleteAll = async () => {
-    const { error } = await supabase.from('events').delete().neq('id', '');
+    const { error } = await supabase.from('events').delete().not('id', 'is', null);
     if (error) { showToast('Failed to delete all', 'error'); return; }
     setEvents([]);
     showToast('All events deleted', 'error');

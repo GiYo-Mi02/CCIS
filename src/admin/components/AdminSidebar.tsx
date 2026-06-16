@@ -52,8 +52,9 @@ export default function AdminSidebar({ collapsed, onToggle, onExitAdmin }: Admin
     fetchCount();
 
     // Subscribe to messages changes to update unread count in real-time
+    const channelId = `sidebar_unread_messages_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     const channel = supabase
-      .channel('sidebar_unread_messages')
+      .channel(channelId)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'messages' },
@@ -101,7 +102,7 @@ export default function AdminSidebar({ collapsed, onToggle, onExitAdmin }: Admin
       <div className={`flex items-center gap-3 px-4 h-16 border-b border-white/10 shrink-0 ${collapsed ? 'justify-center' : ''}`}>
         <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-[#F5B400]/50 bg-white/10 shrink-0">
           <img
-            src="/images/ccis_logo.jpg"
+            src="/images/CCIS-Logo.png"
             alt="CCIS"
             className="w-full h-full object-contain"
             onError={(e) => {

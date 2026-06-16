@@ -220,8 +220,9 @@ export default function MessagesInbox() {
   useEffect(() => {
     if (!hasAccess) return;
 
+    const channelId = `admin_inbox_messages_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     const channel = supabase
-      .channel('admin_inbox_messages')
+      .channel(channelId)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages' },

@@ -27,7 +27,7 @@ export default function Footer({ onNavClick, onAdminSwitch }: FooterProps) {
           <div className="space-y-4">
             <div className="flex items-center gap-2.5">
               <div className="bg-[#FAF7EA] p-1.5 rounded-full border border-[#F5B400]/40 flex items-center justify-center">
-                <CouncilSeal size={32} interactive={false} />
+                <CouncilSeal size={32} interactive={false} src="/images/ccis_logo.jpg" />
               </div>
               <h3 className="font-sans font-black text-white text-base tracking-tight uppercase">
                 CCIS Student Council

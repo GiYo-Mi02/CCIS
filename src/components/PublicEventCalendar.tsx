@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Calendar, ChevronLeft, ChevronRight, Clock, MapPin, X, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -12,7 +13,11 @@ interface EventItemDB {
   location: string | null;
 }
 
-export function UpcomingEventsList() {
+interface UpcomingEventsListProps {
+  onNavigate?: (tab: string, eventId?: string) => void;
+}
+
+export function UpcomingEventsList({ onNavigate }: UpcomingEventsListProps) {
   const [upcoming, setUpcoming] = useState<EventItemDB[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -60,15 +65,24 @@ export function UpcomingEventsList() {
       <h3 className="font-mono text-xs uppercase tracking-wider text-[#5E6E64] font-bold">Upcoming Directives</h3>
       <div className="space-y-2.5">
         {upcoming.map(evt => (
-          <div key={evt.id} className="bg-white p-3.5 rounded-2xl border border-zinc-150 shadow-xs flex items-start gap-3">
-            <div className={`w-2.5 h-10 rounded-full shrink-0 ${
-              evt.category === 'priority' ? 'bg-[#FFBC00]' : 'bg-[#123524]'
-            }`} />
-            <div className="flex-1 min-w-0 space-y-0.5">
-              <span className="text-[10px] font-mono text-[#5E6E64]">📅 {evt.event_date}</span>
-              <h4 className="font-bold text-xs text-[#123524] truncate">{evt.title}</h4>
-              <p className="text-[10.5px] text-[#5E6E64] truncate">{evt.description}</p>
+          <div key={evt.id} className="bg-white p-3.5 rounded-2xl border border-zinc-150 shadow-xs flex items-center justify-between gap-3">
+            <div className="flex items-start gap-3 flex-1 min-w-0">
+              <div className={`w-2.5 h-10 rounded-full shrink-0 ${
+                evt.category === 'priority' ? 'bg-[#FFBC00]' : 'bg-[#123524]'
+              }`} />
+              <div className="flex-1 min-w-0 space-y-0.5">
+                <span className="text-[10px] font-mono text-[#5E6E64]">📅 {evt.event_date}</span>
+                <h4 className="font-bold text-xs text-[#123524] truncate">{evt.title}</h4>
+                <p className="text-[10.5px] text-[#5E6E64] truncate">{evt.description}</p>
+              </div>
             </div>
+            
+            <button
+              onClick={() => onNavigate && onNavigate('registration', evt.id)}
+              className="text-[10px] font-bold text-[#123524] hover:text-[#FFBC00] hover:bg-[#123524] border border-[#123524]/20 hover:border-transparent px-2.5 py-1 rounded-lg transition-all shrink-0"
+            >
+              Register
+            </button>
           </div>
         ))}
       </div>
@@ -76,7 +90,7 @@ export function UpcomingEventsList() {
   );
 }
 
-export default function PublicEventCalendar() {
+export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab: string, eventId?: string) => void }) {
   const [currentDate, setCurrentDate] = useState(new Date(2026, 5, 16)); // Target June 16, 2026 as reference base month
   const [events, setEvents] = useState<EventItemDB[]>([]);
   const [selectedDateStr, setSelectedDateStr] = useState<string>('2026-06-16');
@@ -232,13 +246,21 @@ export default function PublicEventCalendar() {
               {evt.description && <p className="text-[#5E6E64] text-xs leading-relaxed">{evt.description}</p>}
             </div>
             
-            <span className={`text-[9px] font-mono uppercase tracking-wider px-2.5 py-1 rounded-full font-bold self-start shrink-0 ${
-              evt.category === 'priority'
-                ? 'bg-amber-100 text-[#123524]'
-                : 'bg-zinc-100 text-[#5E6E64]'
-            }`}>
-              {evt.category}
-            </span>
+            <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 self-stretch sm:self-auto shrink-0">
+              <span className={`text-[9px] font-mono uppercase tracking-wider px-2.5 py-1 rounded-full font-bold ${
+                evt.category === 'priority'
+                  ? 'bg-amber-100 text-[#123524]'
+                  : 'bg-zinc-100 text-[#5E6E64]'
+              }`}>
+                {evt.category}
+              </span>
+              <button
+                onClick={() => onNavigate && onNavigate('registration', evt.id)}
+                className="text-[10px] font-bold bg-[#123524] hover:bg-[#FFBC00] text-white hover:text-[#123524] px-3 py-1.5 rounded-lg transition-all shadow-xs"
+              >
+                Register
+              </button>
+            </div>
           </div>
         ))}
       </div>
@@ -398,7 +420,7 @@ export default function PublicEventCalendar() {
       )}
 
       {/* 3. SELECTED DAY PANEL (MOBILE MODAL PORTAL SHEET) */}
-      {isMobile && showMobileModal && (
+      {isMobile && showMobileModal && createPortal(
         <div className="fixed inset-0 z-[60] flex items-end justify-center p-0 bg-black/60 backdrop-blur-xs font-sans">
           <div className="absolute inset-0" onClick={() => setShowMobileModal(false)} />
           <div className="relative w-full max-h-[80vh] bg-white rounded-t-3xl overflow-hidden shadow-2xl flex flex-col justify-between border-t border-stone-200 animate-slide-up">
@@ -425,7 +447,8 @@ export default function PublicEventCalendar() {
             </div>
 
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>
