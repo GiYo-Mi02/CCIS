@@ -13,6 +13,7 @@ import MessagesInbox from './sections/MessagesInbox';
 import EventCalendar from './sections/EventCalendar';
 import SettingsRoles from './sections/SettingsRoles';
 import UserManager from './sections/UserManager';
+import FaqManager from './sections/FaqManager';
 import { useAuth } from '../context/AuthContext';
 
 interface AdminAppProps {
@@ -73,6 +74,9 @@ function AdminAppInner({ onExitAdmin }: AdminAppProps) {
         return <Dashboard />;
       case 'users':
         if (role === 'devcom_head') return <UserManager />;
+        return <Dashboard />;
+      case 'faqs':
+        if (role === 'devcom_head' || role === 'comm_content') return <FaqManager />;
         return <Dashboard />;
       default: return <Dashboard />;
     }
