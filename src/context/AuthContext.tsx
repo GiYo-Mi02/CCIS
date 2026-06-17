@@ -15,6 +15,8 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<void>;
+  banNotice: { bannedUntil: string | null } | null;
+  clearBanNotice: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,6 +32,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [banNotice, setBanNotice] = useState<{ bannedUntil: string | null } | null>(null);
+
+  const clearBanNotice = useCallback(() => setBanNotice(null), []);
+
+  // Replace Google OAuth callback URL in browser history to fix back-button loop
+  useEffect(() => {
+    if (
+      window.location.hash.includes('access_token=') ||
+      window.location.search.includes('code=') ||
+      window.location.hash.includes('error=')
+    ) {
+      const cleanUrl = window.location.origin + window.location.pathname;
+      window.history.replaceState(null, '', cleanUrl);
+    }
+  }, []);
 
   const fetchProfile = useCallback(async (userId: string) => {
     const { data, error } = await supabase
@@ -94,6 +111,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (currentSession?.user) {
           const p = await fetchProfile(currentSession.user.id);
+          const isBanned = p?.banned && (!p.banned_until || new Date(p.banned_until) > new Date());
+          if (isBanned) {
+            await supabase.auth.signOut();
+            if (mounted) {
+              setSession(null);
+              setUser(null);
+              setProfile(null);
+              setBanNotice({ bannedUntil: p.banned_until });
+              setLoading(false);
+            }
+            return;
+          }
           if (mounted) setProfile(p);
         }
       } catch (err) {
@@ -134,6 +163,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             await new Promise(r => setTimeout(r, 500));
           }
           const p = await fetchProfile(newSession.user.id);
+          const isBanned = p?.banned && (!p.banned_until || new Date(p.banned_until) > new Date());
+          if (isBanned) {
+            await supabase.auth.signOut();
+            if (mounted) {
+              setSession(null);
+              setUser(null);
+              setProfile(null);
+              setBanNotice({ bannedUntil: p.banned_until });
+              setLoading(false);
+            }
+            return;
+          }
           if (mounted) setProfile(p);
         } else {
           setProfile(null);
@@ -215,6 +256,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signOut,
       refreshProfile,
       updateProfile,
+      banNotice,
+      clearBanNotice,
     }}>
       {children}
     </AuthContext.Provider>

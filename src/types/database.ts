@@ -15,6 +15,8 @@ export interface Profile {
   position: string | null;
   committee_id: string | null;
   profile_complete: boolean;
+  banned: boolean;
+  banned_until: string | null;
   created_at: string;
   updated_at: string;
 }

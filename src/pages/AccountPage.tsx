@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { EventRegistration, Conversation, Message } from '../types/database';
+import { Registration } from '../types';
+import html2canvas from 'html2canvas-pro';
+import { QRCodeCanvas } from 'qrcode.react';
 import {
   User, Mail, GraduationCap, Hash, Calendar, LogOut,
-  Ticket, AlertCircle, CheckCircle2, Clock, ChevronDown, Shield, Layers
+  Ticket, AlertCircle, CheckCircle2, Clock, ChevronDown, Shield, Layers,
+  Download, Printer, X, Lock, MapPin, AlertTriangle
 } from 'lucide-react';
 
 interface AccountPageProps {
@@ -21,6 +26,9 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
   const [program, setProgram] = useState('BSCS');
   const [section, setSection] = useState('');
   const [saving, setSaving] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [studentIdError, setStudentIdError] = useState('');
+  const [activeTicket, setActiveTicket] = useState<EventRegistration | null>(null);
 
   // Data sections
   const [registrations, setRegistrations] = useState<EventRegistration[]>([]);
@@ -178,25 +186,77 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
     }
   }, [activeTab, conversation, lastMessages, user]);
 
-  const handleSaveProfile = async () => {
-    setSaving(true);
-    const sectionTrimmed = section.trim().toUpperCase().replace(/\s/g, '');
-    if (sectionTrimmed && !/^[A-Z0-9]+$/.test(sectionTrimmed)) {
-      alert('Section must contain only uppercase letters and numbers, with no spaces (e.g. ACSAD).');
-      setSaving(false);
+  const handleSaveProfileSubmit = () => {
+    setStudentIdError('');
+
+    const idClean = studentNumber.trim().toUpperCase();
+    if (!/^[KA]\d{8}$/.test(idClean)) {
+      setStudentIdError('Student ID must start with K or A followed by exactly 8 digits (e.g., K12345678).');
       return;
     }
 
+    const sectionTrimmed = section.trim().toUpperCase().replace(/\s/g, '');
+    if (!sectionTrimmed) {
+      alert('Section is required.');
+      return;
+    }
+
+    // Program-specific section validations
+    if (program === 'DAD') {
+      if (!/^[A-Z]-APPDEV$/.test(sectionTrimmed)) {
+        alert('For Diploma in Application Development (DAD), section must start with a single uppercase letter, a dash, and "APPDEV" (e.g., A-APPDEV).');
+        return;
+      }
+    } else if (program === 'DNA') {
+      if (!/^[A-Z]-NETAD$/.test(sectionTrimmed)) {
+        alert('For Diploma in Network Administration (DNA), section must start with a single uppercase letter, a dash, and "NETAD" (e.g., A-NETAD).');
+        return;
+      }
+    } else if (program === 'BSCS') {
+      const allowed = ['ACSAD', 'BCSAD', 'CCSAD', 'DCSAD', 'DCSADA', 'ECSAD', 'FCSAD'];
+      if (!allowed.includes(sectionTrimmed)) {
+        alert('For BSCS, section must be exactly one of: ACSAD, BCSAD, CCSAD, DCSAD, DCSADA, ECSAD, FCSAD.');
+        return;
+      }
+    } else if (program === 'BSIT') {
+      const allowed = ['AINS', 'BINS', 'CINS', 'DINS', 'EINS', 'FINS'];
+      if (!allowed.includes(sectionTrimmed)) {
+        alert('For BSIT, section must be exactly one of: AINS, BINS, CINS, DINS, EINS, FINS.');
+        return;
+      }
+    } else if (program === 'BSIS') {
+      if (!/^[A-Z0-9]+$/.test(sectionTrimmed)) {
+        alert('For BSIS, section must contain only uppercase letters and numbers, with no spaces (e.g., ACSIS).');
+        return;
+      }
+    } else {
+      if (!/^[A-Z0-9-]+$/.test(sectionTrimmed)) {
+        alert('Section must contain only uppercase letters, numbers, and hyphens with no spaces.');
+        return;
+      }
+    }
+
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmLock = async () => {
+    setShowConfirmModal(false);
+    setSaving(true);
+    const sectionTrimmed = section.trim().toUpperCase().replace(/\s/g, '');
+    const idClean = studentNumber.trim().toUpperCase();
+
     try {
       await updateProfile({
-        student_number: studentNumber.trim(),
+        student_number: idClean,
         year_level: yearLevel,
         program,
-        section: sectionTrimmed || null,
+        section: sectionTrimmed,
+        profile_complete: true,
       });
       setEditing(false);
     } catch (err) {
       console.error(err);
+      alert('Failed to update profile: ' + (err as any).message);
     } finally {
       setSaving(false);
     }
@@ -224,6 +284,37 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
 
   return (
     <div className="min-h-screen bg-[var(--color-bg-cream,#FAF7EA)] py-12 px-4 sm:px-6 lg:px-8 font-sans">
+      {/* Confirmation Lock Modal */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-scale-up font-sans">
+          <div className="w-full max-w-sm bg-[#1A3C2E] border border-white/10 p-6 rounded-2xl shadow-2xl text-center space-y-4">
+            <Lock size={36} className="mx-auto text-[#F5B400]" />
+            <h3 className="text-white font-black text-lg">Confirm Account Details</h3>
+            <p className="text-stone-300 text-xs leading-relaxed">
+              Please double check your details. By locking your profile, you confirm all information entered is true and accurate.
+            </p>
+            <p className="text-[#F5B400] text-[10px] font-bold bg-[#F5B400]/10 border-l-2 border-[#F5B400] p-2.5 rounded text-left flex items-start gap-1.5">
+              <AlertTriangle size={12} className="shrink-0 mt-0.5" />
+              <span>Once confirmed, your profile will be permanently locked and cannot be edited without contacting admin support.</span>
+            </p>
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => setShowConfirmModal(false)}
+                className="flex-1 bg-white/10 hover:bg-white/20 text-white py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all"
+              >
+                Go Back
+              </button>
+              <button
+                onClick={handleConfirmLock}
+                className="flex-1 bg-[#F5B400] hover:bg-[#ffc522] text-[#1A3C2E] py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all"
+              >
+                Confirm &amp; Lock
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-5xl mx-auto">
 
         {/* Header */}
@@ -324,17 +415,27 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
             {/* Student Details Stack (Stacked Tightly) */}
             <div className="pt-2 border-t border-zinc-100 space-y-2.5">
               {/* Student ID */}
-              <div className="flex items-center justify-between text-xs py-0.5">
-                <span className="text-[#5E6E64] font-mono text-[10px] uppercase tracking-wider flex items-center gap-1.5">
+              <div className="flex items-start justify-between text-xs py-0.5">
+                <span className="text-[#5E6E64] font-mono text-[10px] uppercase tracking-wider flex items-center gap-1.5 mt-1">
                   <Hash size={12} className="text-[var(--color-accent-gold,#F5B400)]" /> Student ID
                 </span>
                 {editing ? (
-                  <input
-                    type="text" 
-                    value={studentNumber} 
-                    onChange={(e) => setStudentNumber(e.target.value)}
-                    className="w-1/2 bg-zinc-50 border border-zinc-200 rounded px-2 py-0.5 text-xs text-[var(--color-primary-green,#1A3C2E)] outline-none focus:border-[var(--color-accent-gold,#F5B400)] font-bold text-right"
-                  />
+                  <div className="flex flex-col items-end w-1/2">
+                    <input
+                      type="text" 
+                      value={studentNumber} 
+                      onChange={(e) => {
+                        setStudentNumber(e.target.value);
+                        if (studentIdError) setStudentIdError('');
+                      }}
+                      className={`w-full bg-zinc-50 border ${studentIdError ? 'border-red-500' : 'border-zinc-200'} rounded px-2 py-0.5 text-xs text-[var(--color-primary-green,#1A3C2E)] outline-none focus:border-[var(--color-accent-gold,#F5B400)] font-bold text-right`}
+                    />
+                    {studentIdError && (
+                      <span className="text-red-500 text-[8.5px] mt-0.5 text-right font-sans block leading-tight">
+                        {studentIdError}
+                      </span>
+                    )}
+                  </div>
                 ) : (
                   <span className="font-bold text-[var(--color-primary-green,#1A3C2E)]">{profile.student_number || '—'}</span>
                 )}
@@ -375,7 +476,8 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
                     <option value="BSCS">BSCS</option>
                     <option value="BSIT">BSIT</option>
                     <option value="BSIS">BSIS</option>
-                    <option value="BSDS">BSDS</option>
+                    <option value="DNA">DNA</option>
+                    <option value="DAD">DAD</option>
                   </select>
                 ) : (
                   <span className="font-bold text-[var(--color-primary-green,#1A3C2E)]">{profile.program || '—'}</span>
@@ -387,17 +489,10 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
                 <span className="text-[#5E6E64] font-mono text-[10px] uppercase tracking-wider flex items-center gap-1.5">
                   <Layers size={12} className="text-[var(--color-accent-gold,#F5B400)]" /> Class Section
                 </span>
-                {editing ? (
-                  <input
-                    type="text" 
-                    value={section} 
-                    onChange={(e) => setSection(e.target.value.toUpperCase().replace(/\s/g, ''))}
-                    className="w-1/2 bg-zinc-50 border border-zinc-200 rounded px-2 py-0.5 text-xs text-[var(--color-primary-green,#1A3C2E)] outline-none focus:border-[var(--color-accent-gold,#F5B400)] font-bold text-right"
-                    placeholder="e.g. ACSAD"
-                  />
-                ) : (
-                  <span className="font-bold text-[var(--color-primary-green,#1A3C2E)]">{profile.section || '—'}</span>
-                )}
+                <span className="font-bold text-[var(--color-primary-green,#1A3C2E)] flex items-center gap-1">
+                  {editing && <Lock size={10} className="text-stone-400 select-none inline-block mr-1" />}
+                  {profile.section || '—'}
+                </span>
               </div>
             </div>
 
@@ -406,14 +501,14 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
               {editing ? (
                 <>
                   <button 
-                    onClick={handleSaveProfile} 
+                    onClick={handleSaveProfileSubmit} 
                     disabled={saving}
                     className="w-full bg-[var(--color-accent-gold,#F5B400)] hover:bg-[#ffc522] text-[var(--color-primary-green,#1A3C2E)] py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-60"
                   >
                     {saving ? 'Saving...' : 'Save Changes'}
                   </button>
                   <button 
-                    onClick={() => setEditing(false)}
+                    onClick={() => { setEditing(false); setStudentIdError(''); }}
                     className="w-full bg-zinc-100 hover:bg-zinc-200 text-zinc-600 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all"
                   >
                     Cancel
@@ -421,12 +516,23 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
                 </>
               ) : (
                 <>
-                  <button 
-                    onClick={() => setEditing(true)}
-                    className="w-full bg-[var(--color-primary-green,#1A3C2E)] hover:bg-[#255541] text-white py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all"
-                  >
-                    Edit Profile
-                  </button>
+                  {!profile.profile_complete ? (
+                    <button 
+                      onClick={() => setEditing(true)}
+                      className="w-full bg-[var(--color-primary-green,#1A3C2E)] hover:bg-[#255541] text-white py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all"
+                    >
+                      Edit Profile
+                    </button>
+                  ) : (
+                    <div className="p-3 bg-zinc-50 border border-zinc-200 rounded-2xl text-[10px] text-stone-500 space-y-1 shadow-xs">
+                      <p className="font-bold flex items-center gap-1 text-[var(--color-primary-green,#1A3C2E)]">
+                        <AlertCircle size={12} className="text-[var(--color-accent-gold,#F5B400)]" /> Profile Locked
+                      </p>
+                      <p className="leading-normal">
+                        Your profile is locked. Please reach out to admin support for any changes.
+                      </p>
+                    </div>
+                  )}
                   {isAdmin && onNavigate && (
                     <button 
                       onClick={() => onNavigate('admin')}
@@ -480,50 +586,69 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
 
             {/* Active Tab Panel Content */}
             {activeTab === 'registrations' ? (
-              <div>
-                {loadingData ? (
-                  <div className="text-center py-16">
-                    <div className="w-8 h-8 border-3 border-[var(--color-accent-gold,#F5B400)] border-t-transparent rounded-full animate-spin mx-auto" />
+              <div className="space-y-6">
+                
+                {/* Registration History list header */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between border-b border-zinc-200 pb-2">
+                    <h3 className="font-sans font-black text-xs uppercase tracking-wider text-[#5E6E64]">
+                      Registration History
+                    </h3>
                   </div>
-                ) : (
-                  <div className="space-y-4 animate-fade-in">
-                    {registrations.length === 0 ? (
-                      <div className="bg-white rounded-3xl border border-zinc-100 p-12 text-center text-zinc-400 space-y-4 shadow-sm">
-                        <div className="space-y-2">
-                          <Ticket size={32} className="mx-auto mb-2 opacity-30 text-[var(--color-primary-green,#1A3C2E)]" />
-                          <p className="font-bold text-sm text-zinc-500">No event registrations yet</p>
-                          <p className="text-xs leading-relaxed max-w-sm mx-auto">
-                            You haven't registered for any events yet — check Announcements or Registration for upcoming events.
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => onNavigate && onNavigate('registration')}
-                          className="bg-[var(--color-accent-gold,#F5B400)] hover:bg-[#ffc522] text-[var(--color-primary-green,#1A3C2E)] px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-xs"
-                        >
-                          Explore Events
-                        </button>
-                      </div>
-                    ) : (
-                      registrations.map(reg => (
-                        <div key={reg.id} className="bg-white rounded-2xl border border-zinc-100 p-5 shadow-sm hover:shadow-md transition-shadow">
-                          <div className="flex items-center justify-between gap-2 flex-wrap mb-2">
-                            <h3 className="font-sans font-bold text-base text-[var(--color-primary-green,#1A3C2E)]">
-                              {reg.events?.title || 'Event'}
-                            </h3>
-                            <span className={`text-[10px] font-mono uppercase tracking-wider px-2.5 py-0.5 rounded-full font-bold ${statusBadge(reg.status)}`}>
-                              {reg.status === 'confirmed' || reg.status === 'pending' ? 'Not Attended' : reg.status === 'attended' ? 'Attended' : reg.status}
-                            </span>
+ 
+                  {loadingData ? (
+                    <div className="text-center py-16">
+                      <div className="w-8 h-8 border-3 border-[var(--color-accent-gold,#F5B400)] border-t-transparent rounded-full animate-spin mx-auto" />
+                    </div>
+                  ) : (
+                    <div className="space-y-4 animate-fade-in">
+                      {registrations.length === 0 ? (
+                        <div className="bg-white rounded-3xl border border-zinc-100 p-12 text-center text-zinc-400 space-y-4 shadow-sm">
+                          <div className="space-y-2">
+                            <Ticket size={32} className="mx-auto mb-2 opacity-30 text-[var(--color-primary-green,#1A3C2E)]" />
+                            <p className="font-bold text-sm text-zinc-500">No event registrations yet</p>
+                            <p className="text-xs leading-relaxed max-w-sm mx-auto">
+                              You haven't registered for any events yet — check Announcements or Registration for upcoming events.
+                            </p>
                           </div>
-                          <div className="flex flex-wrap gap-4 text-xs text-[#5E6E64]">
-                            <span className="flex items-center gap-1"><Calendar size={11} />{reg.events?.event_date}</span>
-                            {reg.events?.location && <span className="flex items-center gap-1">📍 {reg.events.location}</span>}
-                            <span className="flex items-center gap-1"><Clock size={11} />Registered: {new Date(reg.registered_at).toLocaleDateString()}</span>
-                          </div>
+                          <button
+                            onClick={() => onNavigate && onNavigate('registration')}
+                            className="bg-[var(--color-accent-gold,#F5B400)] hover:bg-[#ffc522] text-[var(--color-primary-green,#1A3C2E)] px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-xs"
+                          >
+                            Explore Events
+                          </button>
                         </div>
-                      ))
-                    )}
-                  </div>
-                )}
+                      ) : (
+                        registrations.map(reg => (
+                          <div 
+                            key={reg.id} 
+                            onClick={() => setActiveTicket(reg)}
+                            className="bg-white rounded-2xl border border-zinc-100 p-5 shadow-sm hover:shadow-md hover:border-[var(--color-accent-gold,#F5B400)]/40 cursor-pointer select-none transition-all duration-200"
+                          >
+                            <div className="flex items-center justify-between gap-2 flex-wrap mb-2">
+                              <h3 className="font-sans font-bold text-base text-[var(--color-primary-green,#1A3C2E)]">
+                                {reg.events?.title || 'Event'}
+                              </h3>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[9px] font-sans font-bold text-[#F5B400] bg-[var(--color-primary-green,#1A3C2E)]/5 border border-[var(--color-primary-green,#1A3C2E)]/10 px-2 py-0.5 rounded flex items-center gap-1">
+                                  <Ticket size={11} className="shrink-0" /> View Pass
+                                </span>
+                                <span className={`text-[10px] font-mono uppercase tracking-wider px-2.5 py-0.5 rounded-full font-bold ${statusBadge(reg.status)}`}>
+                                  {reg.status === 'confirmed' || reg.status === 'pending' ? 'Not Attended' : reg.status === 'attended' ? 'Attended' : reg.status}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap gap-4 text-xs text-[#5E6E64]">
+                              <span className="flex items-center gap-1"><Calendar size={11} />{reg.events?.event_date}</span>
+                              {reg.events?.location && <span className="flex items-center gap-1"><MapPin size={11} /> {reg.events.location}</span>}
+                              <span className="flex items-center gap-1"><Clock size={11} />Registered: {new Date(reg.registered_at).toLocaleDateString()}</span>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             ) : (
               <div className="animate-fade-in space-y-4">
@@ -593,9 +718,227 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
               </div>
             )}
           </div>
+        </div>
+      </div>
+      {activeTicket && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs animate-scale-up font-sans">
+          <div className="relative w-full max-w-2xl bg-[#FAF7EA] border border-zinc-200/80 rounded-3xl overflow-hidden shadow-2xl p-5">
+            <button
+              onClick={() => setActiveTicket(null)}
+              className="absolute top-3 right-3 z-50 p-2 rounded-full bg-zinc-200/60 hover:bg-zinc-200 text-stone-600 transition-colors cursor-pointer"
+              title="Close Ticket"
+            >
+              <X size={16} />
+            </button>
+            <div className="pt-2">
+              <TicketDashboard 
+                registration={{
+                  id: activeTicket.id,
+                  name: profile.full_name || 'Student',
+                  email: profile.email || '',
+                  studentNumber: profile.student_number || '',
+                  courseYear: profile.program || 'CCIS',
+                  college: profile.program || 'CCIS',
+                  section: profile.section || '',
+                  eventId: activeTicket.event_id,
+                  eventTitle: activeTicket.events?.title || 'CCIS Event',
+                  registeredAt: new Date(activeTicket.registered_at).toISOString().split('T')[0],
+                  status: activeTicket.status,
+                }} 
+              />
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+}
 
+// Sub-component rendering official custom printable ticket 
+function TicketDashboard({ registration }: { registration: Registration; key?: string }) {
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const getDummyBarcode = (id: string) => {
+    return (
+      <div className="flex items-center h-12 w-full gap-[2px] bg-white p-1 rounded border border-zinc-200">
+        {Array.from({ length: 42 }).map((_, i) => {
+          const widthClass = (i % 3 === 0 || i % 7 === 0) ? 'w-[3px]' : 'w-[1px]';
+          const opacityClass = (i % 2 === 0 || i % 5 === 0) ? 'bg-[#1A3C2E]' : 'bg-transparent';
+          return (
+            <div key={i} className={`h-full ${widthClass} ${opacityClass}`} />
+          );
+        })}
+      </div>
+    );
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const downloadPng = async () => {
+    if (isDownloading) return;
+    setIsDownloading(true);
+
+    try {
+      const element = document.getElementById(`ticket-pass-${registration.id}`);
+      if (!element) {
+        console.error('Ticket element not found:', `ticket-pass-${registration.id}`);
+        setIsDownloading(false);
+        return;
+      }
+
+      // Wait a tick to ensure QR code canvas is fully rendered
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      const canvas = await html2canvas(element, {
+        backgroundColor: '#FAF7EA',
+        useCORS: true,
+        scale: 2,
+        logging: false,
+        onclone: (clonedDoc: Document, clonedElement: HTMLElement) => {
+          // Find all canvas elements inside the cloned ticket
+          const canvasElements = clonedElement.querySelectorAll('canvas');
+          canvasElements.forEach((canvasEl) => {
+            try {
+              const dataUrl = (document.querySelector(
+                `#ticket-pass-${registration.id} canvas`
+              ) as HTMLCanvasElement)?.toDataURL('image/png');
+              
+              if (dataUrl) {
+                const img = clonedDoc.createElement('img');
+                img.src = dataUrl;
+                img.style.width = canvasEl.style.width || `${canvasEl.width}px`;
+                img.style.height = canvasEl.style.height || `${canvasEl.height}px`;
+                img.style.display = 'block';
+                canvasEl.parentNode?.replaceChild(img, canvasEl);
+              }
+            } catch (e) {
+              console.warn('Failed to convert canvas to image in clone:', e);
+            }
+          });
+
+          // Remove action buttons from the captured image
+          const ignoreElements = clonedElement.querySelectorAll('[data-html2canvas-ignore]');
+          ignoreElements.forEach(el => el.remove());
+        },
+      });
+      
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          console.error('Failed to create blob from canvas');
+          alert('Failed to download ticket. Please try the Print option instead.');
+          setIsDownloading(false);
+          return;
+        }
+        
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.download = `ticket-${registration.eventTitle.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${registration.id.slice(0, 8)}.png`;
+        link.href = url;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        setIsDownloading(false);
+      }, 'image/png');
+    } catch (err) {
+      console.error('Failed to export ticket as PNG:', err);
+      alert('Failed to download ticket as PNG. Please try the Print option instead.');
+      setIsDownloading(false);
+    }
+  };
+
+  return (
+    <div 
+      className="bg-white border rounded-3xl shadow-md border-zinc-200/80 overflow-hidden flex flex-col md:flex-row max-w-2xl mx-auto transform transition-transform hover:scale-[1.01] font-sans"
+      id={`ticket-pass-${registration.id}`}
+    >
+      <div className="bg-[#1A3C2E] text-white p-5 md:p-6 flex flex-col justify-between items-start md:w-3/5 border-r border-dashed border-zinc-300 relative">
+        <div className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-[#FAF7EA] hidden md:block" />
+        <div className="w-full space-y-4">
+          <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-2.5">
+            <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-[#F5B400] font-extrabold">
+              CCIS BOARDING PASS
+            </span>
+            <span className="font-mono text-[9.5px] uppercase text-stone-300 bg-white/5 px-2 py-0.5 rounded">
+              {registration.id}
+            </span>
+          </div>
+
+          <div className="space-y-1.5">
+            <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">Event Title</span>
+            <h3 className="font-sans font-black text-base sm:text-lg text-[#F5B400] leading-snug">
+              {registration.eventTitle}
+            </h3>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 pt-1">
+            <div className="space-y-1">
+              <span className="text-[9px] uppercase font-bold text-stone-400 block tracking-wider">Attendee</span>
+              <span className="font-sans font-extrabold text-sm block leading-tight text-white truncate max-w-full" title={registration.name}>
+                {registration.name}
+              </span>
+            </div>
+            <div className="space-y-1">
+              <span className="text-[9px] uppercase font-bold text-stone-400 block tracking-wider">Student ID & Section</span>
+              <span className="font-mono text-xs block text-stone-300">
+                {registration.studentNumber} {registration.section ? `(${registration.section.toUpperCase()})` : ''}
+              </span>
+            </div>
+          </div>
         </div>
 
+        <div className="mt-5 w-full pt-3 border-t border-white/5 flex items-center justify-between text-[10px] font-mono text-stone-400">
+          <span>BRANCH: {registration.college.toUpperCase()}</span>
+          {registration.section && <span>SECTION: {registration.section.toUpperCase()}</span>}
+          <span>DATE: {registration.registeredAt}</span>
+        </div>
+      </div>
+
+      <div className="bg-zinc-50 p-5 md:p-6 flex flex-col justify-between items-center sm:w-full md:w-2/5 text-center relative">
+        <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-[#FAF7EA] hidden md:block" />
+        <div className="flex flex-col items-center space-y-2.5 w-full">
+          <span className="font-mono text-[9px] uppercase tracking-wider text-[#5E6E64] font-bold">
+            SCAN CODE FOR ENTRY
+          </span>
+          <div className="bg-white p-2.5 rounded-2xl shadow-inner border border-zinc-200 flex items-center justify-center">
+            <QRCodeCanvas 
+              value={registration.id} 
+              size={85} 
+              bgColor="#ffffff" 
+              fgColor="#1A3C2E" 
+              level="M"
+            />
+          </div>
+          <span className="font-mono text-[8.5px] bg-zinc-200 text-[#1A3C2E] px-2 py-0.5 rounded font-extrabold">
+            ACTIVE TICKET VERIFIED
+          </span>
+        </div>
+
+        <div className="w-full mt-4 space-y-2">
+          {getDummyBarcode(registration.id)}
+          <div className="grid grid-cols-2 gap-2" data-html2canvas-ignore="true">
+            <button
+              onClick={handlePrint}
+              className="bg-[#1A3C2E] hover:bg-neutral-800 text-white font-mono text-[9px] uppercase font-bold tracking-wider py-2 rounded transition-all shadow cursor-pointer flex items-center justify-center gap-1"
+            >
+              <Printer size={10} /> PRINT
+            </button>
+            <button
+              onClick={downloadPng}
+              disabled={isDownloading}
+              className="bg-[#F5B400] hover:bg-[#ffc522] text-[#1A3C2E] font-mono text-[9px] uppercase font-bold tracking-wider py-2 rounded transition-all shadow cursor-pointer flex items-center justify-center gap-1 disabled:opacity-60"
+            >
+              {isDownloading ? (
+                <><div className="w-3 h-3 border-2 border-[#1A3C2E] border-t-transparent rounded-full animate-spin" /> SAVING...</>
+              ) : (
+                <><Download size={10} /> SAVE PNG</>
+              )}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

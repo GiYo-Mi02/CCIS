@@ -30,9 +30,9 @@ BEGIN
     RAISE EXCEPTION 'Full name must not exceed 255 characters.';
   END IF;
 
-  -- Enforce section matches uppercase letters and numbers only, no spaces
-  IF NEW.section IS NOT NULL AND NEW.section !~ '^[A-Z0-9]+$' THEN
-    RAISE EXCEPTION 'Invalid section format. It must contain only uppercase letters and numbers, with no spaces (e.g., ACSAD, A31).';
+  -- Enforce section matches uppercase letters, numbers, and hyphens only, no spaces
+  IF NEW.section IS NOT NULL AND NEW.section !~ '^[A-Z0-9-]+$' THEN
+    RAISE EXCEPTION 'Invalid section format. It must contain only uppercase letters, numbers, and hyphens, with no spaces (e.g., ACSAD, A-APPDEV).';
   END IF;
 
   RETURN NEW;
@@ -64,10 +64,10 @@ ALTER TABLE public.profiles
   ADD CONSTRAINT check_profile_name_length
   CHECK (full_name IS NULL OR length(full_name) <= 255);
 
--- Add check constraint for section regex matching (uppercase & numbers only, no spaces)
+-- Add check constraint for section regex matching (uppercase, numbers & hyphens only, no spaces)
 ALTER TABLE public.profiles
   ADD CONSTRAINT check_profile_section
-  CHECK (section IS NULL OR section ~ '^[A-Z0-9]+$');
+  CHECK (section IS NULL OR section ~ '^[A-Z0-9-]+$');
 
 
 -- 3. IMMEDIATELY PROMOTE EXISTING ACCOUNT IF ALREADY CREATED

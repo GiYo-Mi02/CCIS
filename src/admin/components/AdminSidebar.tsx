@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Megaphone, ClipboardList,
-  Users, CalendarDays, Settings, ArrowLeft, ChevronLeft, ChevronRight, MessageSquare, Scan
+  Users, CalendarDays, Settings, ArrowLeft, ChevronLeft, ChevronRight, MessageSquare, Scan, UserCog
 } from 'lucide-react';
 import { useAdmin } from '../AdminContext';
 import { useAuth } from '../../context/AuthContext';
@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { id: 'registration', label: 'Registration', icon: ClipboardList },
   { id: 'scanner', label: 'Ticket Scanner', icon: Scan },
   { id: 'officers', label: 'Officers & Committees', icon: Users },
+  { id: 'users', label: 'User Management', icon: UserCog },
   { id: 'messages', label: 'Concern Inbox', icon: MessageSquare },
   { id: 'calendar', label: 'Event Calendar', icon: CalendarDays },
   { id: 'settings', label: 'Settings & Roles', icon: Settings },
@@ -87,6 +88,9 @@ export default function AdminSidebar({ collapsed, onToggle, onExitAdmin }: Admin
     }
     if (item.id === 'scanner') {
       return role === 'devcom_head' || role === 'comm_registration';
+    }
+    if (item.id === 'users') {
+      return role === 'devcom_head';
     }
     return true;
   });

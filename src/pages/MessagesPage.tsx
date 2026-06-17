@@ -3,7 +3,6 @@ import { Send, ArrowLeft, Loader2, MessageSquare, Clock, User, AlertCircle } fro
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Conversation, Message } from '../types/database';
-import { usePolling } from '../utils/usePolling';
 
 interface MessagesPageProps {
   onNavigate: (tab: string) => void;
@@ -127,13 +126,53 @@ export default function MessagesPage({ onNavigate }: MessagesPageProps) {
       });
     }
   }, [conversation]);
-
-  // Visibility-aware 7s polling
-  usePolling(async () => {
+  // Set up realtime channel subscription to listen for inserts/updates
+  useEffect(() => {
     if (!conversation) return;
-    // Query only the first page (latest 50 messages) to check for updates
-    await fetchMessages(0, false);
-  }, 7000);
+
+    const channelId = `student_chat_messages_${conversation.id}`;
+    const channel = supabase
+      .channel(channelId)
+      .on(
+        'postgres_changes',
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'messages',
+          filter: `conversation_id=eq.${conversation.id}`
+        },
+        async (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const newMsg = payload.new as Message;
+            
+            // Mark admin messages as read by student in the database
+            if (newMsg.sender_role === 'admin' && !newMsg.read_by_student) {
+              await supabase
+                .from('messages')
+                .update({ read_by_student: true })
+                .eq('id', newMsg.id);
+              newMsg.read_by_student = true;
+            }
+
+            setMessages((prev) => {
+              if (prev.some((m) => m.id === newMsg.id)) return prev;
+              return [...prev, newMsg];
+            });
+            scrollToBottom();
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedMsg = payload.new as Message;
+            setMessages((prev) => 
+              prev.map((m) => (m.id === updatedMsg.id ? updatedMsg : m))
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [conversation]);
 
   // Scroll to bottom helper
   const scrollToBottom = () => {
@@ -278,7 +317,7 @@ export default function MessagesPage({ onNavigate }: MessagesPageProps) {
                                 ? 'bg-white border border-zinc-150 text-[#222B26] rounded-tl-none' 
                                 : 'bg-[var(--color-primary-green,#1A3C2E)] text-[#FAF7EA] rounded-tr-none'
                             }`}>
-                              <p className="whitespace-pre-wrap break-all">{msg.content}</p>
+                              <p className="whitespace-pre-wrap" style={{ wordBreak: 'break-word', overflowWrap: 'break-word', whiteSpace: 'pre-wrap' }}>{msg.content}</p>
                             </div>
                             
                             {/* Timestamp / Read indicator */}

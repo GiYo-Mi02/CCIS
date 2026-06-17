@@ -54,7 +54,7 @@ export default function App({ onAdminSwitch }: AppProps) {
   };
 
   // Full-screen pages (no navbar/footer)
-  if (activeTab === 'login') {
+  if (activeTab === 'login' || (user && profile && !profile.profile_complete)) {
     return <AuthPage onNavigate={handleNavigate} />;
   }
 

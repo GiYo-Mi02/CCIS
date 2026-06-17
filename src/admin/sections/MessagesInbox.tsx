@@ -225,27 +225,36 @@ export default function MessagesInbox() {
       .channel(channelId)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages' },
+        { event: '*', schema: 'public', table: 'messages' },
         async (payload) => {
-          const newMsg = payload.new as Message;
           const activeConId = activeConIdRef.current;
 
-          // If the message is for the active thread, append it
-          if (activeConId && newMsg.conversation_id === activeConId) {
-            if (newMsg.sender_role === 'student' && !newMsg.read_by_admin) {
-              // Mark as read immediately
-              await supabase
-                .from('messages')
-                .update({ read_by_admin: true })
-                .eq('id', newMsg.id);
-              newMsg.read_by_admin = true;
+          if (payload.eventType === 'INSERT') {
+            const newMsg = payload.new as Message;
+            // If the message is for the active thread, append it
+            if (activeConId && newMsg.conversation_id === activeConId) {
+              if (newMsg.sender_role === 'student' && !newMsg.read_by_admin) {
+                // Mark as read immediately
+                await supabase
+                  .from('messages')
+                  .update({ read_by_admin: true })
+                  .eq('id', newMsg.id);
+                newMsg.read_by_admin = true;
+              }
+              
+              setMessages(prev => {
+                if (prev.some(m => m.id === newMsg.id)) return prev;
+                return [...prev, newMsg];
+              });
+              scrollToBottom();
             }
-            
-            setMessages(prev => {
-              if (prev.some(m => m.id === newMsg.id)) return prev;
-              return [...prev, newMsg];
-            });
-            scrollToBottom();
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedMsg = payload.new as Message;
+            if (activeConId && updatedMsg.conversation_id === activeConId) {
+              setMessages(prev =>
+                prev.map(m => m.id === updatedMsg.id ? updatedMsg : m)
+              );
+            }
           }
 
           // Re-fetch conversation details/badge status globally
@@ -507,7 +516,7 @@ export default function MessagesInbox() {
                                   ? 'bg-[var(--color-primary-green,#1A3C2E)] text-[#FAF7EA] rounded-tr-none' 
                                   : 'bg-white border border-zinc-150 text-[#222B26] rounded-tl-none'
                               }`}>
-                                <p className="whitespace-pre-wrap break-all">{msg.content}</p>
+                                <p className="whitespace-pre-wrap" style={{ wordBreak: 'break-word', overflowWrap: 'break-word', whiteSpace: 'pre-wrap' }}>{msg.content}</p>
                               </div>
                               
                               <span className={`text-[8.5px] font-mono text-zinc-400 mt-1 flex items-center gap-1 ${isAdminReply ? 'justify-end' : 'justify-start'}`}>

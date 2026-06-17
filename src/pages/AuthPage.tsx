@@ -1,13 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import CouncilSeal from '../components/CouncilSeal';
+import { Lock, AlertTriangle, ShieldAlert } from 'lucide-react';
 
 interface AuthPageProps {
   onNavigate?: (tab: string) => void;
 }
-
-type AuthMethod = 'google' | 'email';
-type EmailMode = 'signin' | 'signup';
 
 export default function AuthPage({ onNavigate }: AuthPageProps) {
   const { 
@@ -17,20 +14,14 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
     signInWithGoogle, 
     signInWithEmail, 
     signUpWithEmail, 
-    updateProfile 
+    updateProfile,
+    banNotice,
+    clearBanNotice
   } = useAuth();
   
-  const [authMethod, setAuthMethod] = useState<AuthMethod>('google');
-  const [emailMode, setEmailMode] = useState<EmailMode>('signin');
   const [signingIn, setSigningIn] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [infoMessage, setInfoMessage] = useState('');
-
-  // Email form state
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
 
   // Profile completion state
   const [studentNumber, setStudentNumber] = useState('');
@@ -39,11 +30,49 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
   const [section, setSection] = useState('');
   const [completing, setCompleting] = useState(false);
 
-  // If user is logged in and profile is complete, redirect to account
-  if (user && profile?.profile_complete && onNavigate) {
-    setTimeout(() => onNavigate('account'), 0);
-    return null;
-  }
+  // Data privacy & confirmation states
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [privacyChecked, setPrivacyChecked] = useState(false);
+  const [studentIdError, setStudentIdError] = useState('');
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [justCompletedSetup, setJustCompletedSetup] = useState(false);
+
+  // Portal transition states
+  const [transitionProgress, setTransitionProgress] = useState(0);
+  const [transitionComplete, setTransitionComplete] = useState(false);
+
+  useEffect(() => {
+    if (user && profile?.profile_complete) {
+      if (justCompletedSetup) {
+        if (!transitionComplete) {
+          const duration = 2500; // 2.5 seconds
+          const intervalTime = 30; // ms
+          const step = 100 / (duration / intervalTime);
+          
+          const timer = setInterval(() => {
+            setTransitionProgress((prev) => {
+              if (prev >= 100) {
+                clearInterval(timer);
+                setTransitionComplete(true);
+                if (onNavigate) {
+                  onNavigate('home');
+                }
+                return 100;
+              }
+              return prev + step;
+            });
+          }, intervalTime);
+
+          return () => clearInterval(timer);
+        }
+      } else {
+        // Direct redirect without loader
+        if (onNavigate) {
+          onNavigate('home');
+        }
+      }
+    }
+  }, [user, profile?.profile_complete, transitionComplete, onNavigate, justCompletedSetup]);
 
   const handleGoogleSignIn = async () => {
     setSigningIn(true);
@@ -62,108 +91,79 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
     }
   };
 
-  const handleEmailAuthSubmit = async (e: React.FormEvent) => {
+  const handleCompleteProfileSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setInfoMessage('');
-    
-    if (!email.trim() || !password) {
-      setError('Please fill in all credentials.');
+    setStudentIdError('');
+
+    const idClean = studentNumber.trim().toUpperCase();
+    if (!/^[KA]\d{8}$/.test(idClean)) {
+      setStudentIdError('Student ID must start with K or A followed by exactly 8 digits (e.g., K12345678 or A12345678).');
       return;
     }
-
-    setSubmitting(true);
-
-    try {
-      if (emailMode === 'signin') {
-        const emailRegex = /^[a-zA-Z0-9._%+-]+@umak\.edu\.ph$/i;
-        if (email.trim().toLowerCase() !== 'ggiojoshua2006@gmail.com' && !emailRegex.test(email.trim())) {
-          setError('Invalid login email. Only @umak.edu.ph accounts are acceptable.');
-          setSubmitting(false);
-          return;
-        }
-        await signInWithEmail(email.trim(), password);
-      } else {
-        // Full Name Validation
-        if (!fullName.trim()) {
-          setError('Please provide your full name.');
-          setSubmitting(false);
-          return;
-        }
-        if (fullName.trim().length > 255) {
-          setError('Full name must not exceed 255 characters.');
-          setSubmitting(false);
-          return;
-        }
-
-        // Email Validation
-        const emailRegex = /^[a-zA-Z0-9._%+-]+@umak\.edu\.ph$/i;
-        if (email.trim().toLowerCase() !== 'ggiojoshua2006@gmail.com' && !emailRegex.test(email.trim())) {
-          setError('Invalid email. Only @umak.edu.ph accounts are acceptable.');
-          setSubmitting(false);
-          return;
-        }
-        if (email.trim().length > 255) {
-          setError('Email must not exceed 255 characters.');
-          setSubmitting(false);
-          return;
-        }
-
-        // Password Validation
-        if (password.length < 8) {
-          setError('Password must be at least 8 characters long.');
-          setSubmitting(false);
-          return;
-        }
-        if (password.length > 255) {
-          setError('Password must not exceed 255 characters.');
-          setSubmitting(false);
-          return;
-        }
-        const hasUpper = /[A-Z]/.test(password);
-        const hasLower = /[a-z]/.test(password);
-        if (!hasUpper || !hasLower) {
-          setError('Password must contain at least one uppercase letter and one lowercase letter.');
-          setSubmitting(false);
-          return;
-        }
-
-        await signUpWithEmail(email.trim(), password, fullName.trim());
-        setInfoMessage('Account created successfully! Check your inbox for a verification email if required, otherwise switch to Sign In and log in.');
-        setEmailMode('signin');
-        setPassword('');
-      }
-    } catch (err: any) {
-      setError(err?.message || 'Authentication failed. Please check your inputs.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleCompleteProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!studentNumber.trim()) return;
-
-    setCompleting(true);
-    setError('');
-    setInfoMessage('');
 
     const sectionTrimmed = section.trim().toUpperCase().replace(/\s/g, '');
-    if (sectionTrimmed && !/^[A-Z0-9]+$/.test(sectionTrimmed)) {
-      setError('Section must contain only uppercase letters and numbers, with no spaces (e.g., ACSAD).');
-      setCompleting(false);
+    if (!sectionTrimmed) {
+      setError('Class Section is required.');
       return;
     }
+
+    // Program-specific section validations
+    if (program === 'DAD') {
+      if (!/^[A-Z]-APPDEV$/.test(sectionTrimmed)) {
+        setError('For Diploma in Application Development (DAD), section must start with a single uppercase letter, a dash, and "APPDEV" (e.g., A-APPDEV).');
+        return;
+      }
+    } else if (program === 'DNA') {
+      if (!/^[A-Z]-NETAD$/.test(sectionTrimmed)) {
+        setError('For Diploma in Network Administration (DNA), section must start with a single uppercase letter, a dash, and "NETAD" (e.g., A-NETAD).');
+        return;
+      }
+    } else if (program === 'BSCS') {
+      const allowed = ['ACSAD', 'BCSAD', 'CCSAD', 'DCSAD', 'DCSADA', 'ECSAD', 'FCSAD'];
+      if (!allowed.includes(sectionTrimmed)) {
+        setError('For BSCS, section must be exactly one of: ACSAD, BCSAD, CCSAD, DCSAD, DCSADA, ECSAD, FCSAD.');
+        return;
+      }
+    } else if (program === 'BSIT') {
+      const allowed = ['AINS', 'BINS', 'CINS', 'DINS', 'EINS', 'FINS'];
+      if (!allowed.includes(sectionTrimmed)) {
+        setError('For BSIT, section must be exactly one of: AINS, BINS, CINS, DINS, EINS, FINS.');
+        return;
+      }
+    } else if (program === 'BSIS') {
+      if (!/^[A-Z0-9]+$/.test(sectionTrimmed)) {
+        setError('For BSIS, section must contain only uppercase letters and numbers, with no spaces (e.g., ACSIS).');
+        return;
+      }
+    } else {
+      if (!/^[A-Z0-9-]+$/.test(sectionTrimmed)) {
+        setError('Section must contain only uppercase letters, numbers, and hyphens with no spaces.');
+        return;
+      }
+    }
+
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmLock = async () => {
+    setShowConfirmModal(false);
+    setCompleting(true);
+    setError('');
+    setStudentIdError('');
+
+    const sectionTrimmed = section.trim().toUpperCase().replace(/\s/g, '');
+    const idClean = studentNumber.trim().toUpperCase();
 
     try {
       await updateProfile({
-        student_number: studentNumber.trim(),
+        student_number: idClean,
         year_level: yearLevel,
         program,
-        section: sectionTrimmed || null,
+        section: sectionTrimmed,
         profile_complete: true,
       });
-      if (onNavigate) onNavigate('account');
+      setJustCompletedSetup(true);
     } catch (err: any) {
       setError(err?.message || 'Failed to save profile. Please try again.');
     } finally {
@@ -181,6 +181,67 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
 
   // Show profile completion form if signed in but profile not complete
   if (user && profile && !profile.profile_complete) {
+    if (!privacyAccepted) {
+      return (
+        <div className="min-h-screen bg-[var(--color-primary-green,#1A3C2E)] flex items-center justify-center p-4 relative overflow-hidden font-sans">
+          {/* Background decoration */}
+          <div className="absolute inset-0 opacity-5 pointer-events-none">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] border-[30px] border-[var(--color-accent-gold,#F5B400)] rounded-full" />
+          </div>
+
+          <div className="w-full max-w-lg bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl text-white animate-scale-up space-y-6">
+            <div className="text-center">
+              <span className="text-3xl">🛡️</span>
+              <h2 className="font-sans font-black text-xl text-white tracking-tight mt-2">
+                Data Privacy Notice
+              </h2>
+              <p className="text-[var(--color-bg-cream,#FAF7EA)]/50 text-[10px] font-mono uppercase tracking-widest mt-0.5">
+                Data Privacy Act of 2012
+              </p>
+            </div>
+
+            <div className="bg-white/5 border border-white/10 p-5 rounded-2xl space-y-3.5 text-xs md:text-sm leading-relaxed text-stone-200">
+              <p>
+                In compliance with the <strong>Data Privacy Act of 2012 (Republic Act No. 10173)</strong>, the CCIS Student Council is committed to protecting your personal information.
+              </p>
+              <p className="font-bold text-white bg-[var(--color-accent-gold,#F5B400)]/15 border-l-2 border-[var(--color-accent-gold,#F5B400)] p-3 rounded-r-lg">
+                ⚠️ All information provided will be used solely for student verification purposes.
+              </p>
+              <p>
+                Your data will be kept secure and confidential, and will not be shared with third parties without your explicit consent.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <label className="flex items-start gap-3 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={privacyChecked}
+                  onChange={(e) => setPrivacyChecked(e.target.checked)}
+                  className="mt-1 accent-[var(--color-accent-gold,#F5B400)] h-4 w-4 rounded border-gray-300 text-[var(--color-accent-gold,#F5B400)] focus:ring-[var(--color-accent-gold,#F5B400)]"
+                />
+                <span className="text-xs text-stone-300 leading-tight">
+                  I explicitly acknowledge that I have read and accepted the Data Privacy notice and consent to the collection of my information for verification purposes.
+                </span>
+              </label>
+
+              <button
+                onClick={() => {
+                  if (privacyChecked) {
+                    setPrivacyAccepted(true);
+                  }
+                }}
+                disabled={!privacyChecked}
+                className="w-full bg-[var(--color-accent-gold,#F5B400)] hover:bg-[#ffc522] text-[var(--color-primary-green,#1A3C2E)] py-3 rounded-xl font-sans font-black text-xs uppercase tracking-wider shadow-lg transition-all disabled:opacity-50"
+              >
+                Accept &amp; Proceed
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-[var(--color-primary-green,#1A3C2E)] flex items-center justify-center p-4 relative overflow-hidden">
         {/* Background decoration */}
@@ -188,13 +249,44 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] border-[30px] border-[var(--color-accent-gold,#F5B400)] rounded-full" />
         </div>
 
+        {/* Confirmation Lock Modal */}
+        {showConfirmModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-scale-up font-sans">
+            <div className="w-full max-w-sm bg-[#1A3C2E] border border-white/10 p-6 rounded-2xl shadow-2xl text-center space-y-4">
+            <Lock size={36} className="mx-auto text-[#F5B400]" />
+            <h3 className="text-white font-black text-lg">Confirm Account Details</h3>
+            <p className="text-stone-300 text-xs leading-relaxed">
+              Please double check your details. By locking your profile, you confirm all information entered is true and accurate.
+            </p>
+            <p className="text-[#F5B400] text-[10px] font-bold bg-[#F5B400]/10 border-l-2 border-[#F5B400] p-2.5 rounded text-left flex items-start gap-1.5">
+              <AlertTriangle size={12} className="shrink-0 mt-0.5" />
+              <span>Once confirmed, your profile will be permanently locked and cannot be edited without contacting admin support.</span>
+            </p>
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setShowConfirmModal(false)}
+                  className="flex-1 bg-white/10 hover:bg-white/20 text-white py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all"
+                >
+                  Go Back
+                </button>
+                <button
+                  onClick={handleConfirmLock}
+                  className="flex-1 bg-[#F5B400] hover:bg-[#ffc522] text-[#1A3C2E] py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all"
+                >
+                  Confirm &amp; Lock
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="w-full max-w-md relative z-10 animate-fade-in">
           <div className="text-center mb-8">
-            <div className="mx-auto w-20 h-20 rounded-full border-2 border-[var(--color-accent-gold,#F5B400)] overflow-hidden shadow-2xl mb-4 bg-white/10 backdrop-blur-sm flex items-center justify-center">
+            <div className="mx-auto w-20 h-20 rounded-full border-2 border-[var(--color-accent-gold,#F5B400)] overflow-hidden shadow-2xl mb-4 bg-white flex items-center justify-center">
               {profile.avatar_url ? (
-                <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover animate-fade-in" referrerPolicy="no-referrer" />
               ) : (
-                <CouncilSeal size={60} interactive={false} />
+                <img src="/images/ccis_logo.jpg" alt="CCIS Student Council Logo" className="w-full h-full object-cover select-none animate-fade-in" />
               )}
             </div>
             <h1 className="font-sans font-black text-xl text-white tracking-tight">
@@ -206,7 +298,7 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
           </div>
 
           <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-8 shadow-2xl">
-            <form onSubmit={handleCompleteProfile} className="space-y-5">
+            <form onSubmit={handleCompleteProfileSubmit} className="space-y-5">
               <div>
                 <label className="block text-[var(--color-bg-cream,#FAF7EA)]/70 text-xs font-bold uppercase tracking-wider mb-2">
                   Student ID Number
@@ -214,11 +306,19 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
                 <input
                   type="text"
                   value={studentNumber}
-                  onChange={(e) => setStudentNumber(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 focus:border-[var(--color-accent-gold,#F5B400)] focus:ring-1 focus:ring-[var(--color-accent-gold,#F5B400)] rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 outline-none transition-all"
-                  placeholder="e.g. 2024-10512"
+                  onChange={(e) => {
+                    setStudentNumber(e.target.value);
+                    if (studentIdError) setStudentIdError('');
+                  }}
+                  className={`w-full bg-white/5 border ${studentIdError ? 'border-red-500 focus:ring-red-500' : 'border-white/10 focus:border-[var(--color-accent-gold,#F5B400)]'} focus:ring-1 focus:ring-[var(--color-accent-gold,#F5B400)] rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 outline-none transition-all`}
+                  placeholder="e.g. K12345678"
                   required
                 />
+                {studentIdError && (
+                  <p className="text-red-400 text-[10px] mt-1 font-sans font-medium">
+                    {studentIdError}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -249,7 +349,8 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
                   <option value="BSCS" className="text-black">B.S. in Computer Science (BSCS)</option>
                   <option value="BSIT" className="text-black">B.S. in Information Technology (BSIT)</option>
                   <option value="BSIS" className="text-black">B.S. in Information Systems (BSIS)</option>
-                  <option value="BSDS" className="text-black">B.S. in Data Science & Informatics</option>
+                  <option value="DNA" className="text-black">Diploma in Network Administration (DNA)</option>
+                  <option value="DAD" className="text-black">Diploma in Application Development (DAD)</option>
                 </select>
               </div>
 
@@ -262,7 +363,7 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
                   value={section}
                   onChange={(e) => setSection(e.target.value.toUpperCase().replace(/\s/g, ''))}
                   className="w-full bg-white/5 border border-white/10 focus:border-[var(--color-accent-gold,#F5B400)] focus:ring-1 focus:ring-[var(--color-accent-gold,#F5B400)] rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 outline-none transition-all"
-                  placeholder="e.g. ACSAD"
+                  placeholder={program === 'DAD' ? 'e.g. A-APPDEV' : program === 'DNA' ? 'e.g. A-NETAD' : program === 'BSIT' ? 'e.g. AINS' : 'e.g. ACSAD'}
                   required
                 />
               </div>
@@ -294,7 +395,53 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
     );
   }
 
-  // Default: Sign-in screen
+  // Transition Loader Page before homepage redirect
+  if (user && profile?.profile_complete && !transitionComplete) {
+    return (
+      <div className="min-h-screen bg-[#1A3C2E] flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans">
+        {/* Background pattern */}
+        <div className="absolute inset-0 opacity-5 pointer-events-none">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] border-[30px] border-[#F5B400] rounded-full" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] border-[2px] border-[#F5B400] rounded-full" />
+        </div>
+
+        <div className="w-full max-w-sm text-center relative z-10 space-y-8 animate-fade-in">
+          {/* Logo container */}
+          <div className="mx-auto w-24 h-24 rounded-full border-3 border-[#F5B400] overflow-hidden shadow-2xl bg-white flex items-center justify-center transition-transform duration-500 scale-105">
+            <img 
+              src="/images/ccis_logo.jpg" 
+              alt="CCIS Student Council Logo" 
+              className="w-full h-full object-cover select-none" 
+            />
+          </div>
+
+          <div className="space-y-2">
+            <h2 className="text-white font-black text-xl tracking-wide uppercase">
+              Setting up portal
+            </h2>
+            <p className="text-[#FAF7EA]/60 text-xs font-mono uppercase tracking-widest">
+              Welcoming {profile.full_name || 'Tiger'} to CCIS Central
+            </p>
+          </div>
+
+          {/* Progress bar container */}
+          <div className="space-y-3">
+            <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden border border-white/5 p-0.5">
+              <div 
+                className="h-full bg-[#F5B400] rounded-full transition-all duration-75 ease-out shadow-[0_0_8px_rgba(245,180,0,0.5)]"
+                style={{ width: `${transitionProgress}%` }}
+              />
+            </div>
+            <span className="block text-[#F5B400] font-mono text-xs font-bold">
+              {Math.min(100, Math.floor(transitionProgress))}%
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Default: Sign-in screen (Google OAuth only)
   return (
     <div className="min-h-screen bg-[var(--color-primary-green,#1A3C2E)] flex items-center justify-center p-4 relative overflow-hidden">
       {/* Background pattern */}
@@ -306,8 +453,12 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
       <div className="w-full max-w-md relative z-10 animate-fade-in">
         {/* Logo & branding */}
         <div className="text-center mb-6">
-          <div className="mx-auto w-24 h-24 rounded-full border-3 border-[var(--color-accent-gold,#F5B400)] overflow-hidden shadow-2xl mb-5 bg-white/10 backdrop-blur-sm flex items-center justify-center">
-            <CouncilSeal size={80} interactive={false} />
+          <div className="mx-auto w-24 h-24 rounded-full border-3 border-[var(--color-accent-gold,#F5B400)] overflow-hidden shadow-2xl mb-5 bg-white flex items-center justify-center">
+            <img 
+              src="/images/ccis_logo.jpg" 
+              alt="CCIS Student Council Logo" 
+              className="w-full h-full object-cover select-none" 
+            />
           </div>
           <h1 className="font-sans font-black text-2xl text-white tracking-tight uppercase">
             CCIS Student Portal
@@ -317,31 +468,7 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
           </p>
         </div>
 
-        {/* Tab Selection */}
-        <div className="flex bg-white/5 border border-white/10 p-1 rounded-xl mb-4 font-sans">
-          <button
-            onClick={() => { setAuthMethod('google'); setError(''); }}
-            className={`flex-1 text-center py-2.5 rounded-lg text-xs font-bold transition-all ${
-              authMethod === 'google'
-                ? 'bg-white text-[var(--color-primary-green,#1A3C2E)] shadow-sm'
-                : 'text-white/70 hover:text-white'
-            }`}
-          >
-            Google OAuth
-          </button>
-          <button
-            onClick={() => { setAuthMethod('email'); setError(''); }}
-            className={`flex-1 text-center py-2.5 rounded-lg text-xs font-bold transition-all ${
-              authMethod === 'email'
-                ? 'bg-white text-[var(--color-primary-green,#1A3C2E)] shadow-sm'
-                : 'text-white/70 hover:text-white'
-            }`}
-          >
-            Email Credentials
-          </button>
-        </div>
-
-        {/* Login/Signup card */}
+        {/* Login card */}
         <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-8 shadow-2xl">
           {error && (
             <div className="mb-5 bg-red-500/15 border border-red-500/30 text-red-300 text-xs px-4 py-2.5 rounded-lg whitespace-pre-wrap leading-relaxed">
@@ -356,118 +483,36 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
           )}
 
           {/* GOOGLE METHOD */}
-          {authMethod === 'google' && (
-            <div className="space-y-4">
-              <button
-                onClick={handleGoogleSignIn}
-                disabled={signingIn}
-                className="w-full bg-white hover:bg-gray-50 text-gray-800 py-3.5 rounded-xl font-sans font-bold text-sm tracking-wide shadow-lg transition-all disabled:opacity-60 flex items-center justify-center gap-3 cursor-pointer"
-              >
-                {signingIn ? (
-                  <span className="flex items-center gap-2">
-                    <span className="w-4 h-4 border-2 border-gray-400 border-t-gray-700 rounded-full animate-spin" />
-                    Redirecting...
-                  </span>
-                ) : (
-                  <>
-                    <svg width="18" height="18" viewBox="0 0 24 24">
-                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
-                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                    </svg>
-                    Continue with Google
-                  </>
-                )}
-              </button>
-              
-              <div className="mt-6 pt-5 border-t border-white/5 text-center">
-                <p className="text-[var(--color-bg-cream,#FAF7EA)]/30 text-[10px] font-mono uppercase tracking-wider">
-                  Use your institutional Google account
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* EMAIL METHOD */}
-          {authMethod === 'email' && (
-            <form onSubmit={handleEmailAuthSubmit} className="space-y-4 font-sans text-left">
-              {emailMode === 'signup' && (
-                <div>
-                  <label className="block text-[var(--color-bg-cream,#FAF7EA)]/70 text-xs font-bold uppercase tracking-wider mb-1.5">
-                    Full Name
-                  </label>
-                  <input
-                    type="text"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 focus:border-[var(--color-accent-gold,#F5B400)] focus:ring-1 focus:ring-[var(--color-accent-gold,#F5B400)] rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/30 outline-none transition-all"
-                    placeholder="e.g. Juan dela Cruz"
-                    required
-                  />
-                </div>
+          <div className="space-y-4">
+            <button
+              onClick={handleGoogleSignIn}
+              disabled={signingIn}
+              className="w-full bg-white hover:bg-gray-50 text-gray-800 py-3.5 rounded-xl font-sans font-bold text-sm tracking-wide shadow-lg transition-all disabled:opacity-60 flex items-center justify-center gap-3 cursor-pointer"
+            >
+              {signingIn ? (
+                <span className="flex items-center gap-2">
+                  <span className="w-4 h-4 border-2 border-gray-400 border-t-gray-700 rounded-full animate-spin" />
+                  Redirecting...
+                </span>
+              ) : (
+                <>
+                  <svg width="18" height="18" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                  </svg>
+                  Continue with Google
+                </>
               )}
-
-              <div>
-                <label className="block text-[var(--color-bg-cream,#FAF7EA)]/70 text-xs font-bold uppercase tracking-wider mb-1.5">
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 focus:border-[var(--color-accent-gold,#F5B400)] focus:ring-1 focus:ring-[var(--color-accent-gold,#F5B400)] rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/30 outline-none transition-all"
-                  placeholder="e.g. student@ccis-council.org"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-[var(--color-bg-cream,#FAF7EA)]/70 text-xs font-bold uppercase tracking-wider mb-1.5">
-                  Secret Password
-                </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 focus:border-[var(--color-accent-gold,#F5B400)] focus:ring-1 focus:ring-[var(--color-accent-gold,#F5B400)] rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/30 outline-none transition-all"
-                  placeholder="••••••••"
-                  required
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full bg-[var(--color-accent-gold,#F5B400)] hover:bg-[#ffc522] text-[var(--color-primary-green,#1A3C2E)] py-3 rounded-xl font-sans font-black text-sm uppercase tracking-wider shadow-lg transition-all disabled:opacity-60 flex items-center justify-center"
-              >
-                {submitting ? (
-                  <span className="flex items-center gap-2">
-                    <span className="w-4 h-4 border-2 border-[var(--color-primary-green,#1A3C2E)]/30 border-t-[var(--color-primary-green,#1A3C2E)] rounded-full animate-spin" />
-                    Working...
-                  </span>
-                ) : (
-                  emailMode === 'signin' ? 'Sign In with Email' : 'Create Student Account'
-                )}
-              </button>
-
-              <div className="mt-4 pt-3 border-t border-white/5 text-center">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmailMode(emailMode === 'signin' ? 'signup' : 'signin');
-                    setError('');
-                    setInfoMessage('');
-                  }}
-                  className="text-white/60 hover:text-white hover:underline text-xs"
-                >
-                  {emailMode === 'signin' 
-                    ? "Don't have a login? Create account" 
-                    : "Already have an account? Sign In"}
-                </button>
-              </div>
-            </form>
-          )}
+            </button>
+            
+            <div className="mt-6 pt-5 border-t border-white/5 text-center">
+              <p className="text-[var(--color-bg-cream,#FAF7EA)]/30 text-[10px] font-mono uppercase tracking-wider">
+                Use your institutional Google account
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Back to home */}
@@ -479,6 +524,41 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
             >
               ← Back to Home
             </button>
+          </div>
+        )}
+
+        {/* BAN NOTICE POP-UP MODAL */}
+        {banNotice && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs animate-scale-up font-sans">
+            <div className="absolute inset-0" onClick={clearBanNotice} />
+            <div className="relative w-full max-w-sm bg-white rounded-2xl overflow-hidden shadow-2xl border border-zinc-150 p-6 text-center space-y-4">
+              <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center mx-auto border border-rose-100 shadow-xs">
+                <ShieldAlert size={24} />
+              </div>
+              <div className="space-y-1.5 text-left">
+                <h3 className="font-sans font-black text-lg text-rose-900 text-center">Account Restricted</h3>
+                <p className="text-stone-600 text-xs leading-relaxed text-center">
+                  Your CCIS Student Portal account access has been suspended or restricted by the administrator.
+                </p>
+                {banNotice.bannedUntil ? (
+                  <p className="text-amber-800 text-[10px] font-bold bg-amber-50 border border-amber-200 p-2.5 rounded text-left">
+                    Suspension Expiration:<br />
+                    <span className="font-mono text-xs font-black block mt-1">{new Date(banNotice.bannedUntil).toLocaleString()}</span>
+                  </p>
+                ) : (
+                  <p className="text-rose-800 text-[10px] font-bold bg-rose-50 border border-rose-200 p-2.5 rounded text-left">
+                    Permanent Restriction:<br />
+                    <span className="font-sans block mt-1">If you believe this is an error, please contact the CCIS Student Council.</span>
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={clearBanNotice}
+                className="w-full bg-[#1A3C2E] hover:bg-[#1A3C2E]/90 text-white py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shadow-xs"
+              >
+                Close Notice
+              </button>
+            </div>
           </div>
         )}
       </div>

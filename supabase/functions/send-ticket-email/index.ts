@@ -206,7 +206,7 @@ serve(async (req) => {
         "Authorization": `Bearer ${resendApiKey}`,
       },
       body: JSON.stringify({
-        from: "CCIS Student Council <tickets@ccis-council.org>", // Adjust to verified domain
+        from: "CCIS Student Council <onboarding@resend.dev>", // Sandbox testing sender
         to: email,
         subject: `[Boarding Pass] ${eventTitle} — ${name}`,
         html: htmlBody,

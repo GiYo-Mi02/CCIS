@@ -114,10 +114,10 @@ export default function InfoHub({ onNavigate }: { onNavigate?: (tab: string, eve
                   <h4 className="font-sans font-black text-sm text-[#1A3C2E] uppercase tracking-wider">
                     Welcome to College of Computing and Information Sciences!
                   </h4>
-                  <p className="text-xs text-[#5E6E64] leading-relaxed">
+                  <p className="text-sm text-[#5E6E64] leading-relaxed">
                     The College of Computing and Information Sciences (CCIS) is the leading college in ICT education programs of the university by providing competitive, relevant and functional IT Curriculum responsive to the needs of the industrial and business organizations. The college has the following functions:
                   </p>
-                  <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-[#5E6E64] list-disc list-inside">
+                  <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-[#5E6E64] list-disc list-inside">
                     <li>Develop, implement and revise IT Education Programs.</li>
                     <li>Subject IT Programs to recognition and accreditation.</li>
                     <li>Provide creativity and development programs.</li>
@@ -131,14 +131,14 @@ export default function InfoHub({ onNavigate }: { onNavigate?: (tab: string, eve
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="bg-white p-4 rounded-xl border border-zinc-100 shadow-xs">
-                    <span className="block text-xs font-mono font-bold text-[#F5B400] uppercase tracking-wider">Vision</span>
-                    <p className="text-xs text-[#5E6E64] mt-1 leading-relaxed">
+                    <span className="block text-sm font-mono font-bold text-[#F5B400] uppercase tracking-wider">Vision</span>
+                    <p className="text-sm text-[#5E6E64] mt-1 leading-relaxed">
                       The college envisions to lead in the development of excellent professionals and champions of social equity in the global field of computing and information sciences.
                     </p>
                   </div>
                   <div className="bg-white p-4 rounded-xl border border-zinc-100 shadow-xs">
-                    <span className="block text-xs font-mono font-bold text-[#F5B400] uppercase tracking-wider">Mission</span>
-                    <p className="text-xs text-[#5E6E64] mt-1 leading-relaxed">
+                    <span className="block text-sm font-mono font-bold text-[#F5B400] uppercase tracking-wider">Mission</span>
+                    <p className="text-sm text-[#5E6E64] mt-1 leading-relaxed">
                       Guided by its vision, the college produces practitioners and leaders in computing and information sciences who are resilient, industry-ready, and socially responsible through innovative curriculum design and dynamic delivery systems.
                     </p>
                   </div>
@@ -146,45 +146,45 @@ export default function InfoHub({ onNavigate }: { onNavigate?: (tab: string, eve
 
                 <div className="bg-white p-5 rounded-2xl border border-zinc-100 space-y-4 shadow-xs">
                   <div>
-                    <span className="block text-xs font-mono font-bold text-[#1A3C2E] uppercase tracking-wider border-b border-zinc-50 pb-1.5">Core Values</span>
+                    <span className="block text-sm font-mono font-bold text-[#1A3C2E] uppercase tracking-wider border-b border-zinc-50 pb-1.5">Core Values</span>
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mt-2">
-                      <div className="text-xs">
+                      <div className="text-sm">
                         <strong className="text-[#1A3C2E] block">God Fearing</strong>
-                        <span className="text-stone-500 text-[10px] leading-snug block mt-0.5">Reverence and moral uprightness.</span>
+                        <span className="text-stone-500 text-xs leading-snug block mt-0.5">Reverence and moral uprightness.</span>
                       </div>
-                      <div className="text-xs">
+                      <div className="text-sm">
                         <strong className="text-[#1A3C2E] block">Industry</strong>
-                        <span className="text-stone-500 text-[10px] leading-snug block mt-0.5">Diligence in pursuing tasks.</span>
+                        <span className="text-stone-500 text-xs leading-snug block mt-0.5">Diligence in pursuing tasks.</span>
                       </div>
-                      <div className="text-xs">
+                      <div className="text-sm">
                         <strong className="text-[#1A3C2E] block">Fortitude</strong>
-                        <span className="text-stone-500 text-[10px] leading-snug block mt-0.5">Courage and strength in character.</span>
+                        <span className="text-stone-500 text-xs leading-snug block mt-0.5">Courage and strength in character.</span>
                       </div>
-                      <div className="text-xs">
+                      <div className="text-sm">
                         <strong className="text-[#1A3C2E] block">Trustworthy</strong>
-                        <span className="text-stone-500 text-[10px] leading-snug block mt-0.5">Deserving of confidence.</span>
+                        <span className="text-stone-500 text-xs leading-snug block mt-0.5">Deserving of confidence.</span>
                       </div>
-                      <div className="text-xs">
+                      <div className="text-sm">
                         <strong className="text-[#1A3C2E] block">Creativity</strong>
-                        <span className="text-stone-500 text-[10px] leading-snug block mt-0.5">Ability to make new ideas.</span>
+                        <span className="text-stone-500 text-xs leading-snug block mt-0.5">Ability to make new ideas.</span>
                       </div>
                     </div>
                   </div>
 
                   <div className="border-t border-zinc-100 pt-3">
-                    <span className="block text-xs font-mono font-bold text-[#1A3C2E] uppercase tracking-wider border-b border-zinc-50 pb-1.5">Program Offerings</span>
+                    <span className="block text-sm font-mono font-bold text-[#1A3C2E] uppercase tracking-wider border-b border-zinc-50 pb-1.5">Program Offerings</span>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
-                      <div className="text-xs space-y-1">
+                      <div className="text-sm space-y-1">
                         <span className="font-bold text-[#1A3C2E] block">Baccalaureate Programs</span>
-                        <ul className="list-disc list-inside text-stone-500 text-[10px] space-y-0.5">
+                        <ul className="list-disc list-inside text-stone-500 text-xs space-y-0.5">
                           <li>B.S. in Information Technology (INS Track)</li>
                           <li>B.S. in Computer Science (CDS Track)</li>
                           <li>B.S. in Computer Science (AppDev Track)</li>
                         </ul>
                       </div>
-                      <div className="text-xs space-y-1">
+                      <div className="text-sm space-y-1">
                         <span className="font-bold text-[#1A3C2E] block">Non-Baccalaureate Programs</span>
-                        <ul className="list-disc list-inside text-stone-500 text-[10px] space-y-0.5">
+                        <ul className="list-disc list-inside text-stone-500 text-xs space-y-0.5">
                           <li>Diploma in Application Development</li>
                           <li>Diploma in Computer Network Administration</li>
                         </ul>
@@ -217,19 +217,19 @@ export default function InfoHub({ onNavigate }: { onNavigate?: (tab: string, eve
                   </h4>
                   <ul className="grid grid-cols-1 gap-2.5 text-xs text-[#5E6E64]">
                     <li className="flex items-start gap-2">
-                      <span className="text-[#F5B400]">✔</span>
+                      <CheckCircle2 size={13} className="text-[#F5B400] shrink-0 mt-0.5" />
                       <span>Represent the entire CCIS student body in administrative dialogue and university affairs.</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-[#F5B400]">✔</span>
+                      <CheckCircle2 size={13} className="text-[#F5B400] shrink-0 mt-0.5" />
                       <span>Organize college-wide academic tutorials, competitive bootcamps, and technical workshop series.</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-[#F5B400]">✔</span>
+                      <CheckCircle2 size={13} className="text-[#F5B400] shrink-0 mt-0.5" />
                       <span>Execute sportsfests, creative showcases, and student welfare initiatives.</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-[#F5B400]">✔</span>
+                      <CheckCircle2 size={13} className="text-[#F5B400] shrink-0 mt-0.5" />
                       <span>Build, scale, and maintain digital platforms for automated event tracking and concerns resolution.</span>
                     </li>
                   </ul>
@@ -257,19 +257,19 @@ export default function InfoHub({ onNavigate }: { onNavigate?: (tab: string, eve
                   </h4>
                   <ul className="grid grid-cols-1 gap-2.5 text-xs text-[#5E6E64]">
                     <li className="flex items-start gap-2">
-                      <span className="text-[#F5B400]">✔</span>
+                      <CheckCircle2 size={13} className="text-[#F5B400] shrink-0 mt-0.5" />
                       <span>Provide hands-on workshops in software development, cloud computing, and database management.</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-[#F5B400]">✔</span>
+                      <CheckCircle2 size={13} className="text-[#F5B400] shrink-0 mt-0.5" />
                       <span>Organize peer-to-peer programming study groups and coding hackathons.</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-[#F5B400]">✔</span>
+                      <CheckCircle2 size={13} className="text-[#F5B400] shrink-0 mt-0.5" />
                       <span>Collaborate with industry professionals to offer guest lectures and career guidance.</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-[#F5B400]">✔</span>
+                      <CheckCircle2 size={13} className="text-[#F5B400] shrink-0 mt-0.5" />
                       <span>Support student developers in buildathons, hacking events, and algorithmic programming contests.</span>
                     </li>
                   </ul>

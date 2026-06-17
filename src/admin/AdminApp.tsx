@@ -12,6 +12,7 @@ import OfficersManager from './sections/OfficersManager';
 import MessagesInbox from './sections/MessagesInbox';
 import EventCalendar from './sections/EventCalendar';
 import SettingsRoles from './sections/SettingsRoles';
+import UserManager from './sections/UserManager';
 import { useAuth } from '../context/AuthContext';
 
 interface AdminAppProps {
@@ -69,6 +70,9 @@ function AdminAppInner({ onExitAdmin }: AdminAppProps) {
         return <Dashboard />;
       case 'settings':
         if (role === 'devcom_head') return <SettingsRoles />;
+        return <Dashboard />;
+      case 'users':
+        if (role === 'devcom_head') return <UserManager />;
         return <Dashboard />;
       default: return <Dashboard />;
     }
