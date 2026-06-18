@@ -11,6 +11,7 @@ interface EventItemDB {
   event_date: string;
   event_time: string | null;
   location: string | null;
+  banner_url: string | null;
 }
 
 interface UpcomingEventsListProps {
@@ -27,7 +28,7 @@ export function UpcomingEventsList({ onNavigate }: UpcomingEventsListProps) {
       try {
         const { data, error } = await supabase
           .from('events')
-          .select('id, title, description, category, event_date, event_time, location')
+          .select('id, title, description, category, event_date, event_time, location, banner_url')
           .gte('event_date', today)
           .order('event_date', { ascending: true })
           .limit(5);
@@ -67,10 +68,19 @@ export function UpcomingEventsList({ onNavigate }: UpcomingEventsListProps) {
         {upcoming.map(evt => (
           <div key={evt.id} className="bg-white p-3.5 rounded-2xl border border-zinc-150 shadow-xs flex items-center justify-between gap-3">
             <div className="flex items-start gap-3 flex-1 min-w-0">
-              <div className={`w-2.5 h-10 rounded-full shrink-0 ${
-                evt.category === 'priority' ? 'bg-[#FFBC00]' : 'bg-[#123524]'
-              }`} />
-              <div className="flex-1 min-w-0 space-y-0.5">
+              {evt.banner_url ? (
+                <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-zinc-150 relative">
+                  <img src={evt.banner_url} alt="" className="w-full h-full object-cover" />
+                  <div className={`absolute left-0 top-0 bottom-0 w-1 ${
+                    evt.category === 'priority' ? 'bg-[#FFBC00]' : 'bg-[#123524]'
+                  }`} />
+                </div>
+              ) : (
+                <div className={`w-2.5 h-10 rounded-full shrink-0 ${
+                  evt.category === 'priority' ? 'bg-[#FFBC00]' : 'bg-[#123524]'
+                }`} />
+              )}
+              <div className="flex-1 min-w-0 space-y-0.5 text-left">
                 <span className="text-[10px] font-mono text-[#5E6E64]">📅 {evt.event_date}</span>
                 <h4 className="font-bold text-xs text-[#123524] truncate">{evt.title}</h4>
                 <p className="text-[10.5px] text-[#5E6E64] truncate">{evt.description}</p>
@@ -120,7 +130,7 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
       try {
         const { data, error } = await supabase
           .from('events')
-          .select('id, title, description, category, event_date, event_time, location')
+          .select('id, title, description, category, event_date, event_time, location, banner_url')
           .gte('event_date', startOfMonth)
           .lte('event_date', endOfMonth)
           .order('event_date');
@@ -237,13 +247,20 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
                 : 'border-l-4 border-l-[#123524] border-zinc-150'
             }`}
           >
-            <div className="space-y-1">
-              <div className="flex flex-wrap items-center gap-2 text-[10.5px] font-mono text-[#5E6E64]">
-                <span className="flex items-center gap-0.5"><Clock size={11} /> {evt.event_time || 'TBA'}</span>
-                {evt.location && <span className="flex items-center gap-0.5">📍 {evt.location}</span>}
+            <div className="flex items-start gap-3.5 flex-1 min-w-0 text-left">
+              {evt.banner_url && (
+                <div className="w-14 h-14 rounded-xl overflow-hidden shrink-0 border border-zinc-150 shadow-xs">
+                  <img src={evt.banner_url} alt="" className="w-full h-full object-cover" />
+                </div>
+              )}
+              <div className="space-y-1 flex-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-2 text-[10.5px] font-mono text-[#5E6E64]">
+                  <span className="flex items-center gap-0.5"><Clock size={11} /> {evt.event_time || 'TBA'}</span>
+                  {evt.location && <span className="flex items-center gap-0.5">📍 {evt.location}</span>}
+                </div>
+                <h4 className="font-sans font-bold text-[#123524] text-base leading-snug">{evt.title}</h4>
+                {evt.description && <p className="text-[#5E6E64] text-xs leading-relaxed">{evt.description}</p>}
               </div>
-              <h4 className="font-sans font-bold text-[#123524] text-base leading-snug">{evt.title}</h4>
-              {evt.description && <p className="text-[#5E6E64] text-xs leading-relaxed">{evt.description}</p>}
             </div>
             
             <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 self-stretch sm:self-auto shrink-0">

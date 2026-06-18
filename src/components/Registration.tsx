@@ -133,6 +133,7 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
         slots: e.registration_cap || 100,
         registeredCount: counts[e.id] || 0,
         description: e.description || '',
+        banner_url: e.banner_url || null,
       }));
 
       setEvents(mappedEvents);
@@ -352,80 +353,87 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
                   return (
                     <div
                       key={ev.id}
-                      className={`bg-white p-6 rounded-3xl border flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow relative overflow-hidden ${
+                      className={`bg-white rounded-3xl border flex flex-col justify-between shadow-sm hover:shadow-md transition-all relative overflow-hidden ${
                         isFull && !isRegistered ? 'opacity-65 border-zinc-200' : 'border-zinc-100'
                       }`}
                       id={`register-ev-card-${ev.id}`}
                     >
-                      <div>
-                        {/* Upper Details */}
-                        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                          <span className="flex items-center gap-1.5 font-mono text-[10px] text-[#5E6E64] font-bold">
-                            <Calendar size={13} className="text-[#F5B400]" />
-                            {ev.date}
-                          </span>
-                          <span className={`text-[9px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-full font-black ${
-                            isRegistered
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : isFull 
-                                ? 'bg-rose-100 text-rose-800'
-                                : slotsLeft < 15
-                                  ? 'bg-amber-100 text-[#1A3C2E]'
-                                  : 'bg-zinc-100 text-zinc-600'
-                          }`}>
-                            {isRegistered 
-                              ? '✓ Registered' 
-                              : isFull 
-                                ? 'Sold Out' 
-                                : `${slotsLeft} of ${ev.slots} slots left`}
-                          </span>
+                      {ev.banner_url && (
+                        <div className="h-44 w-full overflow-hidden flex-shrink-0 relative">
+                          <img src={ev.banner_url} alt="" className="w-full h-full object-cover" />
                         </div>
-
-                        {/* Title & Desc */}
-                        <h3 className="font-sans font-black text-lg text-[#1A3C2E] leading-snug mb-2 truncate" title={ev.title}>
-                          {ev.title}
-                        </h3>
-                        <p className="text-xs text-[#5E6E64] leading-relaxed mb-4 line-clamp-3">
-                          {ev.description}
-                        </p>
-                      </div>
-
-                      {/* Footer Metadata & CTA */}
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-1 gap-1.5 border-t border-zinc-100 pt-3 text-[11px] text-[#5E6E64] font-sans">
-                          <span className="flex items-center gap-1.5 break-words">
-                            <Clock size={12} className="text-[#FAF7EA] stroke-[#1D4A38]" />
-                            {ev.time}
-                          </span>
-                          <span className="flex items-center gap-1.5 break-words">
-                            <MapPin size={12} className="text-[#FAF7EA] stroke-[#1D4A38]" />
-                            {ev.location}
-                          </span>
-                        </div>
-
-                        {/* CTA button */}
-                        {isRegistered ? (
-                          <div className="w-full text-center bg-emerald-50 text-emerald-700 font-sans text-xs font-black uppercase tracking-wider py-2.5 rounded-xl border border-emerald-200">
-                            ✓ Seat Secured
+                      )}
+                      <div className="p-6 flex-1 flex flex-col justify-between">
+                        <div>
+                          {/* Upper Details */}
+                          <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                            <span className="flex items-center gap-1.5 font-mono text-[10px] text-[#5E6E64] font-bold">
+                              <Calendar size={13} className="text-[#F5B400]" />
+                              {ev.date}
+                            </span>
+                            <span className={`text-[9px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-full font-black ${
+                              isRegistered
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : isFull 
+                                  ? 'bg-rose-100 text-rose-800'
+                                  : slotsLeft < 15
+                                    ? 'bg-amber-100 text-[#1A3C2E]'
+                                    : 'bg-zinc-100 text-zinc-600'
+                            }`}>
+                              {isRegistered 
+                                ? '✓ Registered' 
+                                : isFull 
+                                  ? 'Sold Out' 
+                                  : `${slotsLeft} of ${ev.slots} slots left`}
+                            </span>
                           </div>
-                        ) : isFull ? (
-                          <button
-                            disabled
-                            className="w-full bg-zinc-100 text-zinc-400 font-sans text-xs font-bold uppercase tracking-wider py-2.5 rounded-xl cursor-not-allowed border border-zinc-200"
-                          >
-                            Slots Full
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => {
-                              setSelectedEventId(ev.id);
-                              setIsModalOpen(true);
-                            }}
-                            className="w-full bg-[#1A3C2E] hover:bg-[#255541] text-white font-sans text-xs font-bold uppercase tracking-wider py-2.5 rounded-xl transition-all shadow-xs flex items-center justify-center gap-1"
-                          >
-                            Register <ArrowRight size={12} />
-                          </button>
-                        )}
+
+                          {/* Title & Desc */}
+                          <h3 className="font-sans font-black text-lg text-[#1A3C2E] leading-snug mb-2 truncate" title={ev.title}>
+                            {ev.title}
+                          </h3>
+                          <p className="text-xs text-[#5E6E64] leading-relaxed mb-4 line-clamp-3">
+                            {ev.description}
+                          </p>
+                        </div>
+
+                        {/* Footer Metadata & CTA */}
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-1 gap-1.5 border-t border-zinc-100 pt-3 text-[11px] text-[#5E6E64] font-sans">
+                            <span className="flex items-center gap-1.5 break-words">
+                              <Clock size={12} className="text-[#FAF7EA] stroke-[#1D4A38]" />
+                              {ev.time}
+                            </span>
+                            <span className="flex items-center gap-1.5 break-words">
+                              <MapPin size={12} className="text-[#FAF7EA] stroke-[#1D4A38]" />
+                              {ev.location}
+                            </span>
+                          </div>
+
+                          {/* CTA button */}
+                          {isRegistered ? (
+                            <div className="w-full text-center bg-emerald-50 text-emerald-700 font-sans text-xs font-black uppercase tracking-wider py-2.5 rounded-xl border border-emerald-200">
+                              ✓ Seat Secured
+                            </div>
+                          ) : isFull ? (
+                            <button
+                              disabled
+                              className="w-full bg-zinc-100 text-zinc-400 font-sans text-xs font-bold uppercase tracking-wider py-2.5 rounded-xl cursor-not-allowed border border-zinc-200"
+                            >
+                              Slots Full
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                setSelectedEventId(ev.id);
+                                setIsModalOpen(true);
+                              }}
+                              className="w-full bg-[#1A3C2E] hover:bg-[#255541] text-white font-sans text-xs font-bold uppercase tracking-wider py-2.5 rounded-xl transition-all shadow-xs flex items-center justify-center gap-1"
+                            >
+                              Register <ArrowRight size={12} />
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   );
@@ -458,6 +466,17 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
 
                   {/* Left Column: Event Information */}
                   <div className="w-full md:w-1/2 p-6 md:p-10 bg-[#FAF7EA]/50 flex flex-col justify-start space-y-6 md:overflow-y-auto md:max-h-[90vh] text-[#1A3C2E]">
+                    {(() => {
+                      const ev = events.find(e => e.id === selectedEventId);
+                      if (ev?.banner_url) {
+                        return (
+                          <div className="w-full h-44 rounded-2xl overflow-hidden -mt-4 mb-2 flex-shrink-0 shadow-sm border border-zinc-250">
+                            <img src={ev.banner_url} alt="" className="w-full h-full object-cover" />
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                     <div>
                       {/* Event Category Tag */}
                       {events.find(e => e.id === selectedEventId) && (

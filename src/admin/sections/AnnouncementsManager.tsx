@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Search, Edit3, Pin, Trash2, Megaphone, Trash } from 'lucide-react';
 import { useAdmin } from '../AdminContext';
 import { useAuth } from '../../context/AuthContext';
@@ -249,6 +249,45 @@ function AnnouncementForm({ announcement, isCreating, onSave, onClose }: {
   const [category, setCategory] = useState(announcement.category);
   const [bannerUrl, setBannerUrl] = useState(announcement.banner_url || '');
   const [pinned, setPinned] = useState(announcement.pinned);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be under 5MB.');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `announcements/${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+      
+      const { data, error } = await supabase.storage
+        .from('banners')
+        .upload(fileName, file);
+
+      if (error) throw error;
+
+      const { data: urlData } = supabase.storage
+        .from('banners')
+        .getPublicUrl(fileName);
+
+      setBannerUrl(urlData.publicUrl);
+    } catch (err: any) {
+      console.error(err);
+      alert('Upload failed: ' + err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSubmit = (status: 'draft' | 'published') => {
     onSave({
@@ -280,10 +319,50 @@ function AnnouncementForm({ announcement, isCreating, onSave, onClose }: {
             </select>
           </div>
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Banner URL</label>
-            <input type="text" value={bannerUrl} onChange={(e) => setBannerUrl(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400]"
-              placeholder="https://..." />
+            <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Banner Image</label>
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-lg bg-gray-50 border border-gray-200 overflow-hidden flex items-center justify-center relative flex-shrink-0">
+                {bannerUrl ? (
+                  <img src={bannerUrl} alt="Banner Preview" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-gray-300 text-lg">🖼️</span>
+                )}
+                {uploading && (
+                  <div className="absolute inset-0 bg-black/45 flex items-center justify-center">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
+              </div>
+              <div className="space-y-1 flex-1 font-sans">
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  ref={fileInputRef} 
+                  onChange={handleUpload} 
+                  className="hidden" 
+                />
+                <div className="flex gap-1.5">
+                  <button 
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    className="px-3 py-1.5 border border-gray-200 hover:border-gray-300 text-[11px] font-bold rounded-lg text-gray-700 hover:bg-gray-50 transition-colors uppercase tracking-wider cursor-pointer"
+                  >
+                    {bannerUrl ? 'Change' : 'Choose'}
+                  </button>
+                  {bannerUrl && (
+                    <button 
+                      type="button"
+                      onClick={() => setBannerUrl('')}
+                      className="px-3 py-1.5 border border-rose-200 hover:border-rose-300 text-[11px] font-bold rounded-lg text-rose-600 hover:bg-rose-50 transition-colors uppercase tracking-wider cursor-pointer"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+                <p className="text-[9px] text-gray-400">Max 5MB.</p>
+              </div>
+            </div>
           </div>
         </div>
         <div>

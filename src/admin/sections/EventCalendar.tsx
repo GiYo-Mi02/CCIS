@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Plus, List, Grid3X3, Trash } from 'lucide-react';
 import { useAdmin } from '../AdminContext';
 import { useAuth } from '../../context/AuthContext';
@@ -60,6 +60,7 @@ export default function EventCalendar() {
         event_date: form.event_date, event_time: form.event_time || null,
         location: form.location || null, registration_required: form.registration_required || false,
         registration_cap: form.registration_cap || null, created_by: user?.id,
+        banner_url: form.banner_url || null,
       });
       if (error) { showToast('Failed to create event', 'error'); return; }
       showToast('Event added!');
@@ -69,6 +70,7 @@ export default function EventCalendar() {
         event_date: form.event_date, event_time: form.event_time || null,
         location: form.location || null, registration_required: form.registration_required || false,
         registration_cap: form.registration_cap || null,
+        banner_url: form.banner_url || null,
       }).eq('id', form.id);
       if (error) { showToast('Failed to update event', 'error'); return; }
       showToast('Event updated!');
@@ -197,8 +199,96 @@ function EventForm({ event, isCreating, onSave, onDelete, onClose }: {
   onClose: () => void;
 }) {
   const [form, setForm] = useState({ ...event });
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be under 5MB.');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `events/${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+      
+      const { data, error } = await supabase.storage
+        .from('banners')
+        .upload(fileName, file);
+
+      if (error) throw error;
+
+      const { data: urlData } = supabase.storage
+        .from('banners')
+        .getPublicUrl(fileName);
+
+      setForm({ ...form, banner_url: urlData.publicUrl });
+    } catch (err: any) {
+      console.error(err);
+      alert('Upload failed: ' + err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
+      {/* Event Banner Image Upload */}
+      <div>
+        <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Event Banner Image</label>
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-16 rounded-lg bg-gray-50 border border-gray-200 overflow-hidden flex items-center justify-center relative flex-shrink-0">
+            {form.banner_url ? (
+              <img src={form.banner_url} alt="Banner Preview" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-gray-300 text-lg">🖼️</span>
+            )}
+            {uploading && (
+              <div className="absolute inset-0 bg-black/45 flex items-center justify-center">
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
+          </div>
+          <div className="space-y-1 flex-1 font-sans">
+            <input 
+              type="file" 
+              accept="image/*" 
+              ref={fileInputRef} 
+              onChange={handleUpload} 
+              className="hidden" 
+            />
+            <div className="flex gap-1.5">
+              <button 
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="px-3 py-1.5 border border-gray-200 hover:border-gray-300 text-[11px] font-bold rounded-lg text-gray-700 hover:bg-gray-50 transition-colors uppercase tracking-wider cursor-pointer"
+              >
+                {form.banner_url ? 'Change' : 'Choose'}
+              </button>
+              {form.banner_url && (
+                <button 
+                  type="button"
+                  onClick={() => setForm({ ...form, banner_url: null })}
+                  className="px-3 py-1.5 border border-rose-200 hover:border-rose-300 text-[11px] font-bold rounded-lg text-rose-600 hover:bg-rose-50 transition-colors uppercase tracking-wider cursor-pointer"
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+            <p className="text-[9px] text-gray-400">Max 5MB.</p>
+          </div>
+        </div>
+      </div>
+
       <div>
         <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Title</label>
         <input type="text" value={form.title || ''} onChange={(e) => setForm({ ...form, title: e.target.value })} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400]" />

@@ -15,6 +15,7 @@ export default function LoadingScreen() {
   const word2Ref = useRef<HTMLDivElement>(null);
   const word3Ref = useRef<HTMLDivElement>(null);
   const lineRef = useRef<HTMLDivElement>(null);
+  const logoRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isComplete) return;
@@ -45,17 +46,24 @@ export default function LoadingScreen() {
       gsap.set(word1Ref.current, { opacity: 0, y: 30 });
       gsap.set(word2Ref.current, { opacity: 0, y: 30 });
       gsap.set(word3Ref.current, { opacity: 0, y: 30 });
+      gsap.set(logoRef.current, { opacity: 0, scale: 0.95 });
 
       // ==========================================
       // WAYPOINT 1 — "LEAD." (Top Zone)
       // ==========================================
-      tl.to(lineRef.current, { 
+      tl.to(logoRef.current, {
+        opacity: 1,
+        scale: 1,
+        duration: 1.0,
+        ease: 'power3.out'
+      })
+      .to(lineRef.current, { 
         top: '43.6%', 
         opacity: 1, 
         width: '22%', 
         duration: 0.6, 
         ease: easeIn 
-      })
+      }, '-=0.6')
       .to(word1Ref.current, { 
         opacity: 1, 
         y: 0, 
@@ -74,7 +82,7 @@ export default function LoadingScreen() {
       // ==========================================
       // Travel the horizontal line down and expand it slightly wider
       tl.to(lineRef.current, { 
-        top: '62.5%', 
+        top: '61.5%', 
         width: '32%', 
         duration: 0.6, 
         ease: 'power3.inOut' 
@@ -119,7 +127,13 @@ export default function LoadingScreen() {
         width: '0%', 
         duration: 0.4, 
         ease: easeOut 
-      }, '-=0.4'); // Shrink and fade the traveling line with the final word
+      }, '-=0.4')
+      .to(logoRef.current, {
+        opacity: 0,
+        scale: 0.95,
+        duration: 0.4,
+        ease: easeOut
+      }, '-=0.4'); // Shrink and fade the traveling line and logo with the final word
 
     });
 
@@ -139,6 +153,19 @@ export default function LoadingScreen() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vh] h-[80vh] border-[3px] border-[#F5B400] rounded-full" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60vh] h-[60vh] border-[1.5px] border-[#F5B400] rounded-full" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[40vh] h-[40vh] border-[1px] border-[#FAF7EA] rounded-full" />
+      </div>
+
+      {/* CCIS Council Logo Watermark (centered in background) */}
+      <div
+        ref={logoRef}
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none select-none opacity-0"
+      >
+        <img
+          src="/images/ccis_logo.jpg"
+          alt="CCIS Logo Watermark"
+          className="w-[45vh] h-[45vh] max-w-[320px] max-h-[320px] rounded-full object-cover opacity-[0.06] border border-[#FAF7EA]/5 shadow-2xl"
+          referrerPolicy="no-referrer"
+        />
       </div>
 
       {/* Traveling Horizontal Gold Divider */}

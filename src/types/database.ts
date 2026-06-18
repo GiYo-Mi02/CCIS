@@ -90,6 +90,7 @@ export interface EventItem {
   registration_cap: number | null;
   created_by: string | null;
   created_at: string;
+  banner_url: string | null;
   // Computed/joined
   registration_count?: number;
 }

@@ -98,9 +98,9 @@ export default function NavBar({ activeTab, setActiveTab }: NavBarProps) {
 
   const navItems = [
     { id: 'home', label: 'Home' },
-    { id: 'info', label: 'Information' },
+    { id: 'info', label: 'About CCIS' },
     { id: 'announcements', label: 'Announcements' },
-    { id: 'registration', label: 'Registration' },
+    { id: 'registration', label: 'Our Events' },
   ];
 
   const handleNavClick = async (tabId: string) => {

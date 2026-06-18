@@ -111,37 +111,44 @@ export default function Announcements({ previewMode = false, onViewAllClick }: A
               <div
                 key={ann.id}
                 onClick={() => setSelectedAnn(ann)}
-                className={`cursor-pointer group bg-white rounded-2xl border border-zinc-100 p-6 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between hover:-translate-y-1 relative ${
+                className={`cursor-pointer group bg-white rounded-2xl border border-zinc-100 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between hover:-translate-y-1 relative overflow-hidden ${
                   ann.pinned ? 'ring-2 ring-[#F5B400]/40' : ''
                 }`}
                 id={`ann-card-preview-${ann.id}`}
               >
                 {ann.pinned && (
-                  <span className="absolute top-4 right-4 bg-[#F5B400]/10 text-[#F5B400] p-1.5 rounded-full" title="Pinned Announcement">
+                  <span className="absolute top-4 right-4 bg-[#F5B400]/10 text-[#F5B400] p-1.5 rounded-full z-10" title="Pinned Announcement">
                     <Star size={14} fill="currentColor" />
                   </span>
                 )}
-                <div>
-                  <span className={`inline-block text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded border mb-4 ${getCategoryColor(ann.category)}`}>
-                    {ann.category}
-                  </span>
-                  <h3 className="font-bold text-lg text-[#1A3C2E] group-hover:text-[#F5B400] line-clamp-2 transition-colors">
-                    {ann.title}
-                  </h3>
-                  <p className="text-stone-500 text-sm mt-3 line-clamp-3 leading-relaxed">
-                    {ann.content}
-                  </p>
-                </div>
+                {ann.banner_url && (
+                  <div className="h-40 w-full overflow-hidden flex-shrink-0">
+                    <img src={ann.banner_url} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                  </div>
+                )}
+                <div className="p-6 flex-1 flex flex-col justify-between">
+                  <div>
+                    <span className={`inline-block text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded border mb-4 ${getCategoryColor(ann.category)}`}>
+                      {ann.category}
+                    </span>
+                    <h3 className="font-bold text-lg text-[#1A3C2E] group-hover:text-[#F5B400] line-clamp-2 transition-colors">
+                      {ann.title}
+                    </h3>
+                    <p className="text-stone-500 text-sm mt-3 line-clamp-3 leading-relaxed">
+                      {ann.content}
+                    </p>
+                  </div>
 
-                <div className="border-t border-zinc-50 pt-4 mt-6 flex items-center justify-between text-xs text-[#5E6E64] font-mono">
-                  <span className="flex items-center gap-1">
-                    <Calendar size={13} />
-                    {new Date(ann.published_at || ann.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <User size={13} />
-                    {ann.profiles?.full_name || 'Admin'}
-                  </span>
+                  <div className="border-t border-zinc-50 pt-4 mt-6 flex items-center justify-between text-xs text-[#5E6E64] font-mono">
+                    <span className="flex items-center gap-1">
+                      <Calendar size={13} />
+                      {new Date(ann.published_at || ann.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <User size={13} />
+                      {ann.profiles?.full_name || 'Admin'}
+                    </span>
+                  </div>
                 </div>
               </div>
             ))}
@@ -231,37 +238,44 @@ export default function Announcements({ previewMode = false, onViewAllClick }: A
               <div
                 key={ann.id}
                 onClick={() => setSelectedAnn(ann)}
-                className={`cursor-pointer bg-white rounded-2xl border border-zinc-100 p-6 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between relative ${
+                className={`cursor-pointer bg-white rounded-2xl border border-zinc-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between relative overflow-hidden ${
                   ann.pinned ? 'ring-2 ring-[#F5B400]/40' : ''
                 }`}
                 id={`ann-card-full-${ann.id}`}
               >
                 {ann.pinned && (
-                  <span className="absolute top-4 right-4 bg-[#F5B400]/10 text-[#F5B400] p-1.5 rounded-full" title="Pinned Announcement">
+                  <span className="absolute top-4 right-4 bg-[#F5B400]/10 text-[#F5B400] p-1.5 rounded-full z-10" title="Pinned Announcement">
                     <Star size={14} fill="currentColor" />
                   </span>
                 )}
-                <div>
-                  <span className={`inline-block text-[10px] font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 rounded border mb-4 ${getCategoryColor(ann.category)}`}>
-                    {ann.category}
-                  </span>
-                  <h2 className="font-sans font-extrabold text-xl text-[#1A3C2E] hover:text-[#F5B400] line-clamp-2 transition-colors duration-200">
-                    {ann.title}
-                  </h2>
-                  <p className="text-stone-600 text-sm mt-3 line-clamp-4 leading-relaxed font-normal">
-                    {ann.content}
-                  </p>
-                </div>
+                {ann.banner_url && (
+                  <div className="h-40 w-full overflow-hidden flex-shrink-0">
+                    <img src={ann.banner_url} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                  </div>
+                )}
+                <div className="p-6 flex-1 flex flex-col justify-between">
+                  <div>
+                    <span className={`inline-block text-[10px] font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 rounded border mb-4 ${getCategoryColor(ann.category)}`}>
+                      {ann.category}
+                    </span>
+                    <h2 className="font-sans font-extrabold text-xl text-[#1A3C2E] hover:text-[#F5B400] line-clamp-2 transition-colors duration-200">
+                      {ann.title}
+                    </h2>
+                    <p className="text-stone-600 text-sm mt-3 line-clamp-4 leading-relaxed font-normal">
+                      {ann.content}
+                    </p>
+                  </div>
 
-                <div className="border-t border-zinc-100 pt-4 mt-6 flex items-center justify-between text-xs text-[#5E6E64] font-mono">
-                  <span className="flex items-center gap-1">
-                    <Calendar size={13} />
-                    {new Date(ann.published_at || ann.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <User size={13} />
-                    {ann.profiles?.full_name || 'Admin'}
-                  </span>
+                  <div className="border-t border-zinc-100 pt-4 mt-6 flex items-center justify-between text-xs text-[#5E6E64] font-mono">
+                    <span className="flex items-center gap-1">
+                      <Calendar size={13} />
+                      {new Date(ann.published_at || ann.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <User size={13} />
+                      {ann.profiles?.full_name || 'Admin'}
+                    </span>
+                  </div>
                 </div>
               </div>
             ))}
@@ -300,14 +314,22 @@ function AnnouncementModal({ announcement, onClose, getCategoryColor }: ModalPro
       
       <div className="relative w-full max-w-2xl bg-white rounded-3xl overflow-hidden shadow-2xl border border-white/10 animate-scale-up max-h-[90vh] flex flex-col">
         {/* Banner image if available, else decorative emerald block */}
-        <div className="h-44 bg-[#1A3C2E] flex flex-col justify-end p-6 relative flex-shrink-0">
+        <div className="h-44 bg-[#1A3C2E] flex flex-col justify-end p-6 relative flex-shrink-0 overflow-hidden">
+          {announcement.banner_url && (
+            <img 
+              src={announcement.banner_url} 
+              alt="" 
+              className="absolute inset-0 w-full h-full object-cover opacity-40 z-0" 
+            />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent z-0" />
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-2 rounded-full bg-black/20 text-white hover:bg-black/40 hover:scale-105 transition-all focus:outline-none"
+            className="absolute top-4 right-4 p-2 rounded-full bg-black/20 text-white hover:bg-black/40 hover:scale-105 transition-all focus:outline-none z-10"
           >
             <X size={18} />
           </button>
-          <div className="space-y-2">
+          <div className="space-y-2 relative z-10 text-left">
             <span className={`inline-block text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded border bg-white border-transparent text-[#1A3C2E]`}>
               {announcement.category}
             </span>

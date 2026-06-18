@@ -18,8 +18,8 @@ CREATE OR REPLACE FUNCTION public.sync_profile_role_to_auth()
 RETURNS TRIGGER AS $$
 BEGIN
   UPDATE auth.users
-  SET raw_user_meta_data = 
-    coalesce(raw_user_meta_data, '{}'::jsonb) || jsonb_build_object('role', NEW.role)
+  SET raw_app_meta_data = 
+    coalesce(raw_app_meta_data, '{}'::jsonb) || jsonb_build_object('role', NEW.role)
   WHERE id = NEW.id;
   RETURN NEW;
 END;
@@ -33,8 +33,8 @@ EXECUTE FUNCTION public.sync_profile_role_to_auth();
 
 -- Backfill role claims for all existing users
 UPDATE auth.users u
-SET raw_user_meta_data = 
-  coalesce(raw_user_meta_data, '{}'::jsonb) || jsonb_build_object('role', p.role)
+SET raw_app_meta_data = 
+  coalesce(raw_app_meta_data, '{}'::jsonb) || jsonb_build_object('role', p.role)
 FROM public.profiles p
 WHERE u.id = p.id;
 
@@ -76,7 +76,7 @@ DROP POLICY IF EXISTS messages_select_policy ON public.messages;
 CREATE POLICY messages_select_policy ON public.messages
   FOR SELECT USING (
     auth.uid() = student_id 
-    OR coalesce(auth.jwt() -> 'user_metadata' ->> 'role', 'student') IN ('devcom_head', 'officer')
+    OR coalesce(auth.jwt() -> 'app_metadata' ->> 'role', 'student') IN ('devcom_head', 'officer')
     OR auth.jwt() ->> 'email' = 'ggiojoshua2006@gmail.com'
   );
 
