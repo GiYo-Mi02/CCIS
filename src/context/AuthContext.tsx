@@ -175,7 +175,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (event === 'SIGNED_IN') {
             await new Promise(r => setTimeout(r, 500));
           }
-          const p = await fetchProfile(newSession.user.id);
+          let p = await fetchProfile(newSession.user.id);
+          if (!p && event === 'SIGNED_IN') {
+            // Retry once more after 1.5 seconds if the trigger is slow
+            await new Promise(r => setTimeout(r, 1500));
+            p = await fetchProfile(newSession.user.id);
+          }
           const isBanned = p?.banned && (!p.banned_until || new Date(p.banned_until) > new Date());
           if (isBanned) {
             await supabase.auth.signOut();

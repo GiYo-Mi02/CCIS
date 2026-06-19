@@ -262,6 +262,61 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
     );
   }
 
+  // Show initializing profile screen if signed in but profile is null
+  if (user && !profile) {
+    return (
+      <div className="min-h-screen bg-[var(--color-primary-green,#1A3C2E)] flex items-center justify-center p-4 relative overflow-hidden font-sans">
+        <div className="absolute inset-0 opacity-5 pointer-events-none">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] border-[30px] border-[#F5B400] rounded-full animate-pulse" />
+        </div>
+
+        <div className="w-full max-w-md bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl text-white text-center space-y-6 animate-scale-up">
+          <div className="space-y-2">
+            <div className="w-14 h-14 bg-amber-500/10 border border-amber-500/30 rounded-full flex items-center justify-center mx-auto text-[#F5B400]">
+              <RefreshCw size={28} className="animate-spin" />
+            </div>
+            <h2 className="font-sans font-black text-xl text-white tracking-tight">
+              Initializing Profile
+            </h2>
+            <p className="text-[#FAF7EA]/60 text-xs font-mono uppercase tracking-widest">
+              Please wait while we set up your CCIS profile
+            </p>
+          </div>
+
+          <p className="text-stone-300 text-xs leading-relaxed">
+            We are configuring your account records. This usually takes just a few seconds. If this screen persists, please check your network connection or try signing out.
+          </p>
+
+          <div className="flex gap-3 pt-2">
+            <button
+              onClick={async () => {
+                try {
+                  const btn = document.getElementById('refresh-profile-btn');
+                  if (btn) btn.classList.add('animate-spin');
+                  await refreshProfile();
+                } catch {} finally {
+                  const btn = document.getElementById('refresh-profile-btn');
+                  if (btn) btn.classList.remove('animate-spin');
+                }
+              }}
+              className="flex-1 bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <RefreshCw size={14} id="refresh-profile-btn" />
+              Retry Setup
+            </button>
+            <button
+              onClick={() => signOut()}
+              className="flex-1 bg-rose-950/20 hover:bg-rose-900/40 border border-rose-500/20 text-rose-300 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <LogOut size={14} />
+              Sign Out
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Show profile completion form if signed in but profile not complete
   if (user && profile && !profile.profile_complete) {
     if (!privacyAccepted) {

@@ -1,7 +1,10 @@
 import pg from 'pg';
 import fs from 'fs';
 
-const sql = fs.readFileSync('supabase/12_user_verification_flow.sql', 'utf-8');
+const sql12 = fs.readFileSync('supabase/12_user_verification_flow.sql', 'utf-8');
+const sql13 = fs.readFileSync('supabase/13_auto_create_profile.sql', 'utf-8');
+const sql = sql12 + '\n\n' + sql13;
+
 
 const configs = [
   {
