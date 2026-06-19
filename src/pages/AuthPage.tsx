@@ -569,8 +569,9 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
     );
   }
 
-  // Transition Loader Page before homepage redirect
-  if (user && profile?.profile_complete && !transitionComplete) {
+  // Transition Loader Page before homepage redirect (only for approved or fallback users who can access the public site)
+  const canAccessPublicSite = profile?.profile_complete && (!isPending || isUnverified);
+  if (user && canAccessPublicSite && !transitionComplete) {
     return (
       <div className="min-h-screen bg-[#1A3C2E] flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans">
         {/* Background pattern */}
@@ -644,9 +645,12 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
             </div>
           </div>
 
-          <p className="text-stone-300 text-xs leading-relaxed">
-            Your CCIS Student Portal profile is currently under review by the student council. We verify all student numbers and sections against official records.
-          </p>
+          <div className="bg-amber-500/10 border-l-2 border-[#F5B400] p-4 rounded-r-2xl text-left text-xs md:text-sm text-stone-200 leading-relaxed space-y-1">
+            <p className="font-bold text-white">Advisory Notice:</p>
+            <p>
+              Please wait for your confirmation approval of the admin please comeback exactly 24 hours For the mean time check your email for further instruction.
+            </p>
+          </div>
 
           <div className="bg-white/5 border border-white/5 rounded-2xl p-5 text-center shadow-inner space-y-2">
             <span className="text-stone-400 text-[9px] font-mono uppercase tracking-widest block">Fallback Access Active In</span>
