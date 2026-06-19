@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { Profile, isAdminRole } from '../types/database';
+import { ShieldAlert } from 'lucide-react';
 
 interface AuthContextType {
   session: Session | null;
@@ -9,6 +10,12 @@ interface AuthContextType {
   profile: Profile | null;
   loading: boolean;
   isAdmin: boolean;
+  isPending: boolean;
+  isApproved: boolean;
+  isRejected: boolean;
+  isUnverified: boolean;
+  accountAgeHours: number;
+  verificationCountdown: number;
   signInWithGoogle: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (email: string, password: string, fullName: string) => Promise<void>;
@@ -17,6 +24,8 @@ interface AuthContextType {
   updateProfile: (updates: Partial<Profile>) => Promise<void>;
   banNotice: { bannedUntil: string | null } | null;
   clearBanNotice: () => void;
+  emailValidationError: string | null;
+  clearEmailValidationError: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,8 +42,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [banNotice, setBanNotice] = useState<{ bannedUntil: string | null } | null>(null);
+  const [emailValidationError, setEmailValidationError] = useState<string | null>(null);
+  const [accountAgeHours, setAccountAgeHours] = useState<number>(0);
+  const [verificationCountdown, setVerificationCountdown] = useState<number>(0);
 
   const clearBanNotice = useCallback(() => setBanNotice(null), []);
+  const clearEmailValidationError = useCallback(() => setEmailValidationError(null), []);
 
   // Replace Google OAuth callback URL in browser history to fix back-button loop
   useEffect(() => {
@@ -93,15 +106,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (currentSession?.user) {
           const email = currentSession.user.email || '';
-          if (!email.endsWith('@umak.edu.ph') && email !== 'ggiojoshua2006@gmail.com') {
+          if (!email.endsWith('@umak.edu.ph') && email !== 'ggiojoshua2006@gmail.com' && email !== 'devcommgio2006@gmail.com') {
             await supabase.auth.signOut();
             if (mounted) {
               setSession(null);
               setUser(null);
               setProfile(null);
               setLoading(false);
+              setEmailValidationError('Only institutional email accounts (@umak.edu.ph) are allowed to access this platform.');
             }
-            alert('Only institutional email accounts (@umak.edu.ph) are allowed to access this platform.');
             return;
           }
         }
@@ -141,15 +154,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (newSession?.user) {
           const email = newSession.user.email || '';
-          if (!email.endsWith('@umak.edu.ph') && email !== 'ggiojoshua2006@gmail.com') {
+          if (!email.endsWith('@umak.edu.ph') && email !== 'ggiojoshua2006@gmail.com' && email !== 'devcommgio2006@gmail.com') {
             await supabase.auth.signOut();
             if (mounted) {
               setSession(null);
               setUser(null);
               setProfile(null);
               setLoading(false);
+              setEmailValidationError('Only institutional email accounts (@umak.edu.ph) are allowed to access this platform.');
             }
-            alert('Only institutional email accounts (@umak.edu.ph) are allowed to access this platform.');
             return;
           }
         }
@@ -241,7 +254,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile(null);
   }, []);
 
+  useEffect(() => {
+    if (profile && profile.status === 'pending') {
+      const updateTime = () => {
+        const submittedTime = new Date(profile.submitted_at || profile.created_at).getTime();
+        const now = new Date().getTime();
+        const diffMs = now - submittedTime;
+        const diffHours = diffMs / (1000 * 60 * 60);
+        setAccountAgeHours(diffHours);
+        
+        const limitMs = 24 * 60 * 60 * 1000;
+        const remainingMs = Math.max(0, limitMs - diffMs);
+        setVerificationCountdown(Math.floor(remainingMs / 1000));
+      };
+
+      updateTime();
+      const interval = setInterval(updateTime, 1000);
+      return () => clearInterval(interval);
+    } else {
+      setAccountAgeHours(0);
+      setVerificationCountdown(0);
+    }
+  }, [profile]);
+
   const isAdmin = profile ? isAdminRole(profile.role) : false;
+  const isPending = profile ? profile.status === 'pending' : false;
+  const isApproved = profile ? profile.status === 'approved' : false;
+  const isRejected = profile ? profile.status === 'rejected' : false;
+  const isUnverified = profile ? (profile.status === 'pending' && accountAgeHours >= 24) : false;
 
   return (
     <AuthContext.Provider value={{
@@ -250,6 +290,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       profile,
       loading,
       isAdmin,
+      isPending,
+      isApproved,
+      isRejected,
+      isUnverified,
+      accountAgeHours,
+      verificationCountdown,
       signInWithGoogle,
       signInWithEmail,
       signUpWithEmail,
@@ -258,8 +304,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       updateProfile,
       banNotice,
       clearBanNotice,
+      emailValidationError,
+      clearEmailValidationError,
     }}>
       {children}
+      {emailValidationError && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs font-sans">
+          <div className="absolute inset-0 cursor-pointer" onClick={clearEmailValidationError} />
+          <div className="relative w-full max-w-md bg-white rounded-3xl overflow-hidden shadow-2xl border border-zinc-150 p-7 text-center space-y-5 animate-scale-up">
+            <div className="w-14 h-14 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mx-auto border border-amber-100 shadow-sm">
+              <ShieldAlert size={28} className="text-[#F5B400]" />
+            </div>
+            <div className="space-y-2 text-left">
+              <h3 className="font-sans font-black text-xl text-amber-900 text-center">
+                Institutional Email Required
+              </h3>
+              <p className="text-stone-600 text-sm leading-relaxed text-center">
+                {emailValidationError}
+              </p>
+              <div className="bg-amber-50/50 border border-amber-100/80 p-3.5 rounded-2xl text-[11px] text-amber-800 leading-normal flex items-start gap-2 mt-2">
+                <span className="text-sm shrink-0">🎓</span>
+                <span>
+                  Please sign in using your official university Google account ending with <strong>@umak.edu.ph</strong>.
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={clearEmailValidationError}
+              className="w-full bg-[#1A3C2E] hover:bg-[#255541] text-white py-3 rounded-2xl font-bold text-xs uppercase tracking-wider transition-all shadow-md active:scale-98 cursor-pointer"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      )}
     </AuthContext.Provider>
   );
 }

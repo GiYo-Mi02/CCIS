@@ -17,6 +17,15 @@ export interface Profile {
   profile_complete: boolean;
   banned: boolean;
   banned_until: string | null;
+  subscribe_announcements_events: boolean;
+  email_subscription_decided: boolean;
+  status: 'pending' | 'approved' | 'rejected';
+  privacy_agreed_at: string | null;
+  submitted_at: string;
+  approved_at: string | null;
+  approved_by: string | null;
+  rejection_reason: string | null;
+  contact_number: string | null;
   created_at: string;
   updated_at: string;
 }

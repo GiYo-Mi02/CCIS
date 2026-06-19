@@ -225,31 +225,21 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
         return;
       }
 
-      // Attempt to send ticket email via Supabase Edge Function
+      // Trigger the queue processor in the background to send the queued email
       try {
-        const emailPayload = {
-          registrationId: regData.id,
-          email: email,
-          name: fullName,
-          section: section,
-          college: collegeBranch,
-          eventTitle: regData.events?.title || matchedEvent.title,
-        };
-
-        supabase.functions.invoke('send-ticket-email', {
-          body: emailPayload,
-        }).then(({ data, error }) => {
-          if (error) {
-            console.warn('[Email] Edge function returned error:', error.message || error);
-            console.info('[Email] To enable email delivery, deploy the send-ticket-email Supabase Edge Function.');
-          } else {
-            console.log('[Email] Ticket email dispatched successfully via Edge Function.', data);
-          }
-        }).catch((err: any) => {
-          console.warn('[Email] Edge function not reachable:', err.message || err);
-        });
+        supabase.functions.invoke('process-email-queue')
+          .then(({ data, error }) => {
+            if (error) {
+              console.warn('[Email Worker] Returned error:', error.message || error);
+            } else {
+              console.log('[Email Worker] Queue processing triggered successfully.', data);
+            }
+          })
+          .catch((err: any) => {
+            console.warn('[Email Worker] Unreachable:', err.message || err);
+          });
       } catch (emailErr) {
-        console.warn('[Email] Failed to invoke edge function:', emailErr);
+        console.warn('[Email Worker] Trigger invocation failed:', emailErr);
       }
 
       const ticket: Registration = {

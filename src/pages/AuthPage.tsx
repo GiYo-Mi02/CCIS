@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Lock, AlertTriangle, ShieldAlert } from 'lucide-react';
+import { Lock, AlertTriangle, ShieldAlert, Clock, LogOut, RefreshCw, Check } from 'lucide-react';
+import { getAdminNotificationEmail, getStudentReceiptEmail } from '../utils/verificationEmails';
+import { supabase } from '../lib/supabase';
 
 interface AuthPageProps {
   onNavigate?: (tab: string) => void;
@@ -15,6 +17,11 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
     signInWithEmail, 
     signUpWithEmail, 
     updateProfile,
+    signOut,
+    refreshProfile,
+    isPending,
+    isUnverified,
+    verificationCountdown,
     banNotice,
     clearBanNotice
   } = useAuth();
@@ -28,11 +35,14 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
   const [yearLevel, setYearLevel] = useState<number>(1);
   const [program, setProgram] = useState('BSCS');
   const [section, setSection] = useState('');
+  const [contactNumber, setContactNumber] = useState('');
   const [completing, setCompleting] = useState(false);
 
   // Data privacy & confirmation states
-  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [privacyAccepted, setPrivacyAccepted] = useState(!!profile?.privacy_agreed_at);
   const [privacyChecked, setPrivacyChecked] = useState(false);
+  const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false);
+  const privacyScrollRef = React.useRef<HTMLDivElement>(null);
   const [studentIdError, setStudentIdError] = useState('');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [justCompletedSetup, setJustCompletedSetup] = useState(false);
@@ -42,7 +52,10 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
   const [transitionComplete, setTransitionComplete] = useState(false);
 
   useEffect(() => {
-    if (user && profile?.profile_complete) {
+    // Only redirect to home if profile is complete AND they are either approved or fallback has kicked in
+    const canAccessPublicSite = profile?.profile_complete && (!isPending || isUnverified);
+
+    if (user && canAccessPublicSite) {
       if (justCompletedSetup) {
         if (!transitionComplete) {
           const duration = 2500; // 2.5 seconds
@@ -72,7 +85,7 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
         }
       }
     }
-  }, [user, profile?.profile_complete, transitionComplete, onNavigate, justCompletedSetup]);
+  }, [user, profile?.profile_complete, isPending, isUnverified, transitionComplete, onNavigate, justCompletedSetup]);
 
   const handleGoogleSignIn = async () => {
     setSigningIn(true);
@@ -88,6 +101,30 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
         setError(err?.message || 'Failed to sign in with Google. Please try again.');
       }
       setSigningIn(false);
+    }
+  };
+
+  const handlePrivacyScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget;
+    const isBottom = target.scrollHeight - target.scrollTop <= target.clientHeight + 10;
+    if (isBottom) {
+      setHasScrolledToBottom(true);
+    }
+  };
+
+  const handleAcceptPrivacy = async () => {
+    if (!privacyChecked) return;
+    setCompleting(true);
+    setError('');
+    try {
+      await updateProfile({
+        privacy_agreed_at: new Date().toISOString()
+      });
+      setPrivacyAccepted(true);
+    } catch (err: any) {
+      setError('Failed to record consent: ' + err.message);
+    } finally {
+      setCompleting(false);
     }
   };
 
@@ -154,15 +191,61 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
 
     const sectionTrimmed = section.trim().toUpperCase().replace(/\s/g, '');
     const idClean = studentNumber.trim().toUpperCase();
+    const contactClean = contactNumber.trim();
 
     try {
+      const submittedAtISO = new Date().toISOString();
       await updateProfile({
         student_number: idClean,
         year_level: yearLevel,
         program,
         section: sectionTrimmed,
+        contact_number: contactClean || null,
         profile_complete: true,
+        status: 'pending',
+        submitted_at: submittedAtISO,
       });
+
+      const updatedProfileObj = {
+        full_name: profile?.full_name || 'Student',
+        email: profile?.email || '',
+        student_number: idClean,
+        year_level: yearLevel,
+        program,
+        section: sectionTrimmed,
+        contact_number: contactClean || 'N/A'
+      };
+
+      // Queue admin notification email
+      const adminHtml = getAdminNotificationEmail(updatedProfileObj);
+      const { error: adminMailErr } = await supabase
+        .from('email_queue')
+        .insert({
+          recipient_email: 'devcommgio2006@gmail.com',
+          email_type: 'verification_admin',
+          subject: `[Pending Verification] New User Profile Submitted: ${profile?.full_name || 'Student'}`,
+          html_body: adminHtml
+        });
+
+      if (adminMailErr) {
+        console.error('Failed to queue verification admin notification email:', adminMailErr.message);
+      }
+
+      // Queue student receipt email
+      const studentHtml = getStudentReceiptEmail(updatedProfileObj);
+      const { error: studentMailErr } = await supabase
+        .from('email_queue')
+        .insert({
+          recipient_email: profile?.email || '',
+          email_type: 'verification_student',
+          subject: '[CCIS SC] Profile Submitted — Pending Verification',
+          html_body: studentHtml
+        });
+
+      if (studentMailErr) {
+        console.error('Failed to queue verification student receipt email:', studentMailErr.message);
+      }
+
       setJustCompletedSetup(true);
     } catch (err: any) {
       setError(err?.message || 'Failed to save profile. Please try again.');
@@ -200,7 +283,11 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
               </p>
             </div>
 
-            <div className="bg-white/5 border border-white/10 p-5 rounded-2xl space-y-3.5 text-xs md:text-sm leading-relaxed text-stone-200">
+            <div 
+              ref={privacyScrollRef}
+              onScroll={handlePrivacyScroll}
+              className="bg-white/5 border border-white/10 p-5 rounded-2xl space-y-3.5 text-xs md:text-sm leading-relaxed text-stone-200 overflow-y-auto max-h-64 scrollbar-thin"
+            >
               <p>
                 In compliance with the <strong>Data Privacy Act of 2012 (Republic Act No. 10173)</strong>, the CCIS Student Council is committed to protecting your personal information.
               </p>
@@ -208,15 +295,28 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
                 ⚠️ All information provided will be used solely for student verification purposes.
               </p>
               <p>
-                Your data will be kept secure and confidential, and will not be shared with third parties without your explicit consent.
+                To complete your registration, we will collect your Name, Student ID, Course, Section, Email, and Contact Number. This data will be checked against official university records.
               </p>
+              <p>
+                Your data will be kept secure and confidential, and will not be shared with third parties without your explicit consent. By accepting, you consent to this verification process.
+              </p>
+              <div className="text-[#F5B400] text-[10px] font-black text-center pt-2">
+                ✓ Scrolled to bottom
+              </div>
             </div>
 
             <div className="space-y-4">
-              <label className="flex items-start gap-3 cursor-pointer select-none">
+              {!hasScrolledToBottom && (
+                <p className="text-[10px] text-amber-400 font-bold text-center animate-pulse">
+                  📜 Please scroll to the bottom of the notice to unlock the agreement.
+                </p>
+              )}
+
+              <label className={`flex items-start gap-3 cursor-pointer select-none ${!hasScrolledToBottom ? 'opacity-40 pointer-events-none' : ''}`}>
                 <input
                   type="checkbox"
                   checked={privacyChecked}
+                  disabled={!hasScrolledToBottom}
                   onChange={(e) => setPrivacyChecked(e.target.checked)}
                   className="mt-1 accent-[var(--color-accent-gold,#F5B400)] h-4 w-4 rounded border-gray-300 text-[var(--color-accent-gold,#F5B400)] focus:ring-[var(--color-accent-gold,#F5B400)]"
                 />
@@ -225,17 +325,23 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
                 </span>
               </label>
 
-              <button
-                onClick={() => {
-                  if (privacyChecked) {
-                    setPrivacyAccepted(true);
-                  }
-                }}
-                disabled={!privacyChecked}
-                className="w-full bg-[var(--color-accent-gold,#F5B400)] hover:bg-[#ffc522] text-[var(--color-primary-green,#1A3C2E)] py-3 rounded-xl font-sans font-black text-xs uppercase tracking-wider shadow-lg transition-all disabled:opacity-50"
-              >
-                Accept &amp; Proceed
-              </button>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  type="button"
+                  onClick={() => signOut()}
+                  className="flex-1 bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl font-sans font-black text-xs uppercase tracking-wider transition-all cursor-pointer"
+                >
+                  Disagree &amp; Sign Out
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAcceptPrivacy}
+                  disabled={!privacyChecked || completing}
+                  className="flex-1 bg-[var(--color-accent-gold,#F5B400)] hover:bg-[#ffc522] text-[var(--color-primary-green,#1A3C2E)] py-3 rounded-xl font-sans font-black text-xs uppercase tracking-wider shadow-lg transition-all disabled:opacity-50 cursor-pointer"
+                >
+                  {completing ? 'Logging consent...' : 'Accept & Proceed'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -368,6 +474,19 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
                 />
               </div>
 
+              <div>
+                <label className="block text-[var(--color-bg-cream,#FAF7EA)]/70 text-xs font-bold uppercase tracking-wider mb-2">
+                  Contact Number (Optional)
+                </label>
+                <input
+                  type="tel"
+                  value={contactNumber}
+                  onChange={(e) => setContactNumber(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 focus:border-[var(--color-accent-gold,#F5B400)] focus:ring-1 focus:ring-[var(--color-accent-gold,#F5B400)] rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 outline-none transition-all"
+                  placeholder="e.g. 09123456789"
+                />
+              </div>
+
               {error && (
                 <div className="bg-red-500/15 border border-red-500/30 text-red-300 text-xs px-4 py-2.5 rounded-lg">
                   {error}
@@ -435,6 +554,85 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
             <span className="block text-[#F5B400] font-mono text-xs font-bold">
               {Math.min(100, Math.floor(transitionProgress))}%
             </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Pending Verification Wait page (age < 24 hours)
+  if (user && profile?.profile_complete && isPending && !isUnverified) {
+    const formatCountdown = (secs: number) => {
+      const h = Math.floor(secs / 3600).toString().padStart(2, '0');
+      const m = Math.floor((secs % 3600) / 60).toString().padStart(2, '0');
+      const s = (secs % 60).toString().padStart(2, '0');
+      return `${h}:${m}:${s}`;
+    };
+
+    return (
+      <div className="min-h-screen bg-[var(--color-primary-green,#1A3C2E)] flex items-center justify-center p-4 relative overflow-hidden font-sans">
+        <div className="absolute inset-0 opacity-5 pointer-events-none">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] border-[30px] border-[#F5B400] rounded-full animate-pulse" />
+        </div>
+
+        <div className="w-full max-w-md bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl text-white text-center space-y-6 animate-scale-up">
+          <div className="space-y-2">
+            <div className="w-14 h-14 bg-amber-500/10 border border-amber-500/30 rounded-full flex items-center justify-center mx-auto text-[#F5B400] animate-bounce">
+              <Clock size={28} />
+            </div>
+            <h2 className="font-sans font-black text-xl text-white tracking-tight">
+              Verification Pending
+            </h2>
+            <div className="inline-flex items-center gap-1.5 bg-[#F5B400]/20 border border-[#F5B400]/30 px-3 py-1 rounded-full text-[10px] font-bold text-[#F5B400] uppercase tracking-wider mx-auto">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#F5B400] animate-ping" />
+              Under Evaluation
+            </div>
+          </div>
+
+          <p className="text-stone-300 text-xs leading-relaxed">
+            Your CCIS Student Portal profile is currently under review by the student council. We verify all student numbers and sections against official records.
+          </p>
+
+          <div className="bg-white/5 border border-white/5 rounded-2xl p-5 text-center shadow-inner space-y-2">
+            <span className="text-stone-400 text-[9px] font-mono uppercase tracking-widest block">Fallback Access Active In</span>
+            <span className="text-3xl font-black text-[#F5B400] font-mono tracking-wider">
+              {formatCountdown(verificationCountdown)}
+            </span>
+            <span className="text-[10px] text-stone-400 block leading-normal pt-1">
+              If review takes longer than 24 hours, you will receive fallback access to browse portal updates.
+            </span>
+          </div>
+
+          <div className="bg-white/5 border border-white/10 p-4 rounded-xl text-left text-xs space-y-1.5 text-stone-300">
+            <div className="flex justify-between"><span className="text-stone-400">Student ID:</span><span className="font-mono text-white font-bold">{profile.student_number}</span></div>
+            <div className="flex justify-between"><span className="text-stone-400">Program / Sec:</span><span className="text-white font-bold">{profile.program} - {profile.section}</span></div>
+            <div className="flex justify-between"><span className="text-stone-400">Submitted at:</span><span className="text-white font-bold">{new Date(profile.submitted_at || profile.created_at).toLocaleDateString()}</span></div>
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button
+              onClick={async () => {
+                try {
+                  const btn = document.getElementById('refresh-btn');
+                  if (btn) btn.classList.add('animate-spin');
+                  await refreshProfile();
+                } catch {} finally {
+                  const btn = document.getElementById('refresh-btn');
+                  if (btn) btn.classList.remove('animate-spin');
+                }
+              }}
+              className="flex-1 bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <RefreshCw size={14} id="refresh-btn" />
+              Check Status
+            </button>
+            <button
+              onClick={() => signOut()}
+              className="flex-1 bg-rose-950/20 hover:bg-rose-900/40 border border-rose-500/20 text-rose-300 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <LogOut size={14} />
+              Sign Out
+            </button>
           </div>
         </div>
       </div>

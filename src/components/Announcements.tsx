@@ -30,7 +30,7 @@ export default function Announcements({ previewMode = false, onViewAllClick }: A
         .order('published_at', { ascending: false });
 
       if (previewMode) {
-        query = query.limit(3);
+        query = query.eq('pinned', true).limit(3);
       }
 
       const { data, error } = await query;
@@ -106,48 +106,88 @@ export default function Announcements({ previewMode = false, onViewAllClick }: A
             )}
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6 font-sans">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-7xl mx-auto font-sans">
             {announcements.map((ann) => (
               <div
                 key={ann.id}
                 onClick={() => setSelectedAnn(ann)}
-                className={`cursor-pointer group bg-white rounded-2xl border border-zinc-100 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between hover:-translate-y-1 relative overflow-hidden ${
+                className={`cursor-pointer bg-white rounded-3xl border border-zinc-150 shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col md:flex-row overflow-hidden group min-h-[220px] ${
                   ann.pinned ? 'ring-2 ring-[#F5B400]/40' : ''
                 }`}
                 id={`ann-card-preview-${ann.id}`}
               >
-                {ann.pinned && (
-                  <span className="absolute top-4 right-4 bg-[#F5B400]/10 text-[#F5B400] p-1.5 rounded-full z-10" title="Pinned Announcement">
-                    <Star size={14} fill="currentColor" />
-                  </span>
-                )}
-                {ann.banner_url && (
-                  <div className="h-40 w-full overflow-hidden flex-shrink-0">
-                    <img src={ann.banner_url} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                  </div>
-                )}
-                <div className="p-6 flex-1 flex flex-col justify-between">
-                  <div>
-                    <span className={`inline-block text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded border mb-4 ${getCategoryColor(ann.category)}`}>
+                {/* Left Side: Photo / Graphic */}
+                <div className="w-full md:w-2/5 min-h-[200px] md:min-h-full relative overflow-hidden flex-shrink-0 bg-stone-50 border-b md:border-b-0 md:border-r border-zinc-100">
+                  {ann.banner_url ? (
+                    <img 
+                      src={ann.banner_url} 
+                      alt={ann.title} 
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
+                    />
+                  ) : (
+                    // CCIS branded gradient placeholder graphic
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#1A3C2E] to-[#255541] flex flex-col items-center justify-center p-6 text-center select-none">
+                      <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#FAF7EA_1px,transparent_1px)] [background-size:16px_16px]" />
+                      <div className="w-14 h-14 rounded-full border border-white/20 bg-white/5 flex items-center justify-center mb-3 shadow-lg backdrop-blur-xs">
+                        <img 
+                          src="/images/ccis_logo.jpg" 
+                          alt="CCIS Logo" 
+                          className="w-10 h-10 rounded-full object-cover opacity-80" 
+                        />
+                      </div>
+                      <span className="text-[9px] font-mono font-bold uppercase tracking-[0.2em] text-[#F5B400]">
+                        CCIS Student Council
+                      </span>
+                      <Megaphone size={14} className="text-[#FAF7EA]/20 mt-2" />
+                    </div>
+                  )}
+                  {ann.pinned && (
+                    <span className="absolute top-4 left-4 bg-[#F5B400] text-[#1A3C2E] px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider flex items-center gap-1 shadow-md z-10">
+                      <Star size={10} fill="currentColor" />
+                      Pinned
+                    </span>
+                  )}
+                </div>
+
+                {/* Right Side: Details & Content */}
+                <div className="w-full md:w-3/5 p-6 md:p-7 flex flex-col justify-between">
+                  {/* Header: User & Meta */}
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-8.5 h-8.5 rounded-full bg-gradient-to-tr from-[#1A3C2E] to-[#F5B400] p-0.5 shadow-xs">
+                      <div className="w-full h-full rounded-full bg-white flex items-center justify-center text-xs font-black text-[#1A3C2E]">
+                        {ann.profiles?.full_name ? ann.profiles.full_name.charAt(0).toUpperCase() : 'A'}
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-xs text-[#1A3C2E] leading-tight">
+                        {ann.profiles?.full_name || 'CCIS Administrator'}
+                      </h4>
+                      <p className="text-[10px] text-stone-400 font-mono mt-0.5">
+                        {new Date(ann.published_at || ann.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </p>
+                    </div>
+                    
+                    <span className={`ml-auto text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${getCategoryColor(ann.category)}`}>
                       {ann.category}
                     </span>
-                    <h3 className="font-bold text-lg text-[#1A3C2E] group-hover:text-[#F5B400] line-clamp-2 transition-colors">
+                  </div>
+
+                  {/* Body: Title & Content */}
+                  <div className="flex-1 flex flex-col justify-start">
+                    <h3 className="font-sans font-black text-base md:text-lg text-[#1A3C2E] group-hover:text-[#F5B400] transition-colors line-clamp-2 leading-snug">
                       {ann.title}
                     </h3>
-                    <p className="text-stone-500 text-sm mt-3 line-clamp-3 leading-relaxed">
+                    <p className="text-stone-500 text-xs mt-2 line-clamp-3 leading-relaxed whitespace-pre-wrap">
                       {ann.content}
                     </p>
                   </div>
 
-                  <div className="border-t border-zinc-50 pt-4 mt-6 flex items-center justify-between text-xs text-[#5E6E64] font-mono">
-                    <span className="flex items-center gap-1">
-                      <Calendar size={13} />
-                      {new Date(ann.published_at || ann.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  {/* Footer Action */}
+                  <div className="border-t border-zinc-50 pt-3 mt-4 flex items-center justify-between text-xs text-[#5E6E64] font-semibold">
+                    <span className="text-[#1A3C2E] group-hover:text-[#F5B400] transition-colors flex items-center gap-1 text-[11px] font-bold">
+                      Read full announcement
                     </span>
-                    <span className="flex items-center gap-1">
-                      <User size={13} />
-                      {ann.profiles?.full_name || 'Admin'}
-                    </span>
+                    <ArrowRight size={14} className="transform group-hover:translate-x-1 transition-transform text-[#1A3C2E] group-hover:text-[#F5B400]" />
                   </div>
                 </div>
               </div>
@@ -233,48 +273,88 @@ export default function Announcements({ previewMode = false, onViewAllClick }: A
             </p>
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-7xl mx-auto font-sans">
             {filtered.map((ann) => (
               <div
                 key={ann.id}
                 onClick={() => setSelectedAnn(ann)}
-                className={`cursor-pointer bg-white rounded-2xl border border-zinc-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between relative overflow-hidden ${
+                className={`cursor-pointer bg-white rounded-3xl border border-zinc-150 shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col md:flex-row overflow-hidden group min-h-[220px] ${
                   ann.pinned ? 'ring-2 ring-[#F5B400]/40' : ''
                 }`}
                 id={`ann-card-full-${ann.id}`}
               >
-                {ann.pinned && (
-                  <span className="absolute top-4 right-4 bg-[#F5B400]/10 text-[#F5B400] p-1.5 rounded-full z-10" title="Pinned Announcement">
-                    <Star size={14} fill="currentColor" />
-                  </span>
-                )}
-                {ann.banner_url && (
-                  <div className="h-40 w-full overflow-hidden flex-shrink-0">
-                    <img src={ann.banner_url} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                  </div>
-                )}
-                <div className="p-6 flex-1 flex flex-col justify-between">
-                  <div>
-                    <span className={`inline-block text-[10px] font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 rounded border mb-4 ${getCategoryColor(ann.category)}`}>
+                {/* Left Side: Photo / Graphic */}
+                <div className="w-full md:w-2/5 min-h-[200px] md:min-h-full relative overflow-hidden flex-shrink-0 bg-stone-50 border-b md:border-b-0 md:border-r border-zinc-100">
+                  {ann.banner_url ? (
+                    <img 
+                      src={ann.banner_url} 
+                      alt={ann.title} 
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
+                    />
+                  ) : (
+                    // CCIS branded gradient placeholder graphic
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#1A3C2E] to-[#255541] flex flex-col items-center justify-center p-6 text-center select-none">
+                      <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#FAF7EA_1px,transparent_1px)] [background-size:16px_16px]" />
+                      <div className="w-14 h-14 rounded-full border border-white/20 bg-white/5 flex items-center justify-center mb-3 shadow-lg backdrop-blur-xs">
+                        <img 
+                          src="/images/ccis_logo.jpg" 
+                          alt="CCIS Logo" 
+                          className="w-10 h-10 rounded-full object-cover opacity-80" 
+                        />
+                      </div>
+                      <span className="text-[9px] font-mono font-bold uppercase tracking-[0.2em] text-[#F5B400]">
+                        CCIS Student Council
+                      </span>
+                      <Megaphone size={14} className="text-[#FAF7EA]/20 mt-2" />
+                    </div>
+                  )}
+                  {ann.pinned && (
+                    <span className="absolute top-4 left-4 bg-[#F5B400] text-[#1A3C2E] px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider flex items-center gap-1 shadow-md z-10">
+                      <Star size={10} fill="currentColor" />
+                      Pinned
+                    </span>
+                  )}
+                </div>
+
+                {/* Right Side: Details & Content */}
+                <div className="w-full md:w-3/5 p-6 md:p-8 flex flex-col justify-between">
+                  {/* Header: User & Meta */}
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#1A3C2E] to-[#F5B400] p-0.5 shadow-xs">
+                      <div className="w-full h-full rounded-full bg-white flex items-center justify-center text-xs font-black text-[#1A3C2E]">
+                        {ann.profiles?.full_name ? ann.profiles.full_name.charAt(0).toUpperCase() : 'A'}
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-xs text-[#1A3C2E] leading-tight">
+                        {ann.profiles?.full_name || 'CCIS Administrator'}
+                      </h4>
+                      <p className="text-[10px] text-stone-400 font-mono mt-0.5">
+                        {new Date(ann.published_at || ann.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </p>
+                    </div>
+                    
+                    <span className={`ml-auto text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${getCategoryColor(ann.category)}`}>
                       {ann.category}
                     </span>
-                    <h2 className="font-sans font-extrabold text-xl text-[#1A3C2E] hover:text-[#F5B400] line-clamp-2 transition-colors duration-200">
+                  </div>
+
+                  {/* Body: Title & Content */}
+                  <div className="flex-1 flex flex-col justify-start">
+                    <h3 className="font-sans font-black text-lg text-[#1A3C2E] group-hover:text-[#F5B400] transition-colors line-clamp-2 leading-snug">
                       {ann.title}
-                    </h2>
-                    <p className="text-stone-600 text-sm mt-3 line-clamp-4 leading-relaxed font-normal">
+                    </h3>
+                    <p className="text-stone-600 text-xs mt-2 line-clamp-3 md:line-clamp-4 leading-relaxed whitespace-pre-wrap font-normal">
                       {ann.content}
                     </p>
                   </div>
 
-                  <div className="border-t border-zinc-100 pt-4 mt-6 flex items-center justify-between text-xs text-[#5E6E64] font-mono">
-                    <span className="flex items-center gap-1">
-                      <Calendar size={13} />
-                      {new Date(ann.published_at || ann.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  {/* Footer Action */}
+                  <div className="border-t border-zinc-100 pt-3 mt-4 flex items-center justify-between text-xs text-[#5E6E64] font-semibold">
+                    <span className="text-[#1A3C2E] group-hover:text-[#F5B400] transition-colors flex items-center gap-1 text-[11px] font-bold">
+                      Read full announcement
                     </span>
-                    <span className="flex items-center gap-1">
-                      <User size={13} />
-                      {ann.profiles?.full_name || 'Admin'}
-                    </span>
+                    <ArrowRight size={14} className="transform group-hover:translate-x-1 transition-transform text-[#1A3C2E] group-hover:text-[#F5B400]" />
                   </div>
                 </div>
               </div>
@@ -310,60 +390,92 @@ function AnnouncementModal({ announcement, onClose, getCategoryColor }: ModalPro
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs font-sans">
+      {/* Click backdrop to close */}
       <div className="absolute inset-0" onClick={onClose} />
       
-      <div className="relative w-full max-w-2xl bg-white rounded-3xl overflow-hidden shadow-2xl border border-white/10 animate-scale-up max-h-[90vh] flex flex-col">
-        {/* Banner image if available, else decorative emerald block */}
-        <div className="h-44 bg-[#1A3C2E] flex flex-col justify-end p-6 relative flex-shrink-0 overflow-hidden">
-          {announcement.banner_url && (
+      <div className="relative w-full max-w-4xl bg-white rounded-3xl overflow-hidden shadow-2xl border border-zinc-150 animate-scale-up max-h-[90vh] flex flex-col md:flex-row overflow-y-auto md:overflow-y-hidden">
+        {/* Close Button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 z-20 p-2 rounded-full bg-black/10 text-stone-600 md:bg-white/10 md:text-white hover:bg-black/20 md:hover:bg-white/20 hover:scale-105 transition-all focus:outline-none"
+        >
+          <X size={18} />
+        </button>
+
+        {/* Left Side: Photo / Graphic */}
+        <div className="w-full md:w-1/2 min-h-[250px] md:min-h-full bg-stone-900 flex-shrink-0 relative overflow-hidden flex items-center justify-center">
+          {announcement.banner_url ? (
             <img 
               src={announcement.banner_url} 
-              alt="" 
-              className="absolute inset-0 w-full h-full object-cover opacity-40 z-0" 
+              alt={announcement.title} 
+              className="absolute inset-0 w-full h-full object-cover" 
             />
+          ) : (
+            // CCIS branded gradient placeholder graphic
+            <div className="absolute inset-0 bg-gradient-to-br from-[#1A3C2E] to-[#255541] flex flex-col items-center justify-center p-8 text-center select-none">
+              <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#FAF7EA_1px,transparent_1px)] [background-size:16px_16px]" />
+              <div className="w-20 h-20 rounded-full border border-white/20 bg-white/5 flex items-center justify-center mb-4 shadow-xl backdrop-blur-xs">
+                <img 
+                  src="/images/ccis_logo.jpg" 
+                  alt="CCIS Logo" 
+                  className="w-16 h-16 rounded-full object-cover" 
+                />
+              </div>
+              <span className="text-xs font-mono font-bold uppercase tracking-[0.2em] text-[#F5B400]">
+                CCIS Student Council
+              </span>
+              <Megaphone size={18} className="text-[#FAF7EA]/20 mt-3" />
+            </div>
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent z-0" />
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 p-2 rounded-full bg-black/20 text-white hover:bg-black/40 hover:scale-105 transition-all focus:outline-none z-10"
-          >
-            <X size={18} />
-          </button>
-          <div className="space-y-2 relative z-10 text-left">
-            <span className={`inline-block text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded border bg-white border-transparent text-[#1A3C2E]`}>
+          {announcement.pinned && (
+            <span className="absolute top-4 left-4 bg-[#F5B400] text-[#1A3C2E] px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider flex items-center gap-1 shadow-md z-10">
+              <Star size={10} fill="currentColor" />
+              Pinned
+            </span>
+          )}
+        </div>
+
+        {/* Right Side: Details & Content */}
+        <div className="w-full md:w-1/2 flex flex-col justify-between max-h-[90vh]">
+          {/* Header Area */}
+          <div className="p-6 border-b border-zinc-100 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#1A3C2E] to-[#F5B400] p-0.5 shadow-sm">
+              <div className="w-full h-full rounded-full bg-white flex items-center justify-center text-sm font-black text-[#1A3C2E]">
+                {announcement.profiles?.full_name ? announcement.profiles.full_name.charAt(0).toUpperCase() : 'A'}
+              </div>
+            </div>
+            <div>
+              <h4 className="font-extrabold text-sm text-[#1A3C2E] leading-tight">
+                {announcement.profiles?.full_name || 'CCIS Administrator'}
+              </h4>
+              <p className="text-[10px] text-stone-400 font-mono mt-0.5 flex items-center gap-1.5">
+                <span>{new Date(announcement.published_at || announcement.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+              </p>
+            </div>
+            <span className={`ml-auto text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${getCategoryColor(announcement.category)}`}>
               {announcement.category}
             </span>
-            <div className="flex items-center gap-4 text-white/75 text-xs font-mono">
-              <span className="flex items-center gap-1">
-                <Calendar size={13} />
-                {new Date(announcement.published_at || announcement.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-              </span>
-              <span className="flex items-center gap-1">
-                <User size={13} />
-                {announcement.profiles?.full_name || 'Admin'}
-              </span>
-            </div>
           </div>
-        </div>
 
-        {/* Content body scroll sector */}
-        <div className="p-6 md:p-8 overflow-y-auto flex-1 admin-scrollbar">
-          <h2 className="font-sans font-black text-2xl text-[#1A3C2E] leading-snug mb-5">
-            {announcement.title}
-          </h2>
-          <p className="text-stone-700 text-sm md:text-base leading-relaxed whitespace-pre-wrap font-normal">
-            {announcement.content}
-          </p>
-        </div>
+          {/* Scrollable Description/Caption */}
+          <div className="p-6 md:p-8 overflow-y-auto flex-1 admin-scrollbar space-y-4 max-h-[calc(90vh-140px)]">
+            <h2 className="font-sans font-black text-xl md:text-2xl text-[#1A3C2E] leading-snug">
+              {announcement.title}
+            </h2>
+            <p className="text-stone-700 text-sm leading-relaxed whitespace-pre-wrap font-normal">
+              {announcement.content}
+            </p>
+          </div>
 
-        {/* Footer actions */}
-        <div className="border-t border-zinc-100 px-6 py-4 bg-zinc-50 flex items-center justify-end flex-shrink-0">
-          <button
-            onClick={onClose}
-            className="px-5 py-2 rounded-xl text-sm font-bold bg-[#1A3C2E] text-[#FAF7EA] hover:bg-[#1A3C2E]/90 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E]/20 transition-all shadow-sm"
-          >
-            Close Announcement
-          </button>
+          {/* Footer Controls */}
+          <div className="border-t border-zinc-100 px-6 py-4 bg-zinc-50 flex items-center justify-end">
+            <button
+              onClick={onClose}
+              className="px-5 py-2.5 rounded-xl text-xs font-bold bg-[#1A3C2E] text-white hover:bg-[#255541] transition-all shadow-sm cursor-pointer"
+            >
+              Close
+            </button>
+          </div>
         </div>
 
       </div>

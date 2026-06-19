@@ -12,6 +12,7 @@ import AuthPage from './pages/AuthPage';
 import AccountPage from './pages/AccountPage';
 import MessagesPage from './pages/MessagesPage';
 import { useAuth } from './context/AuthContext';
+import SubscriptionPreferenceModal from './components/SubscriptionPreferenceModal';
 
 interface AppProps {
   onAdminSwitch?: () => void;
@@ -20,7 +21,7 @@ interface AppProps {
 export default function App({ onAdminSwitch }: AppProps) {
   const [activeTab, setActiveTab] = useState<string>('home');
   const [preselectedEventId, setPreselectedEventId] = useState<string | null>(null);
-  const { user, profile } = useAuth();
+  const { user, profile, updateProfile, isPending, isUnverified } = useAuth();
 
   // Multi-route smooth scroll coordinator (e.g. for scrolling to contact desks)
   useEffect(() => {
@@ -54,12 +55,18 @@ export default function App({ onAdminSwitch }: AppProps) {
   };
 
   // Full-screen pages (no navbar/footer)
-  if (activeTab === 'login' || (user && profile && !profile.profile_complete)) {
+  if (activeTab === 'login' || (user && profile && (!profile.profile_complete || (isPending && !isUnverified)))) {
     return <AuthPage onNavigate={handleNavigate} />;
   }
 
   return (
     <div className="min-h-screen bg-[#FAF7EA] flex flex-col justify-between text-stone-800" id="ccis-root-layout">
+      {isUnverified && (
+        <div className="bg-[#FFBC00] text-[#123524] px-4 py-2.5 text-center text-xs font-bold font-sans flex items-center justify-center gap-2 shadow-sm border-b border-[#FFBC00]/20 shrink-0">
+          <span>⚠️ Your account is pending admin verification. Fallback access enabled. Some features may be limited.</span>
+        </div>
+      )}
+
       {/* GSAP Loading Screen overlay */}
       <LoadingScreen />
 
@@ -167,6 +174,23 @@ export default function App({ onAdminSwitch }: AppProps) {
           </div>
         )}
       </main>
+
+      {/* 5. Onboarding / Sign-in Subscription Preference Modal */}
+      {user && profile && profile.profile_complete && !profile.email_subscription_decided && (
+        <SubscriptionPreferenceModal
+          isOpen={true}
+          onClose={() => {
+            updateProfile({ email_subscription_decided: true });
+          }}
+          onSave={async (subscribed) => {
+            await updateProfile({
+              subscribe_announcements_events: subscribed,
+              email_subscription_decided: true
+            });
+          }}
+          userEmail={user.email || ''}
+        />
+      )}
 
       {/* 4. Foot banner site footer */}
       <Footer onNavClick={handleNavigate} onAdminSwitch={onAdminSwitch} />

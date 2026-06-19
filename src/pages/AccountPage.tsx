@@ -25,6 +25,7 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
   const [yearLevel, setYearLevel] = useState(1);
   const [program, setProgram] = useState('BSCS');
   const [section, setSection] = useState('');
+  const [contactNumber, setContactNumber] = useState('');
   const [saving, setSaving] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [studentIdError, setStudentIdError] = useState('');
@@ -43,6 +44,11 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [lastMessages, setLastMessages] = useState<Message[]>([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
+
+  // Concern Ticket States
+  const [concernMessage, setConcernMessage] = useState('');
+  const [sendingConcern, setSendingConcern] = useState(false);
+  const [concernStatus, setConcernStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const handleResendVerification = async () => {
     if (!user?.email) return;
@@ -65,6 +71,32 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
     }
   };
 
+  const handleConcernSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!concernMessage.trim()) return;
+    setSendingConcern(true);
+    setConcernStatus(null);
+    try {
+      const { error } = await supabase
+        .from('concerns')
+        .insert({
+          profile_id: user.id,
+          category: 'Verification',
+          subject: 'Account Verification Fallback Access Concern',
+          message: concernMessage.trim(),
+          status: 'new'
+        });
+
+      if (error) throw error;
+      setConcernStatus({ type: 'success', message: 'Your concern ticket has been submitted successfully! The Student Council will review it.' });
+      setConcernMessage('');
+    } catch (err: any) {
+      setConcernStatus({ type: 'error', message: err.message || 'Failed to submit concern. Please try again.' });
+    } finally {
+      setSendingConcern(false);
+    }
+  };
+
   // Sync edit fields from profile
   useEffect(() => {
     if (profile) {
@@ -72,6 +104,7 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
       setYearLevel(profile.year_level || 1);
       setProgram(profile.program || 'BSCS');
       setSection(profile.section || '');
+      setContactNumber(profile.contact_number || '');
     }
   }, [profile]);
 
@@ -244,6 +277,7 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
     setSaving(true);
     const sectionTrimmed = section.trim().toUpperCase().replace(/\s/g, '');
     const idClean = studentNumber.trim().toUpperCase();
+    const contactClean = contactNumber.trim();
 
     try {
       await updateProfile({
@@ -251,6 +285,7 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
         year_level: yearLevel,
         program,
         section: sectionTrimmed,
+        contact_number: contactClean || null,
         profile_complete: true,
       });
       setEditing(false);
@@ -359,19 +394,26 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
               </span>
 
               {/* Verification badge */}
-              {user.email_confirmed_at ? (
+              {profile.status === 'approved' ? (
                 <span 
                   className="group relative cursor-help inline-flex items-center gap-0.5 text-[9px] font-bold text-emerald-700 bg-emerald-100 border border-emerald-200 px-2.5 py-0.5 rounded-full"
-                  title={`Confirmed on ${new Date(user.email_confirmed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`}
+                  title="Your student profile has been verified and approved by the admin."
                 >
-                  ✓ Verified
+                  ✓ Verified Account
+                </span>
+              ) : profile.status === 'rejected' ? (
+                <span 
+                  className="group relative cursor-help inline-flex items-center gap-0.5 text-[9px] font-bold text-rose-700 bg-rose-100 border border-rose-200 px-2.5 py-0.5 rounded-full"
+                  title={`Verification declined. Reason: ${profile.rejection_reason || 'Discrepancy in details'}`}
+                >
+                  ❌ Rejected Profile
                 </span>
               ) : (
                 <span 
                   className="group relative cursor-help inline-flex items-center gap-0.5 text-[9px] font-bold text-amber-700 bg-amber-100 border border-amber-200 px-2.5 py-0.5 rounded-full animate-pulse"
-                  title="Verification email pending. Check your UMak inbox."
+                  title="Your profile is pending admin evaluation."
                 >
-                  ⏱ Pending
+                  ⏱ Unverified Fallback
                 </span>
               )}
 
@@ -494,6 +536,55 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
                   {profile.section || '—'}
                 </span>
               </div>
+
+              {/* Contact Number */}
+              <div className="flex items-center justify-between text-xs py-0.5">
+                <span className="text-[#5E6E64] font-mono text-[10px] uppercase tracking-wider flex items-center gap-1.5">
+                  <User size={12} className="text-[var(--color-accent-gold,#F5B400)]" /> Contact Number
+                </span>
+                {editing ? (
+                  <input 
+                    type="tel"
+                    value={contactNumber}
+                    onChange={(e) => setContactNumber(e.target.value)}
+                    className="bg-zinc-50 border border-zinc-200 rounded px-2 py-0.5 text-xs text-[var(--color-primary-green,#1A3C2E)] outline-none font-bold text-right w-1/2"
+                    placeholder="e.g. 09123456789"
+                  />
+                ) : (
+                  <span className="font-bold text-[var(--color-primary-green,#1A3C2E)]">{profile.contact_number || '—'}</span>
+                )}
+              </div>
+
+              {/* Email Notifications Subscription */}
+              <div className="flex items-center justify-between text-xs py-1.5 border-t border-zinc-100/50 mt-1">
+                <span className="text-[#5E6E64] font-mono text-[10px] uppercase tracking-wider flex flex-col">
+                  <span className="flex items-center gap-1.5 font-bold">
+                    <Mail size={12} className="text-[var(--color-accent-gold,#F5B400)]" /> Email Updates
+                  </span>
+                  <span className="text-[9px] text-[#5E6E64]/60 ml-5 lowercase tracking-normal">announcements &amp; events</span>
+                </span>
+                <button
+                  onClick={async () => {
+                    try {
+                      await updateProfile({ subscribe_announcements_events: !profile.subscribe_announcements_events });
+                    } catch (err) {
+                      console.error("Failed to update email preferences:", err);
+                    }
+                  }}
+                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none ${
+                    profile.subscribe_announcements_events ? 'bg-[var(--color-primary-green,#1A3C2E)]' : 'bg-gray-200'
+                  }`}
+                  role="switch"
+                  aria-checked={profile.subscribe_announcements_events}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-xs ring-0 transition duration-200 ease-in-out ${
+                      profile.subscribe_announcements_events ? 'translate-x-4' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
             </div>
 
             {/* Sidebar Stacked Action Buttons */}
@@ -554,6 +645,68 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
 
           {/* MAIN CONTENT AREA */}
           <div className="lg:col-span-8 space-y-6">
+
+            {/* Account Verification Support / Status Card */}
+            {(profile.status === 'pending' || profile.status === 'rejected') && (
+              <div className="bg-white border border-zinc-150 p-6 rounded-3xl shadow-md space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className={`p-2.5 rounded-full shrink-0 ${profile.status === 'rejected' ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'}`}>
+                    {profile.status === 'rejected' ? <X size={20} /> : <Clock size={20} />}
+                  </div>
+                  <div>
+                    <h3 className="font-sans font-black text-sm text-stone-950 uppercase tracking-wide">
+                      {profile.status === 'rejected' ? 'Verification Declined' : 'Account Verification Pending'}
+                    </h3>
+                    <div className="text-stone-500 text-xs mt-0.5 leading-relaxed">
+                      {profile.status === 'rejected' ? (
+                        <>
+                          Your student verification request was declined. 
+                          <span className="block font-bold text-rose-700 bg-rose-50 border border-rose-100 p-2.5 rounded-lg mt-2 mb-1">
+                            Reason: {profile.rejection_reason || 'Discrepancy in details'}
+                          </span>
+                          Please contact support or re-submit your details.
+                        </>
+                      ) : (
+                        "Your student verification is currently under review by the student council. Since 24 hours have elapsed without approval, fallback access has been enabled so you can browse the portal. You can submit a support ticket concern below if you need help."
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <form onSubmit={handleConcernSubmit} className="pt-3 border-t border-zinc-100 space-y-3">
+                  <label className="block text-[#5E6E64] font-mono text-[9px] uppercase tracking-wider font-bold">
+                    Submit Verification Concern / Support Ticket
+                  </label>
+                  <textarea
+                    value={concernMessage}
+                    onChange={(e) => setConcernMessage(e.target.value)}
+                    rows={3}
+                    placeholder="Describe your concern here (e.g. 'I submitted my profile but my COR verification email hasn't arrived' or 'Why was my profile rejected?')"
+                    className="w-full bg-zinc-50 border border-zinc-200 focus:border-[var(--color-accent-gold,#F5B400)] focus:ring-1 focus:ring-[var(--color-accent-gold,#F5B400)] rounded-xl px-4 py-3 text-xs text-stone-800 placeholder-stone-400 outline-none transition-all resize-none"
+                    required
+                  />
+                  {concernStatus && (
+                    <div className={`p-3 rounded-lg text-xs leading-normal font-sans ${concernStatus.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-100' : 'bg-rose-50 text-rose-800 border border-rose-100'}`}>
+                      {concernStatus.message}
+                    </div>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={sendingConcern || !concernMessage.trim()}
+                    className="bg-[#1A3C2E] hover:bg-[#255541] text-white px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+                  >
+                    {sendingConcern ? (
+                      <>
+                        <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Submitting...
+                      </>
+                    ) : (
+                      'Send Concern Ticket'
+                    )}
+                  </button>
+                </form>
+              </div>
+            )}
             
             {/* Pill Tabs Bar */}
             <div className="flex gap-2 border-b border-zinc-200 pb-3">
