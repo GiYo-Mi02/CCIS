@@ -85,8 +85,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user) return;
     const { error } = await supabase
       .from('profiles')
-      .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('id', user.id);
+      .upsert({
+        id: user.id,
+        email: user.email || '',
+        ...updates,
+        updated_at: new Date().toISOString()
+      });
 
     if (error) {
       console.error('Error updating profile:', error.message);

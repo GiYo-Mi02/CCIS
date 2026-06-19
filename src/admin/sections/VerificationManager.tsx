@@ -49,7 +49,8 @@ export default function VerificationManager() {
       let query = supabase
         .from('profiles')
         .select('*', { count: 'exact' })
-        .eq('status', 'pending');
+        .eq('status', 'pending')
+        .eq('profile_complete', true);
 
       if (debouncedSearch.trim()) {
         query = query.or(

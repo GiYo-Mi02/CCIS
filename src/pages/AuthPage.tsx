@@ -287,26 +287,10 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
             We are configuring your account records. This usually takes just a few seconds. If this screen persists, please check your network connection or try signing out.
           </p>
 
-          <div className="flex gap-3 pt-2">
-            <button
-              onClick={async () => {
-                try {
-                  const btn = document.getElementById('refresh-profile-btn');
-                  if (btn) btn.classList.add('animate-spin');
-                  await refreshProfile();
-                } catch {} finally {
-                  const btn = document.getElementById('refresh-profile-btn');
-                  if (btn) btn.classList.remove('animate-spin');
-                }
-              }}
-              className="flex-1 bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-            >
-              <RefreshCw size={14} id="refresh-profile-btn" />
-              Retry Setup
-            </button>
+          <div className="pt-2">
             <button
               onClick={() => signOut()}
-              className="flex-1 bg-rose-950/20 hover:bg-rose-900/40 border border-rose-500/20 text-rose-300 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              className="w-full bg-rose-950/20 hover:bg-rose-900/40 border border-rose-500/20 text-rose-300 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <LogOut size={14} />
               Sign Out
