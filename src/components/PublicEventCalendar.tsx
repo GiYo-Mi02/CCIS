@@ -108,6 +108,23 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [showMobileModal, setShowMobileModal] = useState(false);
+  const [hoveredDate, setHoveredDate] = useState<string | null>(null);
+  const [hoveredPosition, setHoveredPosition] = useState<{ x: number; y: number } | null>(null);
+
+  const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>, dateStr: string, cellEvents: EventItemDB[]) => {
+    if (cellEvents.length === 0 || isMobile) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    setHoveredDate(dateStr);
+    setHoveredPosition({
+      x: rect.left + rect.width / 2,
+      y: rect.top
+    });
+  };
+
+  const handleMouseLeave = () => {
+    setHoveredDate(null);
+    setHoveredPosition(null);
+  };
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth(); // 0-indexed
@@ -373,6 +390,8 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
                 <div
                   key={`${dateStr}-${idx}`}
                   onClick={() => handleDayClick(dateStr, isCurrentMonth)}
+                  onMouseEnter={(e) => handleMouseEnter(e, dateStr, filteredDayEvents)}
+                  onMouseLeave={handleMouseLeave}
                   className={`relative cursor-pointer transition-colors outline-none select-none flex flex-col items-center justify-between ${
                     isCurrentMonth 
                       ? isSelected 
@@ -466,6 +485,68 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
           </div>
         </div>,
         document.body
+      )}
+
+      {/* 4. MOUSE HOVER PREVIEW TOOLTIP */}
+      {hoveredDate && hoveredPosition && eventsMap.get(hoveredDate) && (
+        createPortal(
+          <div
+            className="fixed z-[9999] pointer-events-none transition-all duration-200"
+            style={{
+              left: `${hoveredPosition.x}px`,
+              top: `${hoveredPosition.y - 12}px`,
+              transform: 'translate(-50%, -100%)'
+            }}
+          >
+            <div className="bg-[#FAF7EA] w-64 rounded-2xl shadow-xl border border-stone-200/60 overflow-hidden flex flex-col text-left animate-fade-in">
+              {(() => {
+                const cellEvents = eventsMap.get(hoveredDate) || [];
+                const firstEvent = cellEvents[0];
+                if (!firstEvent) return null;
+
+                return (
+                  <>
+                    {firstEvent.banner_url ? (
+                      <div className="w-full h-24 relative overflow-hidden bg-black shrink-0">
+                        <img src={firstEvent.banner_url} alt="" className="w-full h-full object-cover" />
+                        <span className={`absolute top-2 right-2 text-[8px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                          firstEvent.category === 'priority' ? 'bg-[#FFBC00] text-[#123524]' : 'bg-[#123524] text-white'
+                        }`}>
+                          {firstEvent.category}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className={`w-full h-3 shrink-0 ${firstEvent.category === 'priority' ? 'bg-[#FFBC00]' : 'bg-[#123524]'}`} />
+                    )}
+                    
+                    <div className="p-3.5 space-y-1.5 font-sans">
+                      <span className="block text-[9px] font-mono uppercase tracking-wider text-stone-400">
+                        {firstEvent.event_time || 'TBA'} {firstEvent.location ? `| ${firstEvent.location}` : ''}
+                      </span>
+                      <h5 className="font-bold text-xs text-[#123524] leading-snug line-clamp-2">
+                        {firstEvent.title}
+                      </h5>
+                      {firstEvent.description && (
+                        <p className="text-[10px] text-[#5E6E64] line-clamp-2 leading-relaxed mt-0.5">
+                          {firstEvent.description}
+                        </p>
+                      )}
+                      {cellEvents.length > 1 && (
+                        <div className="pt-2 mt-2 border-t border-stone-200/50 flex items-center justify-between text-[8px] font-mono font-bold text-stone-400 uppercase tracking-wider">
+                          <span>Active Directives</span>
+                          <span className="bg-stone-200 text-stone-600 px-1.5 py-0.5 rounded">+{cellEvents.length - 1} More</span>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+            {/* Tooltip arrow */}
+            <div className="w-3 h-3 bg-[#FAF7EA] border-r border-b border-stone-200/60 rotate-45 mx-auto -mt-1.5 shadow-sm" />
+          </div>,
+          document.body
+        )
       )}
 
     </div>

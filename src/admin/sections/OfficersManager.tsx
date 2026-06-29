@@ -52,17 +52,20 @@ export default function OfficersManager() {
   };
 
   const saveOfficer = async (form: Partial<Officer>) => {
+    // If committee_id is empty string, convert to null for Executive Board classification
+    const commId = form.committee_id === '' ? null : form.committee_id;
     if (isCreating) {
       const { error } = await supabase.from('officers').insert({
-        name: form.name, position: form.position, committee_id: form.committee_id,
-        photo_url: form.photo_url, email: form.email, display_order: officers.length + 1,
+        name: form.name, position: form.position, committee_id: commId,
+        photo_url: form.photo_url, email: form.email, quote: form.quote,
+        display_order: officers.length + 1,
       });
       if (error) { showToast('Failed to add officer', 'error'); return; }
       showToast('Officer added!');
     } else {
       const { error } = await supabase.from('officers').update({
-        name: form.name, position: form.position, committee_id: form.committee_id,
-        photo_url: form.photo_url, email: form.email,
+        name: form.name, position: form.position, committee_id: commId,
+        photo_url: form.photo_url, email: form.email, quote: form.quote,
       }).eq('id', form.id);
       if (error) { showToast('Failed to update', 'error'); return; }
       showToast('Officer updated!');
@@ -266,10 +269,14 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
         <div>
           <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Committee</label>
           <select value={form.committee_id || ''} onChange={(e) => setForm({ ...form, committee_id: e.target.value })} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400]">
-            <option value="">Select...</option>
+            <option value="">Executive Officers (Executive Board)</option>
             {committees.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </div>
+      </div>
+      <div>
+        <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Quote / Campaign Tagline</label>
+        <input type="text" value={form.quote || ''} onChange={(e) => setForm({ ...form, quote: e.target.value })} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400]" placeholder="Enter campaign tagline or quote..." />
       </div>
       <div>
         <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Photo URL</label>

@@ -1,0 +1,650 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { Upload, X, Plus, Trash2, Loader2 } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
+import { GalleryItem, AdminFormState, GalleryCategory } from '../../types/gallery';
+
+interface AdminFormProps {
+  itemToEdit: GalleryItem | null;
+  onSuccess: (item: GalleryItem, isEditing: boolean) => void;
+  onClose: () => void;
+  triggerToast: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void;
+}
+
+export default function AdminForm({
+  itemToEdit,
+  onSuccess,
+  onClose,
+  triggerToast
+}: AdminFormProps) {
+  const initialFormState: AdminFormState = {
+    title: '',
+    category: 'Student Council',
+    description: '',
+    postedBy: '',
+    aspectRatio: 'landscape',
+    imageFile: null,
+    imagePreview: '',
+    thumbnailFiles: [],
+    thumbnailPreviews: [],
+    existingThumbnails: [],
+    removedThumbnails: [],
+    isEditing: false,
+    editTargetId: null
+  };
+
+  const [formState, setFormState] = useState<AdminFormState>(initialFormState);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+
+  const mainImageInputRef = useRef<HTMLInputElement>(null);
+  const thumbnailsInputRef = useRef<HTMLInputElement>(null);
+
+  // Sync edit item changes
+  useEffect(() => {
+    if (itemToEdit) {
+      setFormState({
+        title: itemToEdit.title,
+        category: itemToEdit.category,
+        description: itemToEdit.description,
+        postedBy: itemToEdit.postedBy,
+        aspectRatio: itemToEdit.aspectRatio,
+        imageFile: null,
+        imagePreview: itemToEdit.imageUrl,
+        thumbnailFiles: [],
+        thumbnailPreviews: [],
+        existingThumbnails: itemToEdit.thumbnails,
+        removedThumbnails: [],
+        isEditing: true,
+        editTargetId: itemToEdit.id
+      });
+    } else {
+      setFormState(initialFormState);
+    }
+  }, [itemToEdit]);
+
+  const cleanPreviews = (state: AdminFormState) => {
+    if (state.imagePreview && state.imagePreview.startsWith('blob:')) {
+      URL.revokeObjectURL(state.imagePreview);
+    }
+    state.thumbnailPreviews.forEach(p => {
+      if (p.startsWith('blob:')) URL.revokeObjectURL(p);
+    });
+  };
+
+  const handleCancel = () => {
+    cleanPreviews(formState);
+    setFormState(initialFormState);
+    if (mainImageInputRef.current) mainImageInputRef.current.value = '';
+    if (thumbnailsInputRef.current) thumbnailsInputRef.current.value = '';
+    onClose();
+  };
+
+  const validateFile = (file: File): string | null => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      return `File type ${file.type} is not supported. Use JPG, PNG or WEBP.`;
+    }
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      return `File ${file.name} exceeds the 5MB size limit.`;
+    }
+    return null;
+  };
+
+  const handleMainImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      const errorMsg = validateFile(file);
+      if (errorMsg) {
+        triggerToast(errorMsg, 'error');
+        if (mainImageInputRef.current) mainImageInputRef.current.value = '';
+        return;
+      }
+      const preview = URL.createObjectURL(file);
+      setFormState(prev => {
+        if (prev.imagePreview && prev.imagePreview.startsWith('blob:')) {
+          URL.revokeObjectURL(prev.imagePreview);
+        }
+        return {
+          ...prev,
+          imageFile: file,
+          imagePreview: preview
+        };
+      });
+    }
+  };
+
+  const handleThumbnailsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      const filesArray = Array.from(files) as File[];
+      const totalAllowed = 5 - formState.existingThumbnails.length;
+      
+      if (filesArray.length > totalAllowed) {
+        triggerToast(`You can only add up to ${totalAllowed} more thumbnail(s). Max limit is 5.`, 'warning');
+        if (thumbnailsInputRef.current) thumbnailsInputRef.current.value = '';
+        return;
+      }
+
+      for (const file of filesArray) {
+        const errorMsg = validateFile(file);
+        if (errorMsg) {
+          triggerToast(errorMsg, 'error');
+          if (thumbnailsInputRef.current) thumbnailsInputRef.current.value = '';
+          return;
+        }
+      }
+
+      const newPreviews = filesArray.map(file => URL.createObjectURL(file));
+      setFormState(prev => {
+        prev.thumbnailPreviews.forEach(p => {
+          if (p.startsWith('blob:')) URL.revokeObjectURL(p);
+        });
+        return {
+          ...prev,
+          thumbnailFiles: filesArray,
+          thumbnailPreviews: newPreviews
+        };
+      });
+    }
+  };
+
+  const handleRemoveExistingThumbnail = (thumbUrl: string) => {
+    setFormState(prev => ({
+      ...prev,
+      existingThumbnails: prev.existingThumbnails.filter(t => t !== thumbUrl),
+      removedThumbnails: [...prev.removedThumbnails, thumbUrl]
+    }));
+  };
+
+  const getStoragePathFromUrl = (url: string): string | null => {
+    try {
+      const parts = url.split('/public/gallery-images/');
+      if (parts.length === 2) return parts[1];
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  const getCategorySlug = (cat: string) => {
+    return cat.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  };
+
+  const uploadToStorage = async (file: File, categorySlug: string): Promise<string> => {
+    const uuid = crypto.randomUUID();
+    const cleanFileName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
+    const path = `${categorySlug}/${uuid}-${cleanFileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('gallery-images')
+      .upload(path, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (uploadError) throw uploadError;
+
+    const { data } = supabase.storage.from('gallery-images').getPublicUrl(path);
+    if (!data || !data.publicUrl) {
+      throw new Error('Failed to retrieve public URL for uploaded file.');
+    }
+    return data.publicUrl;
+  };
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSubmitting) return;
+
+    if (!formState.title.trim()) {
+      triggerToast('Please provide a title.', 'warning');
+      return;
+    }
+    if (!formState.imageFile && !formState.isEditing) {
+      triggerToast('Please select a main image.', 'warning');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setUploadProgress(10);
+
+    try {
+      const categorySlug = getCategorySlug(formState.category);
+      let mainImageUrl = formState.imagePreview;
+
+      // 1. Upload main image if modified
+      if (formState.imageFile) {
+        setUploadProgress(30);
+        mainImageUrl = await uploadToStorage(formState.imageFile, categorySlug);
+      }
+
+      // 2. Upload new thumbnails
+      setUploadProgress(60);
+      const newThumbUrls: string[] = [];
+      for (const file of formState.thumbnailFiles) {
+        const url = await uploadToStorage(file, categorySlug);
+        newThumbUrls.push(url);
+      }
+
+      const combinedThumbnails = [
+        ...formState.existingThumbnails,
+        ...newThumbUrls
+      ].slice(0, 5); // strict ceiling
+
+      setUploadProgress(85);
+
+      if (formState.isEditing && formState.editTargetId) {
+        // UPDATE Operation
+        const { error: dbError } = await supabase
+          .from('gallery_items')
+          .update({
+            title: formState.title.trim(),
+            description: formState.description.trim(),
+            category: formState.category,
+            posted_by: formState.postedBy.trim() || 'Anonymous',
+            image_url: mainImageUrl,
+            thumbnails: combinedThumbnails,
+            aspect_ratio: formState.aspectRatio
+          })
+          .eq('id', formState.editTargetId);
+
+        if (dbError) throw dbError;
+
+        // Cleanup replaced items in storage now that database write succeeded
+        
+        // A. If main image was updated, delete the old file
+        if (formState.imageFile && itemToEdit?.imageUrl) {
+          const oldMainPath = getStoragePathFromUrl(itemToEdit.imageUrl);
+          if (oldMainPath) {
+            try {
+              await supabase.storage.from('gallery-images').remove([oldMainPath]);
+            } catch (err) {
+              console.error('Failed to remove replaced main image:', err);
+            }
+          }
+        }
+
+        // B. Delete removed thumbnails
+        if (formState.removedThumbnails.length > 0) {
+          const pathsToDelete = formState.removedThumbnails
+            .map(url => getStoragePathFromUrl(url))
+            .filter((p): p is string => p !== null);
+
+          if (pathsToDelete.length > 0) {
+            try {
+              await supabase.storage.from('gallery-images').remove(pathsToDelete);
+            } catch (err) {
+              console.error('Failed to clean up removed thumbnails:', err);
+            }
+          }
+        }
+
+        const updatedItem: GalleryItem = {
+          id: formState.editTargetId,
+          title: formState.title.trim(),
+          description: formState.description.trim(),
+          category: formState.category,
+          postedBy: formState.postedBy.trim() || 'Anonymous',
+          imageUrl: mainImageUrl,
+          thumbnails: combinedThumbnails,
+          aspectRatio: formState.aspectRatio,
+          createdAt: new Date().toISOString()
+        };
+
+        onSuccess(updatedItem, true);
+        triggerToast('Gallery item updated successfully!', 'success');
+      } else {
+        // CREATE Operation
+        const { data: insertedRows, error: dbError } = await supabase
+          .from('gallery_items')
+          .insert([{
+            title: formState.title.trim(),
+            description: formState.description.trim(),
+            category: formState.category,
+            posted_by: formState.postedBy.trim() || 'Anonymous',
+            image_url: mainImageUrl,
+            thumbnails: combinedThumbnails,
+            aspect_ratio: formState.aspectRatio
+          }])
+          .select();
+
+        if (dbError) throw dbError;
+
+        if (insertedRows && insertedRows.length > 0) {
+          const inserted = insertedRows[0];
+          const newGalleryItem: GalleryItem = {
+            id: inserted.id,
+            title: inserted.title,
+            description: inserted.description || '',
+            category: inserted.category as Exclude<GalleryCategory, 'All'>,
+            postedBy: inserted.posted_by || 'Anonymous',
+            imageUrl: inserted.image_url,
+            thumbnails: inserted.thumbnails || [],
+            aspectRatio: inserted.aspect_ratio as 'portrait' | 'landscape' | 'square',
+            createdAt: inserted.created_at
+          };
+
+          onSuccess(newGalleryItem, false);
+        }
+        triggerToast('New gallery item uploaded successfully!', 'success');
+      }
+
+      handleCancel();
+    } catch (err: any) {
+      console.error('Error submitting form:', err);
+      triggerToast(err.message || 'An error occurred while uploading. Please try again.', 'error');
+    } finally {
+      setIsSubmitting(false);
+      setUploadProgress(null);
+    }
+  };
+
+  return createPortal(
+    <div 
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 w-screen h-screen overflow-hidden"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !isSubmitting) {
+          handleCancel();
+        }
+      }}
+    >
+      <div className="bg-white rounded-3xl border border-stone-200/80 shadow-2xl overflow-y-auto max-h-[92vh] w-full max-w-4xl p-6 sm:p-8 animate-modal-zoom relative text-left scrollbar-thin scrollbar-thumb-stone-300">
+        
+        {/* Close Button overlay */}
+        <button
+          onClick={handleCancel}
+          disabled={isSubmitting}
+          className="absolute top-4 right-4 z-20 p-2 bg-[#FAF7EA] hover:bg-stone-100 border border-stone-200/50 text-stone-700 rounded-full shadow-md focus:outline-none focus:ring-2 focus:ring-[#1A3C2E] transition-colors cursor-pointer disabled:opacity-50"
+          aria-label="Close form modal"
+        >
+          <X size={16} />
+        </button>
+
+        <div className="flex items-center justify-between border-b border-stone-100 pb-4 mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-[#1A3C2E]/10 flex items-center justify-center text-[#1A3C2E]">
+              <Upload size={18} />
+            </div>
+            <div>
+              <h3 className="font-sans font-black text-lg md:text-xl text-[#1A3C2E] uppercase tracking-tight">
+                {formState.isEditing ? `Editing: ${formState.title}` : 'Upload New Gallery Media'}
+              </h3>
+              <p className="text-xs text-stone-500">
+                {formState.isEditing ? 'Modify metadata or swap thumbnails.' : 'Add new university events to the public portal.'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <form onSubmit={handleFormSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            {/* Left Form Column */}
+            <div className="space-y-5">
+              <div>
+                <label className="block text-xs font-bold text-stone-600 uppercase tracking-wider mb-2 text-left">
+                  Event Title <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formState.title}
+                  onChange={e => setFormState(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="e.g. CCIS Hackathon Champions 2026"
+                  className="w-full px-4 py-3 rounded-2xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E]/30 focus:border-[#1A3C2E] text-sm font-sans transition-all"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-stone-600 uppercase tracking-wider mb-2 text-left">
+                    Category <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={formState.category}
+                    onChange={e => setFormState(prev => ({ ...prev, category: e.target.value as Exclude<GalleryCategory, 'All'> }))}
+                    className="w-full px-3 py-3 rounded-2xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E]/30 focus:border-[#1A3C2E] text-sm font-sans bg-white transition-all"
+                  >
+                    <option value="Student Achievements">Student Achievements</option>
+                    <option value="Student Council">Student Council</option>
+                    <option value="Computer Society">Computer Society</option>
+                    <option value="CCIS Department">CCIS Department</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-stone-600 uppercase tracking-wider mb-2 text-left">
+                    Aspect Ratio
+                  </label>
+                  <select
+                    value={formState.aspectRatio}
+                    onChange={e => setFormState(prev => ({ ...prev, aspectRatio: e.target.value as 'portrait' | 'landscape' | 'square' }))}
+                    className="w-full px-3 py-3 rounded-2xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E]/30 focus:border-[#1A3C2E] text-sm font-sans bg-white transition-all"
+                  >
+                    <option value="landscape">Landscape (4:3)</option>
+                    <option value="portrait">Portrait (3:4)</option>
+                    <option value="square">Square (1:1)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-stone-600 uppercase tracking-wider mb-2 text-left">
+                  Posted By / Author
+                </label>
+                <input
+                  type="text"
+                  value={formState.postedBy}
+                  onChange={e => setFormState(prev => ({ ...prev, postedBy: e.target.value }))}
+                  placeholder="e.g. CCIS Student Council"
+                  className="w-full px-4 py-3 rounded-2xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E]/30 focus:border-[#1A3C2E] text-sm font-sans transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-stone-600 uppercase tracking-wider mb-2 text-left">
+                  Description
+                </label>
+                <textarea
+                  value={formState.description}
+                  onChange={e => setFormState(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Detail the event objectives, participants, and milestones achieved..."
+                  rows={4}
+                  className="w-full px-4 py-3 rounded-2xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E]/30 focus:border-[#1A3C2E] text-sm font-sans resize-none transition-all text-left animate-none"
+                />
+              </div>
+            </div>
+
+            {/* Right Form Column: File Selection & Previews */}
+            <div className="space-y-5 bg-stone-50 p-5 rounded-3xl border border-stone-100">
+              
+              {/* Main Image File Picker */}
+              <div>
+                <label className="block text-xs font-bold text-stone-600 uppercase tracking-wider mb-2 text-left">
+                  Main Featured Image <span className="text-rose-500">*</span>
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="file"
+                    ref={mainImageInputRef}
+                    onChange={handleMainImageChange}
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    id="main-image-file-input"
+                  />
+                  <label
+                    htmlFor="main-image-file-input"
+                    className="px-4 py-2.5 bg-white border border-stone-200 text-stone-700 rounded-xl hover:bg-stone-50 cursor-pointer flex items-center gap-2 text-xs font-bold shadow-sm transition-all focus-within:ring-2 focus-within:ring-[#1A3C2E] focus-within:ring-offset-2"
+                  >
+                    <Upload size={14} className="text-[#1A3C2E]" />
+                    Select Main Image
+                  </label>
+                  <span className="text-[10px] text-stone-400 font-mono">JPG, PNG, WEBP (Max 5MB)</span>
+                </div>
+
+                {formState.imagePreview && (
+                  <div className="mt-3 relative w-full h-40 rounded-2xl border border-stone-200 overflow-hidden bg-black flex items-center justify-center">
+                    <img 
+                      src={formState.imagePreview} 
+                      alt="Featured image preview" 
+                      className="max-w-full max-h-full object-contain"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormState(prev => ({ ...prev, imageFile: null, imagePreview: '' }));
+                        if (mainImageInputRef.current) mainImageInputRef.current.value = '';
+                      }}
+                      className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black/80 rounded-full text-white transition-colors"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Multi Thumbnail Picker */}
+              <div>
+                <label className="block text-xs font-bold text-stone-600 uppercase tracking-wider mb-2 text-left">
+                  Additional Thumbnails (Max 5 total)
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="file"
+                    ref={thumbnailsInputRef}
+                    onChange={handleThumbnailsChange}
+                    accept="image/jpeg,image/png,image/webp"
+                    multiple
+                    className="hidden"
+                    id="thumbnails-file-input"
+                  />
+                  <label
+                    htmlFor="thumbnails-file-input"
+                    className="px-4 py-2.5 bg-white border border-[#FAF7EA] text-[#1A3C2E] rounded-xl hover:bg-stone-55 cursor-pointer flex items-center gap-2 text-xs font-bold shadow-sm transition-all focus-within:ring-2 focus-within:ring-[#1A3C2E] focus-within:ring-offset-2 border-stone-200"
+                  >
+                    <Plus size={14} className="text-[#1A3C2E]" />
+                    Add Thumbnails
+                  </label>
+                  <span className="text-[10px] text-stone-400 font-mono">
+                    ({formState.existingThumbnails.length + formState.thumbnailFiles.length} / 5 selected)
+                  </span>
+                </div>
+
+                {/* Previews wrapper */}
+                {(formState.existingThumbnails.length > 0 || formState.thumbnailPreviews.length > 0) && (
+                  <div className="mt-3 space-y-3">
+                    
+                    {/* Existing Thumbnails (Editable) */}
+                    {formState.existingThumbnails.length > 0 && (
+                      <div>
+                        <span className="block text-[10px] uppercase font-bold text-stone-400 tracking-wider mb-1.5 text-left">
+                          Current Event Photos
+                        </span>
+                        <div className="flex flex-wrap gap-2">
+                          {formState.existingThumbnails.map((thumbUrl, idx) => (
+                            <div key={idx} className="relative w-14 h-14 rounded-xl overflow-hidden border border-stone-200/50 bg-black flex-shrink-0 group">
+                              <img src={thumbUrl} alt="" className="w-full h-full object-cover" />
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveExistingThumbnail(thumbUrl)}
+                                className="absolute inset-0 bg-rose-600/70 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity duration-200 cursor-pointer"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* New Thumbnails Previews */}
+                    {formState.thumbnailPreviews.length > 0 && (
+                      <div>
+                        <span className="block text-[10px] uppercase font-bold text-stone-400 tracking-wider mb-1.5 text-left">
+                          New Photos to Upload
+                        </span>
+                        <div className="flex flex-wrap gap-2">
+                          {formState.thumbnailPreviews.map((previewUrl, idx) => (
+                            <div key={idx} className="relative w-14 h-14 rounded-xl overflow-hidden border border-stone-200/50 bg-black flex-shrink-0">
+                              <img src={previewUrl} alt="" className="w-full h-full object-cover" />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updatedFiles = [...formState.thumbnailFiles];
+                                  updatedFiles.splice(idx, 1);
+                                  const updatedPreviews = [...formState.thumbnailPreviews];
+                                  URL.revokeObjectURL(updatedPreviews[idx]);
+                                  updatedPreviews.splice(idx, 1);
+                                  setFormState(prev => ({
+                                    ...prev,
+                                    thumbnailFiles: updatedFiles,
+                                    thumbnailPreviews: updatedPreviews
+                                  }));
+                                }}
+                                className="absolute top-0.5 right-0.5 p-0.5 bg-black/60 rounded-full text-white hover:bg-black/80 cursor-pointer"
+                              >
+                                <X size={10} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                  </div>
+                )}
+              </div>
+            </div>
+
+          </div>
+
+          {/* Progress Bar Indicator */}
+          {uploadProgress !== null && (
+            <div className="w-full space-y-1">
+              <div className="flex items-center justify-between text-[11px] font-mono text-stone-500">
+                <span>Uploading event assets...</span>
+                <span>{uploadProgress}%</span>
+              </div>
+              <div className="w-full h-1.5 bg-stone-100 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-[#1A3C2E] transition-all duration-300 rounded-full" 
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-stone-100">
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="px-5 py-2.5 text-stone-500 hover:text-stone-700 bg-stone-100 hover:bg-stone-200/80 text-xs font-bold rounded-2xl transition-colors cursor-pointer"
+              disabled={isSubmitting}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-6 py-2.5 text-[#FAF7EA] bg-[#1A3C2E] hover:bg-[#123524] disabled:bg-[#1A3C2E]/40 text-xs font-black uppercase tracking-wider rounded-2xl flex items-center gap-2 transition-all shadow-md cursor-pointer"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="animate-spin" size={14} />
+                  Processing...
+                </>
+              ) : (
+                formState.isEditing ? 'Save Changes' : 'Upload Gallery Item'
+              )}
+            </button>
+          </div>
+
+        </form>
+      </div>
+    </div>,
+    document.body
+  );
+}

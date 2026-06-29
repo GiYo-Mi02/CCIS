@@ -1,4 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Marcellus&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import url('https://cdn.jsdelivr.net/npm/@fontsource/metropolis/index.css');
 @import "tailwindcss";
 
 :root {
@@ -22,8 +23,14 @@
   --color-admin-danger: #C0392B;
   --color-admin-text: #222B26;
   
-  --font-sans: "Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Metropolis", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Marcellus", Georgia, serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+/* Global headings styling based on Marcellus branding */
+h1, h2, h3, h4, h5, h6, .font-marcellus {
+  font-family: var(--font-serif);
 }
 
 @layer utilities {
@@ -121,6 +128,16 @@
   }
   .animate-toast-out {
     animation: toastOut 0.25s ease-in forwards;
+  }
+
+  /* Modal Zoom animation */
+  @keyframes modalZoom {
+    0% { transform: scale(0.95); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  .animate-modal-zoom {
+    animation: modalZoom 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 }
 

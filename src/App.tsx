@@ -11,6 +11,7 @@ import LoadingScreen from './components/LoadingScreen';
 import AuthPage from './pages/AuthPage';
 import AccountPage from './pages/AccountPage';
 import MessagesPage from './pages/MessagesPage';
+import GalleryPage from './pages/GalleryPage';
 import { useAuth } from './context/AuthContext';
 import SubscriptionPreferenceModal from './components/SubscriptionPreferenceModal';
 
@@ -21,7 +22,7 @@ interface AppProps {
 export default function App({ onAdminSwitch }: AppProps) {
   const [activeTab, setActiveTab] = useState<string>('home');
   const [preselectedEventId, setPreselectedEventId] = useState<string | null>(null);
-  const { user, profile, updateProfile, isPending, isUnverified } = useAuth();
+  const { user, profile, updateProfile, isPending, isUnverified, isAdmin } = useAuth();
 
   // Multi-route smooth scroll coordinator (e.g. for scrolling to contact desks)
   useEffect(() => {
@@ -151,6 +152,12 @@ export default function App({ onAdminSwitch }: AppProps) {
               preselectedEventId={preselectedEventId}
               onClearPreselected={() => setPreselectedEventId(null)}
             />
+          </div>
+        )}
+
+        {activeTab === 'gallery' && (
+          <div className="animate-fade-in">
+            <GalleryPage isAdmin={isAdmin} />
           </div>
         )}
 

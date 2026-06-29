@@ -23,6 +23,7 @@ export interface Officer {
   photoUrl: string;
   email: string;
   order: number;
+  quote?: string;
 }
 
 export interface Committee {
