@@ -66,9 +66,9 @@ export default function Hero({ onLearnMoreClick, onAnnouncementsClick }: HeroPro
 
           {/* Main heading */}
           <h1 className="font-sans font-extrabold text-5xl sm:text-6xl md:text-7xl lg:text-8xl leading-[0.88] tracking-tighter uppercase italic text-white animate-hero-fade-up" style={{ animationDelay: '0.4s' }}>
-            Lead.<br />
-            Elevate.<br />
-            <span className="text-[#F5B400]">Innovate.</span>
+            Code.<br />
+            Create.<br />
+            <span className="text-[#F5B400]">Connect.</span>
           </h1>
 
           {/* Description */}

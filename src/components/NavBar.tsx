@@ -102,6 +102,7 @@ export default function NavBar({ activeTab, setActiveTab }: NavBarProps) {
     { id: 'announcements', label: 'Announcements' },
     { id: 'registration', label: 'Our Events' },
     { id: 'gallery', label: 'Gallery' },
+    { id: 'transparency', label: 'Bukas Kaban' },
   ];
 
   const handleNavClick = async (tabId: string) => {

@@ -78,7 +78,7 @@ export default function LoadingScreen() {
       }, '+=0.6'); // Hold focus for 0.6 seconds
 
       // ==========================================
-      // WAYPOINT 2 — "ELEVATE" (Middle Zone)
+      // WAYPOINT 2 — "CREATE" (Middle Zone)
       // ==========================================
       // Travel the horizontal line down and expand it slightly wider
       tl.to(lineRef.current, { 
@@ -101,7 +101,7 @@ export default function LoadingScreen() {
       }, '+=0.6'); // Hold focus for 0.6 seconds
 
       // ==========================================
-      // WAYPOINT 3 — "INNOVATE" (Bottom Zone)
+      // WAYPOINT 3 — "CONNECT" (Bottom Zone)
       // ==========================================
       // Travel the horizontal line down and adjust width
       tl.to(lineRef.current, { 
@@ -174,28 +174,28 @@ export default function LoadingScreen() {
         className="absolute left-1/2 -translate-x-1/2 h-[2px] bg-[#F5B400] opacity-0 pointer-events-none rounded-full"
       />
 
-      {/* Waypoint 1: LEAD. */}
+      {/* Waypoint 1: CODE. */}
       <div
         ref={word1Ref}
         className="absolute left-0 right-0 text-center top-[28%] text-[#FAF7EA] font-sans font-extrabold text-[clamp(3rem,8.5vw,6.5rem)] tracking-tighter uppercase italic leading-none opacity-0 select-none"
       >
-        LEAD.
+        CODE.
       </div>
 
-      {/* Waypoint 2: ELEVATE */}
+      {/* Waypoint 2: CREATE */}
       <div
         ref={word2Ref}
         className="absolute left-0 right-0 text-center top-[48%] text-[#FAF7EA] font-sans font-extrabold text-[clamp(3rem,8.5vw,6.5rem)] tracking-tighter uppercase italic leading-none opacity-0 select-none"
       >
-        ELEVATE
+        CREATE
       </div>
 
-      {/* Waypoint 3: INNOVATE */}
+      {/* Waypoint 3: CONNECT */}
       <div
         ref={word3Ref}
         className="absolute left-0 right-0 text-center top-[68%] text-[#F5B400] font-sans font-extrabold text-[clamp(3rem,8.5vw,6.5rem)] tracking-tighter uppercase italic leading-none opacity-0 select-none"
       >
-        INNOVATE
+        CONNECT
       </div>
     </div>
   );

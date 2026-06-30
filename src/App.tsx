@@ -12,8 +12,10 @@ import AuthPage from './pages/AuthPage';
 import AccountPage from './pages/AccountPage';
 import MessagesPage from './pages/MessagesPage';
 import GalleryPage from './pages/GalleryPage';
+import BukasKabanPage from './pages/BukasKabanPage';
 import { useAuth } from './context/AuthContext';
 import SubscriptionPreferenceModal from './components/SubscriptionPreferenceModal';
+import SupportWidget from './components/SupportWidget';
 
 interface AppProps {
   onAdminSwitch?: () => void;
@@ -161,6 +163,12 @@ export default function App({ onAdminSwitch }: AppProps) {
           </div>
         )}
 
+        {activeTab === 'transparency' && (
+          <div className="animate-fade-in">
+            <BukasKabanPage isAdmin={isAdmin} />
+          </div>
+        )}
+
         {activeTab === 'messages' && (
           <div className="animate-fade-in">
             {user && profile ? (
@@ -201,6 +209,9 @@ export default function App({ onAdminSwitch }: AppProps) {
 
       {/* 4. Foot banner site footer */}
       <Footer onNavClick={handleNavigate} onAdminSwitch={onAdminSwitch} />
+
+      {/* Floating Support Chat Widget */}
+      <SupportWidget onNavigate={handleNavigate} />
     </div>
   );
 }
