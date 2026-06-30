@@ -77,7 +77,6 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
   const hoverTimerRef = useRef<any>(null);
   const [isCarouselPaused, setIsCarouselPaused] = useState<boolean>(false);
   const heroRef = useRef<HTMLDivElement>(null);
-
   // Carousel slider configurations: list of featured videos (fallback to latest 3)
   const featuredVideos = videos.filter(v => v.isFeatured).length > 0
     ? videos.filter(v => v.isFeatured)
@@ -85,6 +84,31 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
 
   const [currentSlideIndex, setCurrentSlideIndex] = useState<number>(0);
   const activeHeroVideo = featuredVideos[currentSlideIndex] || featuredVideos[0];
+
+  const [hideHeroOverlays, setHideHeroOverlays] = useState<boolean>(false);
+  const overlayTimerRef = useRef<any>(null);
+
+  // Cinematic focus mode timer
+  useEffect(() => {
+    if (overlayTimerRef.current) {
+      clearTimeout(overlayTimerRef.current);
+      overlayTimerRef.current = null;
+    }
+
+    if (activePreviewId && activeHeroVideo && activePreviewId === activeHeroVideo.id) {
+      overlayTimerRef.current = setTimeout(() => {
+        setHideHeroOverlays(true);
+      }, 5000);
+    } else {
+      setHideHeroOverlays(false);
+    }
+
+    return () => {
+      if (overlayTimerRef.current) {
+        clearTimeout(overlayTimerRef.current);
+      }
+    };
+  }, [activePreviewId, activeHeroVideo?.id]);
 
   // Automated 8-second slide rotation
   useEffect(() => {
@@ -529,7 +553,9 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                 autoPlay
                 loop
                 playsInline
-                className="w-full h-full object-cover object-top opacity-85 filter brightness-90 scale-105 transition-opacity duration-1000"
+                className={`w-full h-full object-cover object-top filter brightness-90 scale-105 transition-all duration-1000 ${
+                  hideHeroOverlays ? 'opacity-100' : 'opacity-85'
+                }`}
               />
             ) : activeHeroVideo.thumbnailUrl ? (
               <img
@@ -542,12 +568,21 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                 <Film className="w-48 h-48 text-[#FAF7EA]/5 stroke-[0.5]" />
               </div>
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-[#11241C] via-[#11241C]/40 to-transparent" />
-            <div className="absolute inset-y-0 left-0 w-full md:w-2/3 bg-gradient-to-r from-[#11241C]/90 via-[#11241C]/30 to-transparent pointer-events-none" />
+            <div className={`absolute inset-0 bg-gradient-to-t from-[#11241C] via-[#11241C]/40 to-transparent transition-opacity duration-1000 ${
+              hideHeroOverlays ? 'opacity-0' : 'opacity-100'
+            }`} />
+            <div className={`absolute inset-y-0 left-0 w-full md:w-2/3 bg-gradient-to-r from-[#11241C]/90 via-[#11241C]/30 to-transparent pointer-events-none transition-opacity duration-1000 ${
+              hideHeroOverlays ? 'opacity-0' : 'opacity-100'
+            }`} />
           </div>
 
           {/* Hero details container */}
-          <div key={`details-${activeHeroVideo.id}`} className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-12 pb-20 sm:pb-28 flex flex-col items-start gap-4 animate-slide-fade-in">
+          <div
+            key={`details-${activeHeroVideo.id}`}
+            className={`relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-12 pb-20 sm:pb-28 flex flex-col items-start gap-4 transition-all duration-1000 ${
+              hideHeroOverlays ? 'opacity-0 pointer-events-none translate-y-4' : 'animate-slide-fade-in opacity-100 translate-y-0'
+            }`}
+          >
             <div className="flex items-center gap-3">
               <span className="bg-[#F5B400] text-[#11241C] font-mono text-[10px] uppercase font-black tracking-widest px-2.5 py-1 rounded-full shadow-md">
                 FEATURED EPISODE
@@ -588,7 +623,9 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
 
           {/* Slide Dot Indicators */}
           {featuredVideos.length > 1 && (
-            <div className="absolute bottom-6 right-6 sm:right-12 z-20 flex gap-2">
+            <div className={`absolute bottom-6 right-6 sm:right-12 z-20 flex gap-2 transition-opacity duration-1000 ${
+              hideHeroOverlays ? 'opacity-0 pointer-events-none' : 'opacity-100'
+            }`}>
               {featuredVideos.map((_, idx) => (
                 <button
                   key={idx}
