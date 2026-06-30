@@ -11,8 +11,14 @@ CREATE TABLE IF NOT EXISTS public.transparency_reports (
   pdf_url text NOT NULL,
   thumbnail_url text NOT NULL,
   file_size_label text NOT NULL,
+  total_budget_requested numeric NOT NULL DEFAULT 0,
+  total_expenses numeric NOT NULL DEFAULT 0,
   created_at timestamptz DEFAULT now()
 );
+
+-- Add columns if database table was already created
+-- ALTER TABLE public.transparency_reports ADD COLUMN IF NOT EXISTS total_budget_requested numeric NOT NULL DEFAULT 0;
+-- ALTER TABLE public.transparency_reports ADD COLUMN IF NOT EXISTS total_expenses numeric NOT NULL DEFAULT 0;
 
 -- 2. Enable Row Level Security (RLS)
 ALTER TABLE public.transparency_reports ENABLE ROW LEVEL SECURITY;

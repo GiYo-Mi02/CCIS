@@ -29,6 +29,8 @@ export interface TransparencyReport {
   pdfUrl: string;
   thumbnailUrl: string;
   fileSizeLabel: string; // e.g. "2.4 MB"
+  totalBudgetRequested: number;
+  totalExpenses: number;
   createdAt: string;
 }
 
@@ -51,6 +53,8 @@ const MOCK_REPORTS: TransparencyReport[] = [
     pdfUrl: "#",
     thumbnailUrl: "",
     fileSizeLabel: "1.84 MB",
+    totalBudgetRequested: 45000,
+    totalExpenses: 41250.50,
     createdAt: "2026-06-15T08:30:00.000Z"
   },
   {
@@ -61,6 +65,8 @@ const MOCK_REPORTS: TransparencyReport[] = [
     pdfUrl: "#",
     thumbnailUrl: "",
     fileSizeLabel: "842 KB",
+    totalBudgetRequested: 0,
+    totalExpenses: 0,
     createdAt: "2025-08-22T10:15:00.000Z"
   },
   {
@@ -71,6 +77,8 @@ const MOCK_REPORTS: TransparencyReport[] = [
     pdfUrl: "#",
     thumbnailUrl: "",
     fileSizeLabel: "3.24 MB",
+    totalBudgetRequested: 75000,
+    totalExpenses: 78450.00,
     createdAt: "2025-07-02T14:45:00.000Z"
   },
   {
@@ -81,6 +89,8 @@ const MOCK_REPORTS: TransparencyReport[] = [
     pdfUrl: "#",
     thumbnailUrl: "",
     fileSizeLabel: "1.12 MB",
+    totalBudgetRequested: 15000,
+    totalExpenses: 9240.25,
     createdAt: "2025-05-18T16:00:00.000Z"
   },
   {
@@ -91,6 +101,8 @@ const MOCK_REPORTS: TransparencyReport[] = [
     pdfUrl: "#",
     thumbnailUrl: "",
     fileSizeLabel: "2.10 MB",
+    totalBudgetRequested: 50000,
+    totalExpenses: 49850.00,
     createdAt: "2025-05-10T11:20:00.000Z"
   },
   {
@@ -101,6 +113,8 @@ const MOCK_REPORTS: TransparencyReport[] = [
     pdfUrl: "#",
     thumbnailUrl: "",
     fileSizeLabel: "1.65 MB",
+    totalBudgetRequested: 35000,
+    totalExpenses: 35000.00,
     createdAt: "2025-03-05T09:00:00.000Z"
   },
   {
@@ -111,6 +125,8 @@ const MOCK_REPORTS: TransparencyReport[] = [
     pdfUrl: "#",
     thumbnailUrl: "",
     fileSizeLabel: "4.15 MB",
+    totalBudgetRequested: 20000,
+    totalExpenses: 18500.00,
     createdAt: "2024-11-28T13:40:00.000Z"
   }
 ];
@@ -143,6 +159,15 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
   const [editTarget, setEditTarget] = useState<TransparencyReport | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
+  // Detail Modal states
+  const [selectedModalReport, setSelectedModalReport] = useState<TransparencyReport | null>(null);
+  const [modalOpen, setModalOpen] = useState<boolean>(false);
+  const [modalPdfPage, setModalPdfPage] = useState<number>(1);
+  const [pdfTotalPages, setPdfTotalPages] = useState<number>(1);
+  const [pdfRenderLoading, setPdfRenderLoading] = useState<boolean>(false);
+  const [pdfRenderError, setPdfRenderError] = useState<boolean>(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
   // Form states
   const [formTitle, setFormTitle] = useState('');
   const [formCaption, setFormCaption] = useState('');
@@ -150,6 +175,8 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
   const [formCustomSemester, setFormCustomSemester] = useState('');
   const [formIsNewSemester, setFormIsNewSemester] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [formTotalBudgetRequested, setFormTotalBudgetRequested] = useState<string>('0');
+  const [formTotalExpenses, setFormTotalExpenses] = useState<string>('0');
   
   // PDF processing states
   const [isGeneratingThumbnail, setIsGeneratingThumbnail] = useState(false);
@@ -189,6 +216,8 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
           pdfUrl: r.pdf_url,
           thumbnailUrl: r.thumbnail_url || '',
           fileSizeLabel: r.file_size_label,
+          totalBudgetRequested: Number(r.total_budget_requested || 0),
+          totalExpenses: Number(r.total_expenses || 0),
           createdAt: r.created_at
         }));
         setReports(mapped);
@@ -210,6 +239,125 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
   useEffect(() => {
     fetchReports();
   }, []);
+
+  // Listen for Escape key press to close detail modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Load PDFJS library helper dynamically
+  const loadPdfJs = (): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      const pdfjsLib = (window as any).pdfjsLib;
+      if (pdfjsLib) {
+        resolve(pdfjsLib);
+        return;
+      }
+      
+      const scriptId = 'pdfjs-lib-cdn-loader';
+      let script = document.getElementById(scriptId) as HTMLScriptElement;
+      if (!script) {
+        script = document.createElement('script');
+        script.id = scriptId;
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.js';
+        document.body.appendChild(script);
+      }
+      
+      const handleLoad = () => {
+        const loadedLib = (window as any).pdfjsLib;
+        if (loadedLib) {
+          resolve(loadedLib);
+        } else {
+          reject(new Error('pdfjsLib loaded but not found on window object.'));
+        }
+      };
+      
+      script.addEventListener('load', handleLoad);
+      script.addEventListener('error', () => {
+        reject(new Error('Failed to load PDF.js from CDN.'));
+      });
+    });
+  };
+
+  // Render inline PDF to canvas inside detail modal
+  useEffect(() => {
+    if (!selectedModalReport || !modalOpen) return;
+    
+    let active = true;
+    let loadingTask: any = null;
+    
+    const renderPage = async () => {
+      setPdfRenderLoading(true);
+      setPdfRenderError(false);
+      
+      if (!selectedModalReport.pdfUrl || selectedModalReport.pdfUrl === '#') {
+        setPdfRenderError(true);
+        setPdfRenderLoading(false);
+        return;
+      }
+      
+      try {
+        const pdfjsLib = await loadPdfJs();
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        
+        loadingTask = pdfjsLib.getDocument(selectedModalReport.pdfUrl);
+        const pdf = await loadingTask.promise;
+        setPdfTotalPages(pdf.numPages);
+        
+        const page = await pdf.getPage(modalPdfPage);
+        if (!active) return;
+        
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        
+        const context = canvas.getContext('2d');
+        if (!context) return;
+        
+        // Scale to fit the container width
+        const containerWidth = canvas.parentElement?.clientWidth || 360;
+        const unscaledViewport = page.getViewport({ scale: 1.0 });
+        const scale = containerWidth / unscaledViewport.width;
+        // Limit scale to avoid blurry scaling and fit comfortably
+        const viewport = page.getViewport({ scale: Math.min(scale, 1.2) });
+        
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        
+        await page.render({
+          canvasContext: context,
+          viewport: viewport
+        }).promise;
+      } catch (err) {
+        console.error('Error rendering PDF page in modal:', err);
+        if (active) setPdfRenderError(true);
+      } finally {
+        if (active) setPdfRenderLoading(false);
+      }
+    };
+    
+    renderPage();
+    
+    return () => {
+      active = false;
+      if (loadingTask) {
+        loadingTask.destroy();
+      }
+    };
+  }, [selectedModalReport, modalPdfPage, modalOpen]);
+
+  const openDetailModal = (report: TransparencyReport) => {
+    setSelectedModalReport(report);
+    setModalPdfPage(1);
+    setPdfTotalPages(1);
+    setPdfRenderError(false);
+    setModalOpen(true);
+  };
 
   // Compute unique semesters for filtering
   const semestersList = ['All', ...Array.from(new Set(reports.map(r => r.semester)))].sort((a, b) => (b as string).localeCompare(a as string));
@@ -247,6 +395,8 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
       setSelectedFile(null);
       setGeneratedThumbnailBlob(null);
       setThumbnailPreviewUrl(report.thumbnailUrl);
+      setFormTotalBudgetRequested(String(report.totalBudgetRequested));
+      setFormTotalExpenses(String(report.totalExpenses));
     } else {
       setEditTarget(null);
       setFormTitle('');
@@ -257,102 +407,73 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
       setSelectedFile(null);
       setGeneratedThumbnailBlob(null);
       setThumbnailPreviewUrl('');
+      setFormTotalBudgetRequested('0');
+      setFormTotalExpenses('0');
     }
     setShowFormModal(true);
   };
 
   // Client-side PDF page to canvas render function
   const renderPdfThumbnail = async (file: File): Promise<Blob> => {
-    return new Promise((resolve, reject) => {
-      const scriptId = 'pdfjs-lib-cdn-loader';
-      let script = document.getElementById(scriptId) as HTMLScriptElement;
+    return new Promise(async (resolve, reject) => {
+      try {
+        const pdfjsLib = await loadPdfJs();
+        // Set cloud worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-      const processFile = async () => {
-        try {
-          const pdfjsLib = (window as any).pdfjsLib;
-          if (!pdfjsLib) {
-            throw new Error('pdfjsLib was not found on global scope.');
+        const fileReader = new FileReader();
+        fileReader.onload = async function() {
+          try {
+            const arrayBuffer = this.result as ArrayBuffer;
+            const typedarray = new Uint8Array(arrayBuffer);
+            const loadingTask = pdfjsLib.getDocument({ data: typedarray });
+            const pdf = await loadingTask.promise;
+
+            if (pdf.numPages === 0) {
+              throw new Error('This PDF has no pages.');
+            }
+
+            const page = await pdf.getPage(1);
+            
+            // Scale for optimal rendering resolution (1.2 scale fits preview card)
+            const viewport = page.getViewport({ scale: 1.2 });
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+
+            if (!context) {
+              throw new Error('Failed to create canvas context.');
+            }
+
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+
+            const renderContext = {
+              canvasContext: context,
+              viewport: viewport
+            };
+
+            await page.render(renderContext).promise;
+
+            canvas.toBlob((blob) => {
+              if (blob) {
+                resolve(blob);
+              } else {
+                reject(new Error('Canvas to Blob conversion failed.'));
+              }
+            }, 'image/webp', 0.85);
+
+          } catch (e) {
+            reject(e);
           }
-
-          // Set cloud worker
-          pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-
-          const fileReader = new FileReader();
-          fileReader.onload = async function() {
-            try {
-              const arrayBuffer = this.result as ArrayBuffer;
-              const typedarray = new Uint8Array(arrayBuffer);
-              const loadingTask = pdfjsLib.getDocument({ data: typedarray });
-              const pdf = await loadingTask.promise;
-
-              if (pdf.numPages === 0) {
-                throw new Error('This PDF has no pages.');
-              }
-
-              const page = await pdf.getPage(1);
-              
-              // Scale for optimal rendering resolution (1.2 scale fits preview card)
-              const viewport = page.getViewport({ scale: 1.2 });
-              const canvas = document.createElement('canvas');
-              const context = canvas.getContext('2d');
-
-              if (!context) {
-                throw new Error('Failed to create canvas context.');
-              }
-
-              canvas.width = viewport.width;
-              canvas.height = viewport.height;
-
-              await page.render({
-                canvasContext: context,
-                viewport: viewport
-              }).promise;
-
-              canvas.toBlob((blob) => {
-                if (blob) {
-                  resolve(blob);
-                } else {
-                  reject(new Error('Export canvas to image blob failed.'));
-                }
-              }, 'image/jpeg', 0.85);
-
-            } catch (err) {
-              reject(err);
-            }
-          };
-
-          fileReader.onerror = () => reject(new Error('FileReader failed to process PDF.'));
-          fileReader.readAsArrayBuffer(file);
-        } catch (e) {
-          reject(e);
-        }
-      };
-
-      if (!script) {
-        script = document.createElement('script');
-        script.id = scriptId;
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-        script.onload = () => {
-          processFile();
         };
-        script.onerror = () => reject(new Error('Failed to download PDF helper scripts. Check your connection.'));
-        document.head.appendChild(script);
-      } else {
-        if ((window as any).pdfjsLib) {
-          processFile();
-        } else {
-          // If script tag is appending, poll safely
-          const poll = setInterval(() => {
-            if ((window as any).pdfjsLib) {
-              clearInterval(poll);
-              processFile();
-            }
-          }, 100);
-          setTimeout(() => {
-            clearInterval(poll);
-            reject(new Error('PDF script load timeout.'));
-          }, 10000);
-        }
+
+        fileReader.onerror = function(e) {
+          reject(e);
+        };
+
+        fileReader.readAsArrayBuffer(file);
+      } catch (err) {
+        reject(err);
       }
     });
   };
@@ -485,6 +606,9 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
         }
       }
 
+      const totalBudgetRequested = parseFloat(formTotalBudgetRequested) || 0;
+      const totalExpenses = parseFloat(formTotalExpenses) || 0;
+
       if (editTarget) {
         // Update database row
         const { error: dbErr } = await supabase
@@ -495,7 +619,9 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
             semester,
             pdf_url: pdfUrl,
             thumbnail_url: thumbnailUrl,
-            file_size_label: fileSizeLabel
+            file_size_label: fileSizeLabel,
+            total_budget_requested: totalBudgetRequested,
+            total_expenses: totalExpenses
           })
           .eq('id', editTarget.id);
 
@@ -511,7 +637,9 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
             semester,
             pdf_url: pdfUrl,
             thumbnail_url: thumbnailUrl,
-            file_size_label: fileSizeLabel
+            file_size_label: fileSizeLabel,
+            total_budget_requested: totalBudgetRequested,
+            total_expenses: totalExpenses
           });
 
         if (dbErr) throw dbErr;
@@ -738,7 +866,10 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
                   )}
 
                   {/* Document Card Entry */}
-                  <div className="relative ml-6 sm:ml-12 mb-10 flex flex-col sm:flex-row gap-6 bg-white p-6 sm:p-8 rounded-3xl border border-stone-200 shadow-2xs hover:shadow-md hover:bg-[#1A3C2E] hover:border-[#1A3C2E] hover:text-white transition-all duration-300 group">
+                  <div 
+                    onClick={() => openDetailModal(report)}
+                    className="relative ml-6 sm:ml-12 mb-10 flex flex-col sm:flex-row gap-6 bg-white p-6 sm:p-8 rounded-3xl border border-stone-200 shadow-2xs hover:shadow-lg hover:-translate-y-1 hover:bg-[#1A3C2E] hover:border-[#1A3C2E] hover:text-white cursor-pointer transition-all duration-300 group"
+                  >
                     {/* Spine anchor node */}
                     <div className="absolute -left-[30px] sm:-left-[42px] top-8 w-2.5 h-2.5 rounded-full bg-stone-300 border-2 border-[#FAF7EA] group-hover:bg-[#1A3C2E] group-hover:scale-110 transition-all shadow-xs" />
 
@@ -760,6 +891,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
                         href={report.pdfUrl}
                         target="_blank"
                         rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
                         className="absolute inset-0 bg-[#1A3C2E]/60 opacity-0 hover:opacity-100 transition-opacity duration-300 flex items-center justify-center text-white text-xs font-black uppercase tracking-wider gap-1.5 focus:opacity-100 focus:outline-none"
                       >
                         <Eye size={14} />
@@ -796,7 +928,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
                           {isAdmin && (
                             <>
                               <button
-                                onClick={() => openForm(report)}
+                                onClick={(e) => { e.stopPropagation(); openForm(report); }}
                                 className="p-1 text-stone-400 group-hover:text-stone-300 hover:text-stone-800 group-hover:hover:text-white transition-colors focus:ring-2 focus:ring-[#1A3C2E] rounded outline-none cursor-pointer"
                                 title="Edit Document Metadata"
                               >
@@ -804,15 +936,15 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
                               </button>
                               
                               {deleteConfirmId === report.id ? (
-                                <div className="flex items-center gap-1.5 bg-rose-50 border border-rose-100 p-0.5 rounded-lg">
+                                <div className="flex items-center gap-1.5 bg-rose-50 border border-rose-100 p-0.5 rounded-lg" onClick={(e) => e.stopPropagation()}>
                                   <button
-                                    onClick={() => handleDeleteReport(report)}
+                                    onClick={(e) => { e.stopPropagation(); handleDeleteReport(report); }}
                                     className="px-2 py-0.5 bg-rose-600 hover:bg-rose-700 text-white text-[9px] font-black uppercase rounded shadow-sm cursor-pointer"
                                   >
                                     YES
                                   </button>
                                   <button
-                                    onClick={() => setDeleteConfirmId(null)}
+                                    onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(null); }}
                                     className="px-2 py-0.5 bg-stone-200 group-hover:bg-white/10 hover:bg-stone-350 group-hover:hover:bg-white/20 text-stone-600 group-hover:text-stone-200 text-[9px] font-black uppercase rounded shadow-sm cursor-pointer transition-colors"
                                   >
                                     NO
@@ -820,7 +952,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
                                 </div>
                               ) : (
                                 <button
-                                  onClick={() => setDeleteConfirmId(report.id)}
+                                  onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(report.id); }}
                                   className="p-1 text-stone-400 group-hover:text-stone-300 hover:text-rose-600 group-hover:hover:text-rose-400 transition-colors focus:ring-2 focus:ring-rose-500 rounded outline-none cursor-pointer"
                                   title="Delete Document"
                                 >
@@ -830,14 +962,12 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
                             </>
                           )}
                           
-                          <a
-                            href={report.pdfUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-[#1A3C2E] hover:text-[#F5B400] group-hover:text-[#F5B400] group-hover:hover:text-[#ffc522] transition-colors focus:outline-none focus:underline"
+                          <button
+                            onClick={(e) => { e.stopPropagation(); openDetailModal(report); }}
+                            className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-[#1A3C2E] hover:text-[#F5B400] group-hover:text-[#F5B400] group-hover:hover:text-[#ffc522] transition-colors focus:outline-none focus:underline cursor-pointer"
                           >
                             View Report <Eye size={12} className="inline" />
-                          </a>
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -907,6 +1037,54 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
                 <span className="text-[9px] text-stone-400 block text-right font-mono mt-1">
                   {formCaption.length}/250 characters
                 </span>
+              </div>
+
+              {/* Financial Stats Block */}
+              <div className="grid grid-cols-2 gap-4 border-t border-b border-stone-100 py-4 my-2">
+                <div>
+                  <label className="block text-[10px] font-mono uppercase font-bold text-stone-400 mb-1.5">
+                    Budget Requested (₱) *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    required
+                    value={formTotalBudgetRequested}
+                    onChange={(e) => setFormTotalBudgetRequested(e.target.value)}
+                    placeholder="0.00"
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E] transition-all text-xs"
+                    disabled={formSubmitting}
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-[10px] font-mono uppercase font-bold text-stone-400 mb-1.5">
+                    Total Expenses (₱) *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    required
+                    value={formTotalExpenses}
+                    onChange={(e) => setFormTotalExpenses(e.target.value)}
+                    placeholder="0.00"
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E] transition-all text-xs"
+                    disabled={formSubmitting}
+                  />
+                </div>
+
+                <div className="col-span-2 bg-stone-50 border border-stone-150 p-3 rounded-2xl flex items-center justify-between font-sans">
+                  <span className="font-mono text-[10px] uppercase font-bold text-stone-500">Live Balance Preview:</span>
+                  <span className={`font-mono text-xs font-black tracking-tight ${
+                    (parseFloat(formTotalBudgetRequested) || 0) - (parseFloat(formTotalExpenses) || 0) >= 0
+                      ? 'text-emerald-700'
+                      : 'text-rose-700'
+                  }`}>
+                    ₱{((parseFloat(formTotalBudgetRequested) || 0) - (parseFloat(formTotalExpenses) || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
               </div>
 
               {/* Semester/Term selection */}
@@ -1012,6 +1190,216 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
               </div>
 
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================
+          DOCUMENT DETAIL VIEW MODAL
+          ============================================================ */}
+      {modalOpen && selectedModalReport && (
+        <div 
+          onClick={() => setModalOpen(false)}
+          className="fixed inset-0 bg-stone-900/60 backdrop-blur-xs overflow-y-auto flex items-start md:items-center justify-center p-4 sm:p-6 z-[999] animate-fade-in"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-[#FAF7EA] max-w-5xl w-full rounded-3xl border border-stone-200/80 shadow-2xl overflow-hidden flex flex-col md:flex-row my-auto h-auto md:h-[80vh] max-h-none md:max-h-[850px]"
+          >
+            {/* Left Column: PDF Viewer */}
+            <div className="w-full md:w-3/5 bg-stone-150 flex flex-col p-5 sm:p-6 border-r border-stone-200/80 overflow-y-auto">
+              <div className="my-auto flex flex-col items-center justify-center">
+                {/* PDF Canvas container or fallback */}
+                <div className="relative bg-white shadow-md rounded-2xl overflow-hidden border border-stone-200 w-full max-w-[400px] flex flex-col justify-center items-center min-h-[300px] md:min-h-[420px] p-6 text-center">
+                  {pdfRenderLoading && (
+                    <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-10 animate-fade-in">
+                      <Loader2 className="animate-spin text-[#1A3C2E]" size={28} />
+                    </div>
+                  )}
+                  {pdfRenderError ? (
+                    <div className="flex flex-col items-center justify-center space-y-4 p-4 animate-fade-in">
+                      <div className="w-20 h-24 bg-[#1A3C2E]/5 border-2 border-dashed border-[#1A3C2E]/20 rounded-xl flex items-center justify-center text-[#1A3C2E]/40 mb-2 relative">
+                        <FileText size={32} />
+                        <span className="absolute bottom-1 right-2 font-mono text-[8px] font-bold text-stone-400">PDF</span>
+                      </div>
+                      <span className="font-mono text-[9px] text-stone-450 uppercase tracking-widest font-black">
+                        DOCUMENT PREVIEW
+                      </span>
+                      <h4 className="font-serif font-black text-stone-850 text-xs sm:text-sm leading-snug max-w-[220px]">
+                        {selectedModalReport.title}
+                      </h4>
+                      <p className="text-[10px] text-stone-450 max-w-[240px] leading-relaxed">
+                        {selectedModalReport.pdfUrl === '#' 
+                          ? 'This is a mock record representation. The document page preview is simulated.'
+                          : 'The PDF preview could not be loaded inline due to browser security settings.'}
+                      </p>
+                      {selectedModalReport.pdfUrl !== '#' && (
+                        <span className="text-[9px] text-[#1A3C2E] bg-stone-100 px-2 py-0.5 rounded font-mono font-bold">
+                          CORS Restriction / Offline Mode
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <canvas ref={canvasRef} className="w-full max-w-full h-auto object-contain" />
+                  )}
+                </div>
+
+                {/* PDF Page Controls */}
+                {pdfTotalPages > 1 && (
+                  <div className="flex items-center gap-4 mt-4 bg-white px-4 py-2 rounded-full border border-stone-200 shadow-sm font-sans">
+                    <button
+                      onClick={() => setModalPdfPage(prev => Math.max(prev - 1, 1))}
+                      disabled={modalPdfPage === 1 || pdfRenderLoading}
+                      className="p-1 rounded-lg hover:bg-stone-100 disabled:opacity-30 disabled:hover:bg-transparent font-bold cursor-pointer transition-colors focus:ring-2 focus:ring-[#1A3C2E] outline-none"
+                    >
+                      &larr; Prev
+                    </button>
+                    <span className="font-mono text-xs font-bold text-stone-600">
+                      Page {modalPdfPage} of {pdfTotalPages}
+                    </span>
+                    <button
+                      onClick={() => setModalPdfPage(prev => Math.min(prev + 1, pdfTotalPages))}
+                      disabled={modalPdfPage === pdfTotalPages || pdfRenderLoading}
+                      className="p-1 rounded-lg hover:bg-stone-100 disabled:opacity-30 disabled:hover:bg-transparent font-bold cursor-pointer transition-colors focus:ring-2 focus:ring-[#1A3C2E] outline-none"
+                    >
+                      Next &rarr;
+                    </button>
+                  </div>
+                )}
+
+                {/* Download Button */}
+                <a
+                  href={selectedModalReport.pdfUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-6 w-full max-w-[400px] inline-flex items-center justify-center gap-2 bg-[#1A3C2E] hover:bg-[#123524] text-white py-3 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 shadow-md border border-[#F5B400]/25 cursor-pointer focus:ring-2 focus:ring-[#F5B400] outline-none"
+                >
+                  <Download size={14} />
+                  Download PDF Report
+                </a>
+              </div>
+            </div>
+
+            {/* Right Column: Details & Stats */}
+            <div className="w-full md:w-2/5 p-6 sm:p-8 flex flex-col overflow-y-auto relative bg-white">
+              
+              {/* Close Button */}
+              <button
+                onClick={() => setModalOpen(false)}
+                className="absolute top-6 right-6 p-1.5 rounded-full bg-stone-100 text-stone-500 hover:text-stone-900 hover:bg-stone-200 transition-colors cursor-pointer focus:ring-2 focus:ring-[#1A3C2E] outline-none"
+              >
+                <X size={18} />
+              </button>
+
+              <div className="space-y-6 pr-2">
+                {/* Title and Admin Actions row */}
+                <div>
+                  <span className="font-mono text-[9px] bg-stone-150 text-stone-600 px-2 py-0.5 rounded font-black tracking-wider uppercase inline-block mb-3">
+                    REF-{selectedModalReport.id.substring(0, 8).toUpperCase()}
+                  </span>
+                  
+                  <div className="flex items-start justify-between gap-4">
+                    <h2 className="font-serif font-black text-2xl text-stone-900 leading-tight">
+                      {selectedModalReport.title}
+                    </h2>
+
+                    {isAdmin && (
+                      <div className="flex items-center gap-1.5 shrink-0 mt-1">
+                        <button
+                          onClick={() => {
+                            setModalOpen(false);
+                            openForm(selectedModalReport);
+                          }}
+                          className="p-1.5 bg-stone-100 hover:bg-stone-200 text-stone-600 rounded-lg transition-colors cursor-pointer"
+                          title="Edit Document"
+                        >
+                          <Edit size={14} />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setModalOpen(false);
+                            setDeleteConfirmId(selectedModalReport.id);
+                          }}
+                          className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition-colors cursor-pointer"
+                          title="Delete Document"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div>
+                  <h4 className="font-mono text-[10px] uppercase font-bold text-stone-400 mb-2">Description / Summary</h4>
+                  <p className="text-sm text-stone-655 leading-relaxed font-sans">
+                    {selectedModalReport.caption}
+                  </p>
+                </div>
+
+                {/* Ledger Statistics Block */}
+                <div>
+                  <h4 className="font-mono text-[10px] uppercase font-bold text-stone-400 mb-2.5">Financial Statement Summary</h4>
+                  
+                  <div className="bg-[#FAF7EA]/80 border border-stone-200/50 p-5 rounded-2xl shadow-2xs space-y-4">
+                    {/* Budget Requested */}
+                    <div className="flex justify-between items-center py-1">
+                      <span className="text-xs text-stone-500 font-sans">Total Budget Requested</span>
+                      <span className="font-mono text-sm font-bold text-stone-850">
+                        ₱{selectedModalReport.totalBudgetRequested.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    {/* Expenses */}
+                    <div className="flex justify-between items-center py-1 border-t border-stone-150/40">
+                      <span className="text-xs text-stone-500 font-sans">Total Expenses incurred</span>
+                      <span className="font-mono text-sm font-bold text-stone-850">
+                        ₱{selectedModalReport.totalExpenses.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    {/* Balance */}
+                    {(() => {
+                      const balance = selectedModalReport.totalBudgetRequested - selectedModalReport.totalExpenses;
+                      const isPositive = balance >= 0;
+                      return (
+                        <div className="flex justify-between items-center py-2 border-t border-stone-200/80 font-sans">
+                          <span className="text-xs font-bold text-[#1A3C2E]">Balance Remaining</span>
+                          <span className={`font-mono text-sm font-black tracking-tight ${
+                            isPositive ? 'text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded animate-pulse' : 'text-rose-700 bg-rose-50 px-2 py-0.5 rounded'
+                          }`}>
+                            ₱{balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+
+                {/* Metadata Footer */}
+                <div className="pt-6 border-t border-stone-150/60 space-y-2">
+                  <div className="flex justify-between text-[11px] text-stone-400 font-sans">
+                    <span>Semester / Term:</span>
+                    <span className="font-mono font-bold text-stone-500 uppercase">{selectedModalReport.semester}</span>
+                  </div>
+                  <div className="flex justify-between text-[11px] text-stone-400 font-sans">
+                    <span>Date Published:</span>
+                    <span className="font-mono font-bold text-stone-500">
+                      {new Date(selectedModalReport.createdAt).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                      })}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-[11px] text-stone-400 font-sans">
+                    <span>Submitted By:</span>
+                    <span className="font-bold text-stone-500">CCIS Student Council Finance Committee</span>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
           </div>
         </div>
       )}

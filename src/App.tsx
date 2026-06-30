@@ -13,6 +13,7 @@ import AccountPage from './pages/AccountPage';
 import MessagesPage from './pages/MessagesPage';
 import GalleryPage from './pages/GalleryPage';
 import BukasKabanPage from './pages/BukasKabanPage';
+import PatchPage from './pages/PatchPage';
 import { useAuth } from './context/AuthContext';
 import SubscriptionPreferenceModal from './components/SubscriptionPreferenceModal';
 import SupportWidget from './components/SupportWidget';
@@ -166,6 +167,12 @@ export default function App({ onAdminSwitch }: AppProps) {
         {activeTab === 'transparency' && (
           <div className="animate-fade-in">
             <BukasKabanPage isAdmin={isAdmin} />
+          </div>
+        )}
+
+        {activeTab === 'patch' && (
+          <div className="animate-fade-in">
+            <PatchPage isAdmin={isAdmin} />
           </div>
         )}
 

@@ -67,6 +67,15 @@ h1, h2, h3, h4, h5, h6, .font-marcellus {
     animation: heroFadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
+  @keyframes slideFadeIn {
+    0% { opacity: 0; transform: translateX(24px); }
+    100% { opacity: 1; transform: translateX(0); }
+  }
+
+  .animate-slide-fade-in {
+    animation: slideFadeIn 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
   @keyframes heroLine1 {
     0%, 100% { transform: translateX(-100%); opacity: 0; }
     50% { transform: translateX(100%); opacity: 1; }
