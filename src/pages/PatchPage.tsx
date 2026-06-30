@@ -84,7 +84,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
 
   const [currentSlideIndex, setCurrentSlideIndex] = useState<number>(0);
   const activeHeroVideo = featuredVideos[currentSlideIndex] || featuredVideos[0];
-
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [hideHeroOverlays, setHideHeroOverlays] = useState<boolean>(false);
   const overlayTimerRef = useRef<any>(null);
 
@@ -108,6 +108,23 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
         clearTimeout(overlayTimerRef.current);
       }
     };
+  }, [activePreviewId, activeHeroVideo?.id]);
+
+  // Autoplay video sound unmuting controller (browser policy bypass)
+  useEffect(() => {
+    if (activePreviewId && activeHeroVideo && activePreviewId === activeHeroVideo.id && videoRef.current) {
+      const videoEl = videoRef.current;
+      videoEl.muted = false;
+
+      const playPromise = videoEl.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((error) => {
+          console.log("Autoplay sound blocked by browser, fallback to muted:", error);
+          videoEl.muted = true;
+          videoEl.play().catch(e => console.error("Muted playback fallback failed:", e));
+        });
+      }
+    }
   }, [activePreviewId, activeHeroVideo?.id]);
 
   // Automated 8-second slide rotation
@@ -549,9 +566,11 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
           <div key={`bg-${activeHeroVideo.id}`} className="absolute inset-0 z-0 animate-slide-fade-in">
             {activePreviewId === activeHeroVideo.id && activeHeroVideo.videoUrl ? (
               <video
+                ref={videoRef}
                 src={activeHeroVideo.videoUrl}
                 autoPlay
                 loop
+                muted
                 playsInline
                 className={`w-full h-full object-cover object-top filter brightness-90 scale-105 transition-all duration-1000 ${
                   hideHeroOverlays ? 'opacity-100' : 'opacity-85'
