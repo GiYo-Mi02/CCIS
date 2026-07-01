@@ -70,6 +70,7 @@ export interface Officer {
   created_at: string;
   quote?: string | null;
   committees?: { name: string } | null;
+  term?: string | null;
 }
 
 export interface Announcement {

@@ -11,6 +11,7 @@ type Tab = 'officers' | 'committees';
 export default function OfficersManager() {
   const { showToast } = useAdmin();
   const [tab, setTab] = useState<Tab>('officers');
+  const [selectedTerm, setSelectedTerm] = useState<string>('2026-2027');
   const [officers, setOfficers] = useState<Officer[]>([]);
   const [committees, setCommittees] = useState<Committee[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,6 +59,7 @@ export default function OfficersManager() {
       const { error } = await supabase.from('officers').insert({
         name: form.name, position: form.position, committee_id: commId,
         photo_url: form.photo_url, email: form.email, quote: form.quote,
+        term: form.term || '2026-2027',
         display_order: officers.length + 1,
       });
       if (error) { showToast('Failed to add officer', 'error'); return; }
@@ -66,6 +68,7 @@ export default function OfficersManager() {
       const { error } = await supabase.from('officers').update({
         name: form.name, position: form.position, committee_id: commId,
         photo_url: form.photo_url, email: form.email, quote: form.quote,
+        term: form.term || '2026-2027',
       }).eq('id', form.id);
       if (error) { showToast('Failed to update', 'error'); return; }
       showToast('Officer updated!');
@@ -131,7 +134,9 @@ export default function OfficersManager() {
     );
   }
 
-  const sortedOfficers = [...officers].sort((a, b) => a.display_order - b.display_order);
+  const sortedOfficers = [...officers]
+    .filter(o => (o.term || '2026-2027') === selectedTerm)
+    .sort((a, b) => a.display_order - b.display_order);
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -141,6 +146,19 @@ export default function OfficersManager() {
           <button onClick={() => setTab('officers')} className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${tab === 'officers' ? 'bg-[#F5B400] text-[#1A3C2E] shadow-sm' : 'text-gray-500 hover:text-[#1A3C2E] hover:bg-gray-50'}`}>Officers</button>
           <button onClick={() => setTab('committees')} className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${tab === 'committees' ? 'bg-[#F5B400] text-[#1A3C2E] shadow-sm' : 'text-gray-500 hover:text-[#1A3C2E] hover:bg-gray-50'}`}>Committees</button>
         </div>
+
+        {tab === 'officers' && (
+          <select 
+            value={selectedTerm} 
+            onChange={(e) => setSelectedTerm(e.target.value)} 
+            className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold uppercase tracking-wider text-gray-500 shadow-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400]"
+          >
+            <option value="2026-2027">AY 2026-2027</option>
+            <option value="2025-2026">AY 2025-2026</option>
+            <option value="2024-2025">AY 2024-2025</option>
+          </select>
+        )}
+
         <div className="flex-1" />
         {tab === 'officers' && officers.length > 0 && (
           <button onClick={handleDeleteAllOfficers} className="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 px-3 py-2 rounded-lg font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 transition-colors">
@@ -156,7 +174,7 @@ export default function OfficersManager() {
           onClick={() => {
             setIsCreating(true);
             if (tab === 'officers') {
-              setEditingOfficer({ name: '', position: '', committee_id: committees[0]?.id, photo_url: '', email: '', display_order: officers.length + 1 });
+              setEditingOfficer({ name: '', position: '', committee_id: committees[0]?.id, photo_url: '', email: '', term: selectedTerm, display_order: officers.length + 1 });
             } else {
               setEditingCommittee({ name: '', description: '', head_name: '', responsibilities: [] });
             }
@@ -279,6 +297,14 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
             {committees.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </div>
+      </div>
+      <div>
+        <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Academic Year (Term)</label>
+        <select value={form.term || '2026-2027'} onChange={(e) => setForm({ ...form, term: e.target.value })} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400]">
+          <option value="2026-2027">AY 2026-2027</option>
+          <option value="2025-2026">AY 2025-2026</option>
+          <option value="2024-2025">AY 2024-2025</option>
+        </select>
       </div>
       <div>
         <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Quote / Campaign Tagline</label>

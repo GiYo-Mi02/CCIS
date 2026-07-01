@@ -24,6 +24,7 @@ export interface Officer {
   email: string;
   order: number;
   quote?: string;
+  term?: string;
 }
 
 export interface Committee {

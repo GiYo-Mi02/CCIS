@@ -26,6 +26,7 @@ export default function InfoHub({ onNavigate }: { onNavigate?: (tab: string, eve
   const [activeCommitteeTab, setActiveCommitteeTab] = useState<string>('');
   const [expandedFaq, setExpandedFaq] = useState<string | null>(null);
   const [activeInfoTab, setActiveInfoTab] = useState<'college' | 'council' | 'compsoc'>('college');
+  const [selectedTerm, setSelectedTerm] = useState<string>('2026-2027');
   
   // Dynamic database collections
   const [officers, setOfficers] = useState<Officer[]>([]);
@@ -61,7 +62,8 @@ export default function InfoHub({ onNavigate }: { onNavigate?: (tab: string, eve
           photoUrl: o.photo_url || '',
           email: o.email,
           order: o.display_order,
-          quote: o.quote || ''
+          quote: o.quote || '',
+          term: o.term || '2026-2027'
         })));
       }
       setLoading(false);
@@ -93,7 +95,9 @@ export default function InfoHub({ onNavigate }: { onNavigate?: (tab: string, eve
     );
   }
 
-  // Categorize and sort officers
+  // Categorize and sort officers based on the selected term
+  const filteredOfficers = officers.filter(o => o.term === selectedTerm);
+
   const execBoardRoles = ['chairperson', 'president', 'vice chairperson', 'vice president', 'secretary', 'treasurer', 'auditor'];
 
   const getExecBoardRank = (position: string) => {
@@ -115,25 +119,25 @@ export default function InfoHub({ onNavigate }: { onNavigate?: (tab: string, eve
     return 99;
   };
 
-  const execBoard = officers.filter(o => {
+  const execBoard = filteredOfficers.filter(o => {
     const pos = o.position.toLowerCase().replace(/\s+/g, ' ').trim();
     return execBoardRoles.some(r => pos === r || (r === 'vice chairperson' && pos === 'vice  chairperson'));
   }).sort((a, b) => getExecBoardRank(a.position) - getExecBoardRank(b.position));
 
-  const yearReps = officers.filter(o => {
+  const yearReps = filteredOfficers.filter(o => {
     const pos = o.position.toLowerCase();
     const isExec = execBoardRoles.some(r => pos.replace(/\s+/g, ' ').trim() === r || (r === 'vice chairperson' && pos.replace(/\s+/g, ' ').trim() === 'vice  chairperson'));
     return !isExec && (pos.includes('year representative') || pos.includes('year rep') || pos.includes('representative'));
   }).sort((a, b) => getYearLevel(a.position) - getYearLevel(b.position));
 
-  const committeeHeads = officers.filter(o => {
+  const committeeHeads = filteredOfficers.filter(o => {
     const pos = o.position.toLowerCase();
     const isExec = execBoardRoles.some(r => pos.replace(/\s+/g, ' ').trim() === r || (r === 'vice chairperson' && pos.replace(/\s+/g, ' ').trim() === 'vice  chairperson'));
     const isYear = pos.includes('year representative') || pos.includes('year rep') || pos.includes('representative');
     return !isExec && !isYear && (pos.includes('head') || o.committee !== 'Executive Board');
   });
 
-  const otherOfficers = officers.filter(o => {
+  const otherOfficers = filteredOfficers.filter(o => {
     return !execBoard.some(e => e.id === o.id) &&
            !yearReps.some(y => y.id === o.id) &&
            !committeeHeads.some(c => c.id === o.id);
@@ -465,9 +469,7 @@ export default function InfoHub({ onNavigate }: { onNavigate?: (tab: string, eve
             </div>
           )}
         </div>
-      </section>
-
-      {/* 4.4.2 Officer Directory Grid */}
+      </section>      {/* 4.4.2 Officer Directory Grid */}
       <section className="py-16 bg-white border-b border-[#1A3C2E]/10" id="officer-directory">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
@@ -475,51 +477,77 @@ export default function InfoHub({ onNavigate }: { onNavigate?: (tab: string, eve
             <span className="font-mono text-xs uppercase tracking-[0.2em] text-[#5E6E64] font-bold font-semibold">Leadership</span>
             <h2 className="font-sans font-black text-3xl md:text-4xl text-[#1A3C2E] mt-1">CCIS Student Council Officers</h2>
             <p className="text-[#5E6E64] text-xs md:text-sm mt-2 font-mono uppercase tracking-widest">Commitment, Service, Integrity</p>
-            <div className="h-1 w-16 bg-[#F5B400] mx-auto mt-3 rounded-full" />
+            <div className="h-1 w-16 bg-[#F5B400] mx-auto mt-3 rounded-full mb-6" />
+            
+            {/* Term Selector */}
+            <div className="inline-flex items-center gap-2 bg-[#FAF7EA] rounded-full border border-[#1A3C2E]/10 p-1 shadow-xs">
+              {['2026-2027', '2025-2026', '2024-2025'].map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setSelectedTerm(t)}
+                  className={`px-4 py-1.5 rounded-full text-xs font-bold font-sans transition-all cursor-pointer ${
+                    selectedTerm === t
+                      ? 'bg-[#1A3C2E] text-[#FAF7EA] shadow-xs'
+                      : 'text-stone-500 hover:text-[#1A3C2E]'
+                  }`}
+                >
+                  AY {t}
+                </button>
+              ))}
+            </div>
           </div>
 
-          {/* Executive Board Section */}
-          {execBoard.length > 0 && (
-            <div className="mb-16">
-              <div className="text-left mb-6">
-                <h3 className="font-sans font-extrabold text-[#1A3C2E] text-base md:text-lg uppercase tracking-wider border-b border-[#1A3C2E]/10 pb-2">
-                  Executive Board
-                </h3>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 md:gap-8 justify-center">
-                {execBoard.map(renderOfficerCard)}
-              </div>
+          {filteredOfficers.length === 0 ? (
+            <div className="text-center py-12 bg-[#FAF7EA]/30 rounded-3xl border border-zinc-150 shadow-xs max-w-lg mx-auto">
+              <Shield className="mx-auto text-stone-300 mb-3" size={36} />
+              <h3 className="font-sans font-bold text-stone-600 text-sm">No Officer Records</h3>
+              <p className="text-stone-400 text-xs mt-1">No officers have been registered for AY {selectedTerm} yet.</p>
             </div>
-          )}
+          ) : (
+            <>
+              {/* Executive Board Section */}
+              {execBoard.length > 0 && (
+                <div className="mb-16">
+                  <div className="text-left mb-6">
+                    <h3 className="font-sans font-extrabold text-[#1A3C2E] text-base md:text-lg uppercase tracking-wider border-b border-[#1A3C2E]/10 pb-2">
+                      Executive Board
+                    </h3>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 md:gap-8 justify-center">
+                    {execBoard.map(renderOfficerCard)}
+                  </div>
+                </div>
+              )}
 
-          {/* Year Level Representatives Section */}
-          {yearReps.length > 0 && (
-            <div className="mb-16">
-              <div className="text-left mb-6">
-                <h3 className="font-sans font-extrabold text-[#1A3C2E] text-base md:text-lg uppercase tracking-wider border-b border-[#1A3C2E]/10 pb-2">
-                  Year Level Representatives
-                </h3>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 justify-center">
-                {yearReps.map(renderOfficerCard)}
-              </div>
-            </div>
-          )}
+              {/* Year Level Representatives Section */}
+              {yearReps.length > 0 && (
+                <div className="mb-16">
+                  <div className="text-left mb-6">
+                    <h3 className="font-sans font-extrabold text-[#1A3C2E] text-base md:text-lg uppercase tracking-wider border-b border-[#1A3C2E]/10 pb-2">
+                      Year Level Representatives
+                    </h3>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 justify-center">
+                    {yearReps.map(renderOfficerCard)}
+                  </div>
+                </div>
+              )}
 
-          {/* Working Committee Heads Section */}
-          {(committeeHeads.length > 0 || otherOfficers.length > 0) && (
-            <div>
-              <div className="text-left mb-6">
-                <h3 className="font-sans font-extrabold text-[#1A3C2E] text-base md:text-lg uppercase tracking-wider border-b border-[#1A3C2E]/10 pb-2">
-                  Working Committee Heads
-                </h3>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8 justify-center">
-                {[...committeeHeads, ...otherOfficers].map(renderOfficerCard)}
-              </div>
-            </div>
+              {/* Working Committee Heads Section */}
+              {(committeeHeads.length > 0 || otherOfficers.length > 0) && (
+                <div>
+                  <div className="text-left mb-6">
+                    <h3 className="font-sans font-extrabold text-[#1A3C2E] text-base md:text-lg uppercase tracking-wider border-b border-[#1A3C2E]/10 pb-2">
+                      Working Committee Heads
+                    </h3>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8 justify-center">
+                    {[...committeeHeads, ...otherOfficers].map(renderOfficerCard)}
+                  </div>
+                </div>
+              )}
+            </>
           )}
-
         </div>
       </section>
 
