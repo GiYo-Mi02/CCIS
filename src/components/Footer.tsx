@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mail, Facebook, Github, Globe, Heart, Lock } from 'lucide-react';
+import { Mail, Facebook, Github, Globe, Heart, Lock, Instagram } from 'lucide-react';
 import CouncilSeal from './CouncilSeal';
 import { useAuth } from '../context/AuthContext';
 
@@ -69,11 +69,11 @@ export default function Footer({ onNavClick, onAdminSwitch }: FooterProps) {
             <ul className="space-y-2 text-xs text-stone-300">
               <li className="flex items-center gap-1.5">
                 <Mail size={12} className="text-[#F5B400]" />
-                <span>support@ccis-council.org</span>
+                <span>umakccissc@umak.edu.ph</span>
               </li>
               <li className="flex items-center gap-1.5 font-mono">
                 <Globe size={12} className="text-[#F5B400]" />
-                <span>ccis-council.org/help</span>
+                <span>umakccissc@umak.edu.ph</span>
               </li>
               <li className="text-[11px] leading-relaxed italic text-stone-400">
                 CCIS Office, Admin Building, 3rd Floor
@@ -92,7 +92,7 @@ export default function Footer({ onNavClick, onAdminSwitch }: FooterProps) {
             <p className="text-xs text-stone-300">Stay attached on local social feeds:</p>
             <div className="flex items-center gap-2.5">
               <a
-                href="https://facebook.com"
+                href="https://web.facebook.com/umakccissc"
                 target="_blank"
                 rel="noreferrer"
                 className="bg-white/5 hover:bg-white/10 p-2 rounded-full border border-white/10 text-[#F5B400] transition-colors"
@@ -101,13 +101,13 @@ export default function Footer({ onNavClick, onAdminSwitch }: FooterProps) {
                 <Facebook size={14} />
               </a>
               <a
-                href="https://github.com"
+                href="https://www.instagram.com/umakccissc/"
                 target="_blank"
                 rel="noreferrer"
                 className="bg-white/5 hover:bg-white/10 p-2 rounded-full border border-white/10 text-[#F5B400] transition-colors"
                 aria-label="GitHub"
               >
-                <Github size={14} />
+                <Instagram size={14} />
               </a>
             </div>
           </div>

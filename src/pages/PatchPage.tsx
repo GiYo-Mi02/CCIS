@@ -908,7 +908,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                     </div>
                     <div className="flex justify-between">
                       <span>Producer:</span>
-                      <span className="text-white font-bold">CCIS DevCom</span>
+                      <span className="text-white font-bold">CCIS Patch Studio</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Source:</span>
