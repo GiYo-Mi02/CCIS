@@ -84,9 +84,15 @@ export default function OfficersManager() {
 
   const saveCommittee = async (form: Partial<Committee>) => {
     if (isCreating) {
+      const generatedSlug = form.slug || form.name?.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || '';
       const { error } = await supabase.from('committees').insert({
-        name: form.name, description: form.description, head_name: form.head_name,
-        responsibilities: form.responsibilities || [], icon: form.icon,
+        name: form.name,
+        slug: generatedSlug,
+        description: form.description,
+        head_name: form.head_name,
+        responsibilities: form.responsibilities || [],
+        icon: form.icon || 'users',
+        display_order: committees.length + 1,
       });
       if (error) { showToast('Failed to add committee', 'error'); return; }
       showToast('Committee added!');

@@ -93,25 +93,97 @@ export default function InfoHub({ onNavigate }: { onNavigate?: (tab: string, eve
     );
   }
 
-  // Identify podium officers
-  const chairperson = officers.find(o => {
+  // Categorize and sort officers
+  const execBoardRoles = ['chairperson', 'president', 'vice chairperson', 'vice president', 'secretary', 'treasurer', 'auditor'];
+
+  const getExecBoardRank = (position: string) => {
+    const pos = position.toLowerCase().replace(/\s+/g, ' ').trim();
+    if (pos === 'chairperson' || pos === 'president') return 1;
+    if (pos === 'vice chairperson' || pos === 'vice  chairperson' || pos === 'vice president') return 2;
+    if (pos === 'secretary') return 3;
+    if (pos === 'treasurer') return 4;
+    if (pos === 'auditor') return 5;
+    return 6;
+  };
+
+  const getYearLevel = (position: string) => {
+    const pos = position.toLowerCase().trim();
+    if (pos.includes('1st') || pos.includes('first')) return 1;
+    if (pos.includes('2nd') || pos.includes('second')) return 2;
+    if (pos.includes('3rd') || pos.includes('third')) return 3;
+    if (pos.includes('4th') || pos.includes('fourth')) return 4;
+    return 99;
+  };
+
+  const execBoard = officers.filter(o => {
     const pos = o.position.toLowerCase().replace(/\s+/g, ' ').trim();
-    return pos === 'chairperson' || pos === 'president';
+    return execBoardRoles.some(r => pos === r || (r === 'vice chairperson' && pos === 'vice  chairperson'));
+  }).sort((a, b) => getExecBoardRank(a.position) - getExecBoardRank(b.position));
+
+  const yearReps = officers.filter(o => {
+    const pos = o.position.toLowerCase();
+    const isExec = execBoardRoles.some(r => pos.replace(/\s+/g, ' ').trim() === r || (r === 'vice chairperson' && pos.replace(/\s+/g, ' ').trim() === 'vice  chairperson'));
+    return !isExec && (pos.includes('year representative') || pos.includes('year rep') || pos.includes('representative'));
+  }).sort((a, b) => getYearLevel(a.position) - getYearLevel(b.position));
+
+  const committeeHeads = officers.filter(o => {
+    const pos = o.position.toLowerCase();
+    const isExec = execBoardRoles.some(r => pos.replace(/\s+/g, ' ').trim() === r || (r === 'vice chairperson' && pos.replace(/\s+/g, ' ').trim() === 'vice  chairperson'));
+    const isYear = pos.includes('year representative') || pos.includes('year rep') || pos.includes('representative');
+    return !isExec && !isYear && (pos.includes('head') || o.committee !== 'Executive Board');
   });
 
-  const viceChair = officers.find(o => {
-    const pos = o.position.toLowerCase().replace(/\s+/g, ' ').trim();
-    return pos === 'vice chairperson' || pos === 'vice president';
+  const otherOfficers = officers.filter(o => {
+    return !execBoard.some(e => e.id === o.id) &&
+           !yearReps.some(y => y.id === o.id) &&
+           !committeeHeads.some(c => c.id === o.id);
   });
 
-  const secretary = officers.find(o => {
-    const pos = o.position.toLowerCase().replace(/\s+/g, ' ').trim();
-    return pos === 'secretary';
-  });
+  const renderOfficerCard = (off: Officer) => (
+    <div
+      key={off.id}
+      className="group flex flex-col items-center bg-[#1A3C2E] p-5 rounded-2xl border border-white/5 hover:border-[#F5B400]/50 transition-all duration-300 shadow-sm hover:shadow-lg text-center"
+      id={`officer-card-${off.id}`}
+    >
+      <div className="relative w-20 h-20 rounded-full bg-[#FAF7EA] text-[#1A3C2E] flex items-center justify-center font-sans font-black text-xl tracking-tight shadow-md border-2 border-[#FAF7EA] group-hover:border-[#F5B400] transition-colors duration-300 overflow-hidden shrink-0">
+        {off.photoUrl ? (
+          <img src={off.photoUrl} alt={off.name} className="w-full h-full object-cover select-none" />
+        ) : (
+          off.name.split(' ').map(n => n[0]).join('')
+        )}
+        <div className="absolute inset-1 rounded-full border border-[#1A3C2E]/20 pointer-events-none" />
+      </div>
 
-  // Filter out podium officers from the remaining list
-  const remainingOfficers = officers.filter(
-    o => o.id !== chairperson?.id && o.id !== viceChair?.id && o.id !== secretary?.id
+      <div className="mt-4 space-y-1 flex-1 flex flex-col justify-between">
+        <div>
+          <h3 className="font-sans font-black text-white text-base group-hover:text-[#F5B400] transition-colors leading-tight mb-1">
+            {off.name}
+          </h3>
+          <span className="block font-mono text-[9px] font-black text-[#F5B400] uppercase tracking-widest leading-normal">
+            {off.position}
+          </span>
+          {off.committee !== 'Executive Board' && (
+            <span className="block font-sans text-[10px] text-stone-300 font-semibold uppercase tracking-wider mt-0.5 mb-1.5">
+              {off.committee}
+            </span>
+          )}
+        </div>
+        {off.quote && (
+          <p className="font-sans text-[11px] text-stone-300/85 italic leading-relaxed max-w-[180px] mx-auto mt-2">
+            "{off.quote}"
+          </p>
+        )}
+      </div>
+
+      <div className="mt-4 w-full pt-3 border-t border-white/10">
+        <a
+          href={`mailto:${off.email}`}
+          className="font-mono text-[9px] text-[#FAF7EA]/70 hover:text-[#F5B400] break-all px-1 rounded transition-colors"
+        >
+          {off.email}
+        </a>
+      </div>
+    </div>
   );
 
   return (
@@ -406,167 +478,45 @@ export default function InfoHub({ onNavigate }: { onNavigate?: (tab: string, eve
             <div className="h-1 w-16 bg-[#F5B400] mx-auto mt-3 rounded-full" />
           </div>
 
-          {/* Podium Layout */}
-          {(chairperson || secretary || viceChair) && (
-            <div className="max-w-4xl mx-auto mb-16 px-4">
-              <div className="flex flex-col md:flex-row items-center md:items-end justify-center gap-6 md:gap-8">
-                
-                {/* 2nd Place: Secretary (Left on desktop) */}
-                {secretary && (
-                  <div className="order-2 md:order-1 w-full md:w-64 bg-[#1A3C2E]/95 border border-white/5 hover:border-[#F5B400]/30 p-5 rounded-2xl shadow-md text-center flex flex-col items-center gap-3 transition-all duration-300 hover:-translate-y-1 h-fit md:mb-0">
-                    <div className="relative w-16 h-16 rounded-full bg-[#FAF7EA] text-[#1A3C2E] flex items-center justify-center font-sans font-black text-lg tracking-tight border-2 border-[#FAF7EA] overflow-hidden shrink-0">
-                      {secretary.photoUrl ? (
-                        <img src={secretary.photoUrl} alt={secretary.name} className="w-full h-full object-cover select-none" />
-                      ) : (
-                        secretary.name.split(' ').map(n => n[0]).join('')
-                      )}
-                      <div className="absolute inset-1 rounded-full border border-[#1A3C2E]/20 pointer-events-none" />
-                    </div>
-                    <div className="space-y-1">
-                      <h4 className="font-sans font-black text-white text-sm hover:text-[#F5B400] transition-colors leading-tight">
-                        {secretary.name}
-                      </h4>
-                      <span className="block font-mono text-[9px] font-black text-[#F5B400] uppercase tracking-widest leading-normal">
-                        {secretary.position}
-                      </span>
-                      <span className="block font-sans text-[9px] text-stone-300 font-semibold uppercase tracking-wider">
-                        {secretary.committee}
-                      </span>
-                    </div>
-                    {secretary.quote && (
-                      <p className="font-sans text-[10px] text-stone-300/85 italic leading-relaxed max-w-[170px] mx-auto">
-                        "{secretary.quote}"
-                      </p>
-                    )}
-                    <div className="w-full pt-2.5 border-t border-white/10 mt-auto">
-                      <a href={`mailto:${secretary.email}`} className="font-mono text-[8px] text-[#FAF7EA]/70 hover:text-[#F5B400] break-all">
-                        {secretary.email}
-                      </a>
-                    </div>
-                  </div>
-                )}
-
-                {/* 1st Place: Chairperson (Middle) */}
-                {chairperson && (
-                  <div className="order-1 md:order-2 w-full md:w-72 bg-[#1A3C2E] ring-2 ring-[#F5B400]/40 p-6 rounded-3xl shadow-xl text-center flex flex-col items-center gap-4 transition-all duration-300 hover:-translate-y-2 border border-[#F5B400]/20 transform md:-translate-y-4">
-                    <div className="relative w-24 h-24 rounded-full bg-[#FAF7EA] text-[#1A3C2E] flex items-center justify-center font-sans font-black text-2xl tracking-tight border-4 border-[#F5B400] shadow-lg overflow-hidden shrink-0">
-                      {chairperson.photoUrl ? (
-                        <img src={chairperson.photoUrl} alt={chairperson.name} className="w-full h-full object-cover select-none" />
-                      ) : (
-                        chairperson.name.split(' ').map(n => n[0]).join('')
-                      )}
-                      <div className="absolute inset-1 rounded-full border border-[#1A3C2E]/20 pointer-events-none" />
-                    </div>
-                    <div className="space-y-1">
-                      <h4 className="font-sans font-black text-white text-base md:text-lg hover:text-[#F5B400] transition-colors leading-tight">
-                        {chairperson.name}
-                      </h4>
-                      <span className="block font-mono text-[10px] font-black text-[#F5B400] uppercase tracking-widest leading-normal">
-                        {chairperson.position}
-                      </span>
-                      <span className="block font-sans text-[10px] text-stone-300 font-semibold uppercase tracking-wider">
-                        {chairperson.committee}
-                      </span>
-                    </div>
-                    {chairperson.quote && (
-                      <p className="font-sans text-[11px] text-stone-300/85 italic leading-relaxed max-w-[200px] mx-auto">
-                        "{chairperson.quote}"
-                      </p>
-                    )}
-                    <div className="w-full pt-3 border-t border-white/10 mt-auto">
-                      <a href={`mailto:${chairperson.email}`} className="font-mono text-[9px] text-[#FAF7EA]/70 hover:text-[#F5B400] break-all">
-                        {chairperson.email}
-                      </a>
-                    </div>
-                  </div>
-                )}
-
-                {/* 3rd Place: Vice Chairperson (Right on desktop) */}
-                {viceChair && (
-                  <div className="order-3 w-full md:w-64 bg-[#1A3C2E]/90 border border-white/5 hover:border-[#F5B400]/30 p-5 rounded-2xl shadow-md text-center flex flex-col items-center gap-3 transition-all duration-300 hover:-translate-y-1 h-fit md:mb-0">
-                    <div className="relative w-16 h-16 rounded-full bg-[#FAF7EA] text-[#1A3C2E] flex items-center justify-center font-sans font-black text-lg tracking-tight border-2 border-[#FAF7EA] overflow-hidden shrink-0">
-                      {viceChair.photoUrl ? (
-                        <img src={viceChair.photoUrl} alt={viceChair.name} className="w-full h-full object-cover select-none" />
-                      ) : (
-                        viceChair.name.split(' ').map(n => n[0]).join('')
-                      )}
-                      <div className="absolute inset-1 rounded-full border border-[#1A3C2E]/20 pointer-events-none" />
-                    </div>
-                    <div className="space-y-1">
-                      <h4 className="font-sans font-black text-white text-sm hover:text-[#F5B400] transition-colors leading-tight">
-                        {viceChair.name}
-                      </h4>
-                      <span className="block font-mono text-[9px] font-black text-[#F5B400] uppercase tracking-widest leading-normal">
-                        {viceChair.position}
-                      </span>
-                      <span className="block font-sans text-[9px] text-stone-300 font-semibold uppercase tracking-wider">
-                        {viceChair.committee}
-                      </span>
-                    </div>
-                    {viceChair.quote && (
-                      <p className="font-sans text-[10px] text-stone-300/85 italic leading-relaxed max-w-[170px] mx-auto">
-                        "{viceChair.quote}"
-                      </p>
-                    )}
-                    <div className="w-full pt-2.5 border-t border-white/10 mt-auto">
-                      <a href={`mailto:${viceChair.email}`} className="font-mono text-[8px] text-[#FAF7EA]/70 hover:text-[#F5B400] break-all">
-                        {viceChair.email}
-                      </a>
-                    </div>
-                  </div>
-                )}
-
+          {/* Executive Board Section */}
+          {execBoard.length > 0 && (
+            <div className="mb-16">
+              <div className="text-left mb-6">
+                <h3 className="font-sans font-extrabold text-[#1A3C2E] text-base md:text-lg uppercase tracking-wider border-b border-[#1A3C2E]/10 pb-2">
+                  Executive Board
+                </h3>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 md:gap-8 justify-center">
+                {execBoard.map(renderOfficerCard)}
               </div>
             </div>
           )}
 
-          {/* Remaining Officers Grid */}
-          {remainingOfficers.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
-              {remainingOfficers.map((off, index) => (
-                <div
-                  key={off.id}
-                  className="group flex flex-col items-center bg-[#1A3C2E] p-5 rounded-2xl border border-white/5 hover:border-[#F5B400]/50 transition-all duration-300 shadow-sm hover:shadow-lg text-center"
-                  id={`officer-card-${off.id}`}
-                >
-                  <div className="relative w-20 h-20 rounded-full bg-[#FAF7EA] text-[#1A3C2E] flex items-center justify-center font-sans font-black text-xl tracking-tight shadow-md border-2 border-[#FAF7EA] group-hover:border-[#F5B400] transition-colors duration-300 overflow-hidden shrink-0">
-                    {off.photoUrl ? (
-                      <img src={off.photoUrl} alt={off.name} className="w-full h-full object-cover select-none" />
-                    ) : (
-                      off.name.split(' ').map(n => n[0]).join('')
-                    )}
-                    <div className="absolute inset-1 rounded-full border border-[#1A3C2E]/20 pointer-events-none" />
-                  </div>
+          {/* Year Level Representatives Section */}
+          {yearReps.length > 0 && (
+            <div className="mb-16">
+              <div className="text-left mb-6">
+                <h3 className="font-sans font-extrabold text-[#1A3C2E] text-base md:text-lg uppercase tracking-wider border-b border-[#1A3C2E]/10 pb-2">
+                  Year Level Representatives
+                </h3>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 justify-center">
+                {yearReps.map(renderOfficerCard)}
+              </div>
+            </div>
+          )}
 
-                  <div className="mt-4 space-y-1 flex-1 flex flex-col justify-between">
-                    <div>
-                      <h3 className="font-sans font-black text-white text-base group-hover:text-[#F5B400] transition-colors leading-tight mb-1">
-                        {off.name}
-                      </h3>
-                      <span className="block font-mono text-[9px] font-black text-[#F5B400] uppercase tracking-widest leading-normal">
-                        {off.position}
-                      </span>
-                      <span className="block font-sans text-[10px] text-stone-300 font-semibold uppercase tracking-wider mt-0.5 mb-1.5">
-                        {off.committee}
-                      </span>
-                    </div>
-                    {off.quote && (
-                      <p className="font-sans text-[11px] text-stone-300/85 italic leading-relaxed max-w-[180px] mx-auto">
-                        "{off.quote}"
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="mt-4 w-full pt-3 border-t border-white/10">
-                    <a
-                      href={`mailto:${off.email}`}
-                      className="font-mono text-[9px] text-[#FAF7EA]/70 hover:text-[#F5B400] break-all px-1 rounded transition-colors"
-                    >
-                      {off.email}
-                    </a>
-                  </div>
-                </div>
-              ))}
+          {/* Working Committee Heads Section */}
+          {(committeeHeads.length > 0 || otherOfficers.length > 0) && (
+            <div>
+              <div className="text-left mb-6">
+                <h3 className="font-sans font-extrabold text-[#1A3C2E] text-base md:text-lg uppercase tracking-wider border-b border-[#1A3C2E]/10 pb-2">
+                  Working Committee Heads
+                </h3>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8 justify-center">
+                {[...committeeHeads, ...otherOfficers].map(renderOfficerCard)}
+              </div>
             </div>
           )}
 
@@ -616,7 +566,7 @@ export default function InfoHub({ onNavigate }: { onNavigate?: (tab: string, eve
                     </h3>
                     <span className="text-xs font-mono text-[#5E6E64] uppercase tracking-wider flex flex-wrap items-center gap-2 mt-1">
                       <Award size={12} className="text-[#F5B400] shrink-0" />
-                      <span>Chairperson:</span>
+                      <span>Committee Head:</span>
                       {(() => {
                         const headOfficer = officers.find(
                           o => o.name.toLowerCase().trim() === com.head.toLowerCase().trim()
