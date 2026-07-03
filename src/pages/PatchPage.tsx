@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, Plus, Edit, Trash2, X, FileVideo, Loader2, Eye, Film } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Play, Pause, Plus, Edit, Trash2, X, FileVideo, Loader2, Eye, Film, ArrowLeft, Volume2, VolumeX, Maximize, Minimize, RotateCcw, RotateCw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import CouncilSeal from '../components/CouncilSeal';
 
 export interface PatchVideo {
   id: string;
@@ -25,7 +27,101 @@ interface Toast {
   type: 'success' | 'error' | 'warning' | 'info';
 }
 
+interface FilmCredits {
+  directedBy?: string;
+  coDirectedBy?: string;
+  writtenBy?: string;
+  starring?: string;
+  alsoStarring?: string;
+  cinematographyBy?: string;
+  setDesign?: string;
+  specialThanks?: string;
+  sponsoredBy?: string;
+  editedBy?: string;
+}
 
+const PATCH_CREDITS: Record<string, FilmCredits> = {
+  lychee: {
+    directedBy: "John Dave Villareal",
+    writtenBy: "Monique Frondozo",
+    starring: "Pauleen Mae Espenilla and Jelden San Pedro",
+    cinematographyBy: "Paul Efhraim Gregorio",
+    setDesign: "Cathrina Joen Lumbang, Alexandra Macalla, Isabel Esteban, Brisias Labuson, Fitz Gerald Dellosa, Rohd Owerada, and John Bernard Inoy",
+    specialThanks: "Jeremy Christian Mamaril",
+    sponsoredBy: "Mogu Mogu",
+    editedBy: "John Dave Villareal and Pole Buendia"
+  },
+  hagkan: {
+    directedBy: "John Dave Villareal",
+    coDirectedBy: "Monique Frondozo",
+    writtenBy: "Alexandra Macalla",
+    starring: "Leann Louise Orille and Allyza Joy Alcovendas",
+    alsoStarring: "John Bernard Inoy",
+    setDesign: "Pauleen Mae Espenilla, Cathrina Joen Lumbang, Brisias Labuson, Aldriy Baniel, Rohd Owerada, Jelden San Pedro, Fitz Gerald Dellosa, and Isabel San Esteban",
+    cinematographyBy: "Paul Efhraim Gregorio",
+    editedBy: "John Dave Villareal",
+    specialThanks: "Cafe Prince, Sevi Coffee, Jeremy Christian Mamaril, and Aeron Francis Nasol",
+    sponsoredBy: "Taters"
+  },
+  kanlungan: {
+    directedBy: "Monique Frondozo",
+    writtenBy: "Alexandra Macalla and John Bernard Inoy",
+    starring: "Cyril Manalo and Ethan Harvey De Ocampo",
+    alsoStarring: "Brisias Labuson and Rhianne Nacino",
+    setDesign: "Aldriy Baniel, Pauleen Mae Espenilla, and Rohd Danniel Owerada",
+    editedBy: "John Dave Villareal and Cathrina Joen Lumbang",
+    cinematographyBy: "Paul Efhraim Gregorio"
+  },
+  kalungan: {
+    directedBy: "Monique Frondozo",
+    writtenBy: "Alexandra Macalla and John Bernard Inoy",
+    starring: "Cyril Manalo and Ethan Harvey De Ocampo",
+    alsoStarring: "Brisias Labuson and Rhianne Nacino",
+    setDesign: "Aldriy Baniel, Pauleen Mae Espenilla, and Rohd Danniel Owerada",
+    editedBy: "John Dave Villareal and Cathrina Joen Lumbang",
+    cinematographyBy: "Paul Efhraim Gregorio"
+  }
+};
+
+const normalizeTitle = (title: string): string => {
+  let result = '';
+  for (let i = 0; i < title.length; i++) {
+    const cp = title.codePointAt(i);
+    if (!cp) continue;
+    
+    if (cp > 0xffff) {
+      i++;
+    }
+    
+    if (cp >= 0x1D5D4 && cp <= 0x1D5ED) {
+      result += String.fromCharCode(cp - 0x1D5D4 + 65);
+    } else if (cp >= 0x1D5EE && cp <= 0x1D607) {
+      result += String.fromCharCode(cp - 0x1D5EE + 97);
+    } else if (cp >= 0x1D400 && cp <= 0x1D419) {
+      result += String.fromCharCode(cp - 0x1D400 + 65);
+    } else if (cp >= 0x1D41A && cp <= 0x1D433) {
+      result += String.fromCharCode(cp - 0x1D41A + 97);
+    } else {
+      result += String.fromCodePoint(cp);
+    }
+  }
+  return result.toLowerCase().trim();
+};
+
+const getCreditsForVideo = (title: string, episodeNumber?: number): FilmCredits | null => {
+  if (episodeNumber === 4) return PATCH_CREDITS.lychee;
+  if (episodeNumber === 3) return PATCH_CREDITS.hagkan;
+  if (episodeNumber === 2) return PATCH_CREDITS.kanlungan;
+  
+  if (!title) return null;
+  const norm = normalizeTitle(title);
+  if (norm.includes('lychee')) return PATCH_CREDITS.lychee;
+  if (norm.includes('hagkan')) return PATCH_CREDITS.hagkan;
+  if (norm.includes('kanlungan')) return PATCH_CREDITS.kanlungan;
+  if (norm.includes('kalungan')) return PATCH_CREDITS.kalungan;
+  
+  return null;
+};
 
 // Simple video thumbnail fallback generator
 const ThumbnailPlaceholder = ({ epNumber, title }: { epNumber: number; title: string }) => (
@@ -50,6 +146,22 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
   // Detail Modal & Lightbox
   const [selectedVideo, setSelectedVideo] = useState<PatchVideo | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState<boolean>(false);
+
+  // Netflix-style Custom Video Player States
+  const [isPlayerActive, setIsPlayerActive] = useState<boolean>(false);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [volume, setVolume] = useState<number>(1.0);
+  const [isMuted, setIsMuted] = useState<boolean>(false);
+  const [currentTime, setCurrentTime] = useState<number>(0);
+  const [duration, setDuration] = useState<number>(0);
+  const [showControls, setShowControls] = useState<boolean>(true);
+  const [playbackRate, setPlaybackRate] = useState<number>(1.0);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+
+  // Refs for custom player
+  const customVideoRef = useRef<HTMLVideoElement>(null);
+  const playerContainerRef = useRef<HTMLDivElement>(null);
+  const controlsTimeoutRef = useRef<any>(null);
 
   // Admin Video Form States
   const [showFormModal, setShowFormModal] = useState<boolean>(false);
@@ -277,6 +389,224 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
   useEffect(() => {
     fetchVideos();
   }, []);
+
+  // Netflix-style Custom Video Player Control Methods
+  const togglePlay = () => {
+    if (!customVideoRef.current) return;
+    if (isPlaying) {
+      customVideoRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      customVideoRef.current.play().catch(err => console.error("Playback failed:", err));
+      setIsPlaying(true);
+    }
+  };
+
+  const skipSeconds = (seconds: number) => {
+    if (!customVideoRef.current) return;
+    const newTime = Math.max(0, Math.min(duration, customVideoRef.current.currentTime + seconds));
+    customVideoRef.current.currentTime = newTime;
+    setCurrentTime(newTime);
+  };
+
+  const handleTimeUpdate = () => {
+    if (customVideoRef.current) {
+      setCurrentTime(customVideoRef.current.currentTime);
+    }
+  };
+
+  const handleLoadedMetadata = () => {
+    if (customVideoRef.current) {
+      setDuration(customVideoRef.current.duration);
+    }
+  };
+
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (customVideoRef.current) {
+      const seekTime = parseFloat(e.target.value);
+      customVideoRef.current.currentTime = seekTime;
+      setCurrentTime(seekTime);
+    }
+  };
+
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseFloat(e.target.value);
+    setVolume(val);
+    if (customVideoRef.current) {
+      customVideoRef.current.volume = val;
+      customVideoRef.current.muted = val === 0;
+    }
+    if (val > 0) {
+      setIsMuted(false);
+    } else {
+      setIsMuted(true);
+    }
+  };
+
+  const toggleMute = () => {
+    if (!customVideoRef.current) return;
+    const nextMute = !isMuted;
+    setIsMuted(nextMute);
+    customVideoRef.current.muted = nextMute;
+    if (!nextMute && volume === 0) {
+      setVolume(0.5);
+      customVideoRef.current.volume = 0.5;
+    }
+  };
+
+  const toggleFullscreen = () => {
+    if (!playerContainerRef.current) return;
+    if (!document.fullscreenElement) {
+      playerContainerRef.current.requestFullscreen().then(() => {
+        setIsFullscreen(true);
+      }).catch(err => console.error("Error enabling fullscreen:", err));
+    } else {
+      document.exitFullscreen().then(() => {
+        setIsFullscreen(false);
+      }).catch(err => console.error("Error exiting fullscreen:", err));
+    }
+  };
+
+  // Sync fullscreen state with ESC key or external changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
+  // Reset custom player states when details modal is closed
+  useEffect(() => {
+    if (!lightboxOpen) {
+      setIsPlayerActive(false);
+      setIsPlaying(false);
+      setCurrentTime(0);
+      setPlaybackRate(1.0);
+      if (customVideoRef.current) {
+        customVideoRef.current.pause();
+      }
+    }
+  }, [lightboxOpen]);
+
+  // Lock body scroll when details modal is open
+  useEffect(() => {
+    if (lightboxOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [lightboxOpen]);
+
+
+
+  const handleSpeedChange = (rate: number) => {
+    setPlaybackRate(rate);
+    if (customVideoRef.current) {
+      customVideoRef.current.playbackRate = rate;
+    }
+  };
+
+  const formatTime = (timeInSeconds: number) => {
+    if (isNaN(timeInSeconds)) return "00:00";
+    const mins = Math.floor(timeInSeconds / 60);
+    const secs = Math.floor(timeInSeconds % 60);
+    const minsStr = mins < 10 ? `0${mins}` : `${mins}`;
+    const secsStr = secs < 10 ? `0${secs}` : `${secs}`;
+    return `${minsStr}:${secsStr}`;
+  };
+
+  // Keyboard Shortcuts Effect
+  useEffect(() => {
+    if (!isPlayerActive) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      switch (e.key.toLowerCase()) {
+        case ' ': // Spacebar
+          e.preventDefault();
+          togglePlay();
+          break;
+        case 'arrowleft': // Left Arrow -> seek back 10s
+          e.preventDefault();
+          skipSeconds(-10);
+          break;
+        case 'arrowright': // Right Arrow -> seek forward 10s
+          e.preventDefault();
+          skipSeconds(10);
+          break;
+        case 'arrowup': // Up Arrow -> volume up
+          e.preventDefault();
+          setVolume(prev => {
+            const newVol = Math.min(1.0, prev + 0.1);
+            if (customVideoRef.current) customVideoRef.current.volume = newVol;
+            return newVol;
+          });
+          setIsMuted(false);
+          if (customVideoRef.current) customVideoRef.current.muted = false;
+          break;
+        case 'arrowdown': // Down Arrow -> volume down
+          e.preventDefault();
+          setVolume(prev => {
+            const newVol = Math.max(0.0, prev - 0.1);
+            if (customVideoRef.current) customVideoRef.current.volume = newVol;
+            return newVol;
+          });
+          break;
+        case 'f': // Fullscreen
+          e.preventDefault();
+          toggleFullscreen();
+          break;
+        case 'm': // Mute
+          e.preventDefault();
+          toggleMute();
+          break;
+        default:
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isPlayerActive, isPlaying, isMuted, volume, duration]);
+
+  // Auto-hide controls effect
+  useEffect(() => {
+    if (!isPlayerActive) return;
+
+    const hideControls = () => {
+      setShowControls(false);
+    };
+
+    const resetTimer = () => {
+      setShowControls(true);
+      if (controlsTimeoutRef.current) {
+        clearTimeout(controlsTimeoutRef.current);
+      }
+      controlsTimeoutRef.current = setTimeout(hideControls, 3000);
+    };
+
+    resetTimer();
+
+    window.addEventListener('mousemove', resetTimer);
+    return () => {
+      window.removeEventListener('mousemove', resetTimer);
+      if (controlsTimeoutRef.current) {
+        clearTimeout(controlsTimeoutRef.current);
+      }
+    };
+  }, [isPlayerActive]);
+
 
   // Listen for Escape to close Lightbox
   useEffect(() => {
@@ -782,163 +1112,479 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
       {/* ============================================================
           4. VIDEO LIGHTBOX PLAYER MODAL
           ============================================================ */}
-      {lightboxOpen && selectedVideo && (
+      {lightboxOpen && selectedVideo && createPortal(
         <div
+          ref={playerContainerRef}
           onClick={() => setLightboxOpen(false)}
-          className="fixed inset-0 bg-stone-955/90 backdrop-blur-sm overflow-y-auto flex items-start md:items-center justify-center p-4 sm:p-6 z-[999] animate-fade-in"
+          className="fixed inset-0 bg-[#0B1512] z-[9999] overflow-y-auto flex flex-col animate-fade-in font-sans text-[#FAF7EA]"
         >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="bg-[#1A3C2E] border border-stone-250/10 max-w-4xl w-full rounded-3xl shadow-2xl overflow-hidden flex flex-col my-auto h-auto md:max-h-[90vh] text-[#FAF7EA] animate-scale-up"
-          >
-            {/* Aspect Ratio Video container */}
-            <div className="relative aspect-video w-full bg-stone-950 border-b border-stone-250/10 flex items-center justify-center overflow-hidden">
-              {selectedVideo.videoUrl ? (
-                /* Native HTML5 Video Player */
-                <video
-                  src={selectedVideo.videoUrl}
-                  controls
-                  autoPlay
-                  className="w-full h-full object-contain bg-black"
-                />
-              ) : (
-                /* Responsive Iframe Embed for Facebook Links */
-                <iframe
-                  src={getFbEmbedUrl(selectedVideo.facebookPermalink)}
-                  width="100%"
-                  height="100%"
-                  className="absolute inset-0 w-full h-full"
-                  style={{ border: 'none', overflow: 'hidden' }}
-                  scrolling="no"
-                  frameBorder="0"
-                  allowFullScreen={true}
-                  allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
-                />
-              )}
-            </div>
+          {/* Main Fullscreen Toggle Wrapper */}
+          <div onClick={(e) => e.stopPropagation()} className="w-full min-h-screen flex flex-col relative">
+            
+            {/* 4A. CUSTOM VIDEO PLAYER INTERFACE */}
+            {isPlayerActive ? (
+              <div className="relative w-screen h-screen bg-black flex items-center justify-center overflow-hidden">
+                {selectedVideo.videoUrl ? (
+                  <video
+                    ref={customVideoRef}
+                    src={selectedVideo.videoUrl}
+                    autoPlay
+                    loop
+                    className="w-full h-full object-contain bg-black cursor-pointer"
+                    onClick={togglePlay}
+                    onTimeUpdate={handleTimeUpdate}
+                    onLoadedMetadata={handleLoadedMetadata}
+                  />
+                ) : (
+                  <iframe
+                    src={getFbEmbedUrl(selectedVideo.facebookPermalink)}
+                    width="100%"
+                    height="100%"
+                    className="absolute inset-0 w-full h-full"
+                    style={{ border: 'none', overflow: 'hidden' }}
+                    scrolling="no"
+                    frameBorder="0"
+                    allowFullScreen={true}
+                    allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+                  />
+                )}
 
-            {/* Video description detail body */}
-            <div className="p-6 sm:p-8 overflow-y-auto space-y-4 font-sans text-xs max-h-[35vh]">
-              {/* Close Button */}
-              <button
-                onClick={() => setLightboxOpen(false)}
-                className="absolute top-6 right-6 p-1.5 rounded-full bg-white/10 text-stone-300 hover:text-white hover:bg-white/20 transition-colors cursor-pointer outline-none"
-              >
-                <X size={18} />
-              </button>
+                {/* Netflix-style Pause Overlay */}
+                {selectedVideo.videoUrl && !isPlaying && (
+                  <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-start p-8 sm:p-16 md:p-24 transition-opacity duration-300 pointer-events-none animate-fade-in">
+                    <div className="max-w-md md:max-w-lg space-y-6 text-left pointer-events-auto">
+                      
+                      {/* Title & Ep Tag */}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-[9px] bg-[#F5B400] text-[#11241C] px-3 py-0.5 rounded-full font-black uppercase tracking-wider">
+                            EPISODE {selectedVideo.episodeNumber}
+                          </span>
+                          <span className="font-mono text-[9px] text-[#F5B400] border border-[#F5B400]/30 px-2 py-0.5 rounded-full uppercase font-bold">
+                            {selectedVideo.category === 'Full Episodes' ? 'Full Ep' : 'Highlight'}
+                          </span>
+                        </div>
+                        <h2 className="font-serif font-black text-4xl sm:text-5xl md:text-6xl text-white tracking-tight leading-tight">
+                          {selectedVideo.title}
+                        </h2>
+                      </div>
 
-              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-mono text-[9px] bg-[#F5B400] text-[#11241C] px-2.5 py-0.5 rounded-full font-black uppercase tracking-wider">
-                      EPISODE {selectedVideo.episodeNumber < 10 ? `0${selectedVideo.episodeNumber}` : selectedVideo.episodeNumber}
-                    </span>
-                    <span className="font-mono text-[9px] text-[#F5B400] border border-[#F5B400]/30 px-2 py-0.5 rounded-full uppercase font-bold">
-                      {selectedVideo.category}
-                    </span>
-                  </div>
-                  <h2 className="font-serif font-black text-xl sm:text-2xl text-white tracking-tight leading-tight mt-1.5">
-                    {selectedVideo.title}
-                  </h2>
-                </div>
+                      {/* Brief synopsis */}
+                      <p className="text-stone-300 text-xs md:text-sm leading-relaxed font-sans font-medium">
+                        {selectedVideo.description.split('\n')[0]}
+                      </p>
 
-                {isAdmin && (
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      onClick={() => {
-                        setLightboxOpen(false);
-                        openForm(selectedVideo);
-                      }}
-                      className="p-2 bg-white/10 hover:bg-white/20 text-[#FAF7EA] rounded-xl transition-colors cursor-pointer"
-                      title="Edit Video Details"
-                    >
-                      <Edit size={14} />
-                    </button>
-                    
-                    {deleteConfirmId === selectedVideo.id ? (
-                      <div className="flex items-center gap-1.5 bg-rose-950/60 border border-rose-500/20 p-1 rounded-xl">
+                      {/* Buttons */}
+                      <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                        {/* Resume Button */}
                         <button
-                          onClick={() => handleDeleteVideo(selectedVideo)}
-                          className="px-2 py-1 bg-rose-600 hover:bg-rose-700 text-white text-[9px] font-black uppercase rounded shadow-sm cursor-pointer"
+                          onClick={togglePlay}
+                          className="flex items-center justify-center gap-2 bg-white text-[#11241C] hover:bg-[#F5B400] hover:text-[#11241C] font-black px-6 py-3 rounded-xl text-xs uppercase tracking-wider transition-all duration-300 cursor-pointer shadow-lg active:scale-98 outline-none"
                         >
-                          Confirm
+                          <Play size={14} className="fill-current" />
+                          Resume Playing
                         </button>
+
+                        {/* Play from Beginning Button */}
                         <button
-                          onClick={() => setDeleteConfirmId(null)}
-                          className="px-2 py-1 bg-stone-700 hover:bg-stone-600 text-stone-200 text-[9px] font-black uppercase rounded shadow-sm cursor-pointer"
+                          onClick={() => {
+                            if (customVideoRef.current) {
+                              customVideoRef.current.currentTime = 0;
+                              if (!isPlaying) togglePlay();
+                            }
+                          }}
+                          className="flex items-center justify-center gap-2 border border-white/20 hover:border-white text-white hover:text-[#F5B400] font-black px-6 py-3 rounded-xl text-xs uppercase tracking-wider transition-all duration-300 cursor-pointer active:scale-98 outline-none"
                         >
-                          Cancel
+                          <RotateCcw size={14} />
+                          Play From Beginning
                         </button>
                       </div>
-                    ) : (
-                      <button
-                        onClick={() => setDeleteConfirmId(selectedVideo.id)}
-                        className="p-2 bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 rounded-xl transition-colors cursor-pointer border border-rose-500/20"
-                        title="Delete Video Record"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    )}
+
+                    </div>
                   </div>
                 )}
-              </div>
 
-              <div className="h-[1px] bg-stone-200/10 w-full" />
+                {/* Netflix-style Controls Overlay */}
+                <div 
+                  className={`absolute inset-0 z-20 flex flex-col justify-between transition-opacity duration-300 bg-gradient-to-t from-black/80 via-transparent to-black/75 ${
+                    showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                  }`}
+                >
+                  {/* Top Bar */}
+                  <div className="p-6 flex items-center justify-between w-full">
+                    <div className="w-10" /> {/* Spacer */}
+                    
+                    {/* Middle EP & Title */}
+                    <div className="text-center">
+                      <span className="block font-mono text-[10px] tracking-widest text-[#F5B400] font-black uppercase mb-0.5">
+                        EPISODE {selectedVideo.episodeNumber < 10 ? `0${selectedVideo.episodeNumber}` : selectedVideo.episodeNumber}
+                      </span>
+                      <h2 className="font-serif font-black text-lg md:text-xl text-white tracking-tight leading-tight">
+                        {selectedVideo.title}
+                      </h2>
+                    </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-                <div className="md:col-span-2 space-y-2">
-                  <h4 className="font-mono text-[9px] uppercase tracking-widest text-[#F5B400] font-black">Synopsis / Description</h4>
-                  <p className="text-stone-300 leading-relaxed font-sans text-xs">
-                    {selectedVideo.description}
-                  </p>
+                    {/* Top Right Back Arrow to Details Modal */}
+                    <button
+                      onClick={() => {
+                        setIsPlayerActive(false);
+                        if (customVideoRef.current) customVideoRef.current.pause();
+                        setIsPlaying(false);
+                      }}
+                      className="p-2.5 rounded-full bg-black/40 hover:bg-[#F5B400] text-white hover:text-[#11241C] border border-white/10 transition-all duration-300 cursor-pointer outline-none"
+                      title="Back to Details"
+                    >
+                      <ArrowLeft size={20} />
+                    </button>
+                  </div>
+
+                  {/* Center Play/Pause Floating Assist */}
+                  <div 
+                    onClick={togglePlay}
+                    className="flex-grow flex-1 flex items-center justify-center cursor-pointer pointer-events-auto"
+                  >
+                    {!isPlaying && selectedVideo.videoUrl && (
+                      <div className="p-6 rounded-full bg-black/50 border border-white/10 text-[#FAF7EA] hover:scale-110 transition-transform duration-300">
+                        <Play size={44} className="fill-current translate-x-0.5" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Bottom Controls (Only for HTML5 Video URL) */}
+                  {selectedVideo.videoUrl ? (
+                    <div className="p-6 flex flex-col gap-4 w-full bg-gradient-to-t from-black/90 to-transparent">
+                      
+                      {/* Scrubber Progress Slider */}
+                      <div className="flex items-center gap-4 w-full">
+                        <span className="text-[10px] font-mono text-stone-300 w-10 text-right select-none">
+                          {formatTime(currentTime)}
+                        </span>
+                        <input
+                          type="range"
+                          min="0"
+                          max={duration || 100}
+                          value={currentTime}
+                          onChange={handleSeek}
+                          style={{
+                            background: `linear-gradient(to right, #F5B400 0%, #F5B400 ${(currentTime / (duration || 1)) * 100}%, rgba(255,255,255,0.2) ${(currentTime / (duration || 1)) * 100}%, rgba(255,255,255,0.2) 100%)`
+                          }}
+                          className="flex-1 h-1 hover:h-2 rounded-lg appearance-none cursor-pointer accent-[#F5B400] transition-all bg-white/20 outline-none"
+                        />
+                        <span className="text-[10px] font-mono text-stone-300 w-10 text-left select-none">
+                          {formatTime(duration)}
+                        </span>
+                      </div>
+
+                      {/* Button Bar */}
+                      <div className="flex items-center justify-between w-full">
+                        {/* Left Group */}
+                        <div className="flex items-center gap-6">
+                          {/* Play/Pause */}
+                          <button
+                            onClick={togglePlay}
+                            className="text-white hover:text-[#F5B400] transition-colors cursor-pointer outline-none flex items-center justify-center"
+                          >
+                            {isPlaying ? <Pause size={20} className="fill-current" /> : <Play size={20} className="fill-current" />}
+                          </button>
+
+                          {/* Skip Backward 10s */}
+                          <button
+                            onClick={() => skipSeconds(-10)}
+                            className="text-white hover:text-[#F5B400] transition-colors cursor-pointer outline-none relative flex items-center justify-center"
+                            title="Rewind 10s"
+                          >
+                            <RotateCcw size={20} />
+                            <span className="absolute text-[8px] font-bold font-sans mt-1">10</span>
+                          </button>
+
+                          {/* Skip Forward 10s */}
+                          <button
+                            onClick={() => skipSeconds(10)}
+                            className="text-white hover:text-[#F5B400] transition-colors cursor-pointer outline-none relative flex items-center justify-center"
+                            title="Forward 10s"
+                          >
+                            <RotateCw size={20} />
+                            <span className="absolute text-[8px] font-bold font-sans mt-1">10</span>
+                          </button>
+
+                          {/* Volume & Slider */}
+                          <div className="flex items-center gap-2 group">
+                            <button
+                              onClick={toggleMute}
+                              className="text-white hover:text-[#F5B400] transition-colors cursor-pointer outline-none flex items-center justify-center"
+                            >
+                              {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+                            </button>
+                            <input
+                              type="range"
+                              min="0"
+                              max="1"
+                              step="0.05"
+                              value={isMuted ? 0 : volume}
+                              onChange={handleVolumeChange}
+                              className="w-0 opacity-0 group-hover:w-16 group-hover:opacity-100 transition-all duration-300 h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Right Group */}
+                        <div className="flex items-center gap-6">
+                          {/* Playback Rate Cycler */}
+                          <button
+                            onClick={() => {
+                              const rates = [1.0, 1.25, 1.5, 2.0];
+                              const nextIdx = (rates.indexOf(playbackRate) + 1) % rates.length;
+                              handleSpeedChange(rates[nextIdx]);
+                            }}
+                            className="text-[10px] font-mono font-black border border-white/30 hover:border-white text-stone-300 hover:text-white px-2 py-0.5 rounded transition-all cursor-pointer outline-none"
+                            title="Playback Speed"
+                          >
+                            {playbackRate === 1.0 ? '1.0x (Normal)' : `${playbackRate}x`}
+                          </button>
+
+                          {/* Fullscreen Toggle */}
+                          <button
+                            onClick={toggleFullscreen}
+                            className="text-white hover:text-[#F5B400] transition-colors cursor-pointer outline-none flex items-center justify-center"
+                            title="Toggle Fullscreen"
+                          >
+                            {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
+                          </button>
+                        </div>
+                      </div>
+
+                    </div>
+                  ) : (
+                    /* Info text for embed players */
+                    <div className="p-4 text-center bg-black/60 backdrop-blur-xs text-[10px] text-stone-400 font-sans w-full">
+                      Custom Netflix control overlays are currently only supported on native hosted files.
+                    </div>
+                  )}
+
                 </div>
+              </div>
+            ) : (
+              
+              /* 4B. CINEMATIC TWO-COLUMN DETAILS MODAL */
+              <div className="grid grid-cols-1 lg:grid-cols-12 w-full min-h-screen text-[#FAF7EA] bg-[#0B1512] relative">
+                
+                {/* Close modal completely (top-right absolute icon) */}
+                <button
+                  onClick={() => setLightboxOpen(false)}
+                  className="absolute top-6 right-6 z-50 p-2.5 rounded-full bg-black/40 hover:bg-white/15 text-stone-300 hover:text-white border border-white/10 transition-colors cursor-pointer outline-none flex items-center justify-center"
+                  title="Close Screen"
+                >
+                  <X size={20} />
+                </button>
 
-                <div className="space-y-3 bg-[#11241C] border border-stone-200/5 p-4 rounded-2xl">
-                  <h4 className="font-mono text-[9px] uppercase tracking-widest text-[#F5B400] font-black">Video Details</h4>
-                  <div className="space-y-1.5 text-[10px] text-stone-400 font-sans">
-                    <div className="flex justify-between">
-                      <span>Posted Date:</span>
-                      <span className="font-mono text-white">
-                        {new Date(selectedVideo.createdAt).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric'
-                        })}
+                {/* Left Side: Video Info Column */}
+                <div className="lg:col-span-6 p-6 sm:p-12 md:p-16 flex flex-col justify-start space-y-8 overflow-y-auto max-h-screen scrollbar-none">
+                  
+                  {/* Council Logo & Badge */}
+                  <div className="flex items-center gap-4">
+                    <CouncilSeal size={70} interactive={false} />
+                    <div>
+                      <span className="font-mono text-[9px] uppercase tracking-widest text-[#F5B400] font-black block">
+                        CCIS STUDENT COUNCIL
+                      </span>
+                      <span className="font-mono text-[8px] uppercase tracking-wider text-stone-400 block mt-0.5">
+                        CCIS Patch Studio Present
                       </span>
                     </div>
-                    <div className="flex justify-between">
-                      <span>Producer:</span>
-                      <span className="text-white font-bold">CCIS Patch Studio</span>
+                  </div>
+
+                  {/* Title & Ep Tag */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-[9px] bg-[#F5B400] text-[#11241C] px-3 py-0.5 rounded-full font-black uppercase tracking-wider">
+                        EPISODE {selectedVideo.episodeNumber}
+                      </span>
+                      <span className="font-mono text-[9px] text-[#F5B400] border border-[#F5B400]/30 px-2 py-0.5 rounded-full uppercase font-bold">
+                        {selectedVideo.category}
+                      </span>
                     </div>
-                    <div className="flex justify-between">
-                      <span>Source:</span>
-                      {selectedVideo.videoUrl ? (
-                        <a
-                          href={selectedVideo.videoUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-[#F5B400] hover:underline"
-                        >
-                          Direct Host ↗
-                        </a>
-                      ) : (
-                        <a
-                          href={selectedVideo.facebookPermalink}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-[#F5B400] hover:underline"
-                        >
-                          Facebook Page ↗
-                        </a>
-                      )}
+                    <h1 className="font-serif font-black text-4xl sm:text-5xl md:text-6xl text-white tracking-tight leading-tight">
+                      {selectedVideo.title}
+                    </h1>
+                  </div>
+
+                  {/* Synopsis (Quick text summary block) */}
+                  <p className="text-stone-300 text-sm leading-relaxed max-w-2xl font-sans font-medium">
+                    {selectedVideo.description.split('\n')[0]}
+                  </p>
+
+                  {/* Inline quick credits banner */}
+                  {(() => {
+                    const credits = getCreditsForVideo(selectedVideo.title, selectedVideo.episodeNumber);
+                    if (!credits) return null;
+                    return (
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] font-mono text-[#F5B400] bg-white/5 border border-white/5 px-4 py-2.5 rounded-xl max-w-2xl">
+                        {credits.directedBy && (
+                          <span>
+                            <strong className="text-stone-400">DIR:</strong> {credits.directedBy.split(',')[0]}
+                          </span>
+                        )}
+                        {credits.writtenBy && (
+                          <span>
+                            <strong className="text-stone-400">WRITER:</strong> {credits.writtenBy.split(',')[0]}
+                          </span>
+                        )}
+                        {credits.starring && (
+                          <span>
+                            <strong className="text-stone-400">CAST:</strong> {credits.starring.split('and')[0]}
+                          </span>
+                        )}
+                        {credits.sponsoredBy && (
+                          <span>
+                            <strong className="text-stone-400">SPONSOR:</strong> {credits.sponsoredBy}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Huge cinematic play button */}
+                  <button
+                    onClick={() => {
+                      setIsPlayerActive(true);
+                      setIsPlaying(true);
+                    }}
+                    className="inline-flex items-center justify-center gap-3 bg-[#F5B400] hover:bg-[#ffc522] text-[#11241C] font-black uppercase tracking-wider text-xs px-10 py-4.5 rounded-2xl shadow-xl hover:shadow-[#F5B400]/25 transform hover:-translate-y-0.5 transition-all duration-300 max-w-xs cursor-pointer focus:ring-2 focus:ring-white outline-none"
+                  >
+                    <Play size={16} className="fill-current" />
+                    Play {selectedVideo.category === 'Full Episodes' ? 'Episode' : 'Highlight'}
+                  </button>
+
+                  {/* Divider line */}
+                  <div className="h-[1px] bg-stone-200/10 w-full max-w-2xl" />
+
+                  {/* About the Episode (Detail text body + full credits list) */}
+                  <div className="space-y-6 max-w-2xl">
+                    <div className="space-y-3">
+                      <h3 className="font-serif font-black text-lg text-white">About the Episode</h3>
+                      <p className="text-stone-300 text-xs leading-relaxed whitespace-pre-line font-sans font-normal">
+                        {selectedVideo.description}
+                      </p>
+                    </div>
+
+                    {(() => {
+                      const credits = getCreditsForVideo(selectedVideo.title, selectedVideo.episodeNumber);
+                      if (!credits) return null;
+                      return (
+                        <div className="space-y-3 pt-4 border-t border-stone-200/10">
+                          <h4 className="font-mono text-[9px] uppercase tracking-widest text-[#F5B400] font-black flex items-center gap-1.5">
+                            <Film size={10} />
+                            Full Production Credits
+                          </h4>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 bg-[#11241C] border border-stone-200/5 p-4 rounded-2xl">
+                            {credits.directedBy && (
+                              <div className="text-[11px] font-sans">
+                                <span className="block text-stone-400 font-mono text-[9px] uppercase tracking-wider mb-0.5">Directed By</span>
+                                <span className="text-white font-semibold">{credits.directedBy}</span>
+                              </div>
+                            )}
+                            {credits.coDirectedBy && (
+                              <div className="text-[11px] font-sans">
+                                <span className="block text-stone-400 font-mono text-[9px] uppercase tracking-wider mb-0.5">Co-Directed By</span>
+                                <span className="text-white font-semibold">{credits.coDirectedBy}</span>
+                              </div>
+                            )}
+                            {credits.writtenBy && (
+                              <div className="text-[11px] font-sans">
+                                <span className="block text-stone-400 font-mono text-[9px] uppercase tracking-wider mb-0.5">Written By</span>
+                                <span className="text-white font-semibold">{credits.writtenBy}</span>
+                              </div>
+                            )}
+                            {credits.starring && (
+                              <div className="text-[11px] font-sans">
+                                <span className="block text-stone-400 font-mono text-[9px] uppercase tracking-wider mb-0.5">Starring</span>
+                                <span className="text-white font-semibold">{credits.starring}</span>
+                              </div>
+                            )}
+                            {credits.alsoStarring && (
+                              <div className="text-[11px] font-sans">
+                                <span className="block text-stone-400 font-mono text-[9px] uppercase tracking-wider mb-0.5">Also Starring</span>
+                                <span className="text-white font-semibold">{credits.alsoStarring}</span>
+                              </div>
+                            )}
+                            {credits.cinematographyBy && (
+                              <div className="text-[11px] font-sans">
+                                <span className="block text-stone-400 font-mono text-[9px] uppercase tracking-wider mb-0.5">Cinematography By</span>
+                                <span className="text-white font-semibold">{credits.cinematographyBy}</span>
+                              </div>
+                            )}
+                            {credits.editedBy && (
+                              <div className="text-[11px] font-sans">
+                                <span className="block text-stone-400 font-mono text-[9px] uppercase tracking-wider mb-0.5">Edited By</span>
+                                <span className="text-white font-semibold">{credits.editedBy}</span>
+                              </div>
+                            )}
+                            {credits.sponsoredBy && (
+                              <div className="text-[11px] font-sans">
+                                <span className="block text-stone-400 font-mono text-[9px] uppercase tracking-wider mb-0.5">Sponsored By</span>
+                                <span className="text-white font-semibold">{credits.sponsoredBy}</span>
+                              </div>
+                            )}
+                            {credits.setDesign && (
+                              <div className="text-[11px] font-sans sm:col-span-2">
+                                <span className="block text-stone-400 font-mono text-[9px] uppercase tracking-wider mb-0.5">Set Design</span>
+                                <span className="text-white font-semibold">{credits.setDesign}</span>
+                              </div>
+                            )}
+                            {credits.specialThanks && (
+                              <div className="text-[11px] font-sans sm:col-span-2">
+                                <span className="block text-stone-400 font-mono text-[9px] uppercase tracking-wider mb-0.5">Special Thanks</span>
+                                <span className="text-white font-semibold">{credits.specialThanks}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+
+                {/* Right Side: Large Cinematic Poster Background Column */}
+                <div className="lg:col-span-6 relative h-[50vh] lg:h-screen bg-stone-955 overflow-hidden flex items-center justify-center shrink-0">
+                  {selectedVideo.thumbnailUrl ? (
+                    <img
+                      src={selectedVideo.thumbnailUrl}
+                      alt={selectedVideo.title}
+                      className="w-full h-full object-cover select-none scale-102 filter brightness-85"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-[#1A3C2E]/60 flex items-center justify-center">
+                      <Film className="text-[#F5B400]/40 w-32 h-32" />
+                    </div>
+                  )}
+
+                  {/* Gradient mask to blend left to right on desktop */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#0B1512] via-[#0B1512]/45 to-transparent max-lg:hidden pointer-events-none" />
+                  
+                  {/* Gradient mask to blend bottom to top on mobile */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0B1512] via-[#0B1512]/40 to-transparent lg:hidden pointer-events-none" />
+
+                  {/* Floating click to play button overlay */}
+                  <div 
+                    onClick={() => {
+                      setIsPlayerActive(true);
+                      setIsPlaying(true);
+                    }}
+                    className="absolute inset-0 flex items-center justify-center group/play cursor-pointer z-10"
+                    title="Play Movie"
+                  >
+                    <div className="bg-[#0B1512]/40 backdrop-blur-md border border-white/20 text-[#FAF7EA] p-6 rounded-full shadow-2xl group-hover/play:bg-[#F5B400] group-hover/play:text-[#11241C] group-hover/play:scale-110 transition-all duration-500">
+                      <Play size={36} className="fill-current translate-x-0.5" />
                     </div>
                   </div>
                 </div>
+
               </div>
-            </div>
+            )}
 
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ============================================================
