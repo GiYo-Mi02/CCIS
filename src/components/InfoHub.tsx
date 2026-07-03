@@ -146,46 +146,61 @@ export default function InfoHub({ onNavigate }: { onNavigate?: (tab: string, eve
   const renderOfficerCard = (off: Officer) => (
     <div
       key={off.id}
-      className="group flex flex-col items-center bg-[#1A3C2E] p-5 rounded-2xl border border-white/5 hover:border-[#F5B400]/50 transition-all duration-300 shadow-sm hover:shadow-lg text-center"
+      className="relative w-full h-[330px] group overflow-visible mt-10 mb-4 flex flex-col justify-end"
       id={`officer-card-${off.id}`}
     >
-      <div className="relative w-20 h-20 rounded-full bg-[#FAF7EA] text-[#1A3C2E] flex items-center justify-center font-sans font-black text-xl tracking-tight shadow-md border-2 border-[#FAF7EA] group-hover:border-[#F5B400] transition-colors duration-300 overflow-hidden shrink-0">
-        {off.photoUrl ? (
-          <img src={off.photoUrl} alt={off.name} className="w-full h-full object-cover select-none" />
-        ) : (
-          off.name.split(' ').map(n => n[0]).join('')
-        )}
-        <div className="absolute inset-1 rounded-full border border-[#1A3C2E]/20 pointer-events-none" />
+      {/* 1. Offset Angled Accent Border Frame */}
+      <div className="absolute inset-x-0 bottom-0 top-10 rounded-3xl border-2 border-[#F5B400]/20 translate-x-2.5 translate-y-2.5 -rotate-2 pointer-events-none group-hover:translate-x-0 group-hover:translate-y-0 group-hover:rotate-0 transition-all duration-500" />
+
+      {/* 2. Main Skewed/Tilted Background Panel Card */}
+      <div className="absolute inset-x-0 bottom-0 top-10 bg-gradient-to-br from-[#123524] to-[#0A1A13] rounded-3xl border border-white/10 shadow-lg group-hover:shadow-2xl transition-all duration-500 origin-bottom transform group-hover:scale-[1.01] -rotate-1 group-hover:rotate-0 overflow-hidden" />
+
+      {/* 3. Rotated/Vertical Department Label */}
+      <div className="absolute top-16 right-4 font-mono font-black text-[#F5B400]/15 group-hover:text-[#F5B400]/35 text-[9px] uppercase tracking-[0.25em] transition-colors duration-300 [writing-mode:vertical-lr] select-none pointer-events-none">
+        {off.committee === 'Executive Board' ? 'EXECUTIVE' : off.committee.replace('Committee', '').trim()}
       </div>
 
-      <div className="mt-4 space-y-1 flex-1 flex flex-col justify-between">
+      {/* 4. Overlapping 3D Pop-out Portrait Frame */}
+      <div className="absolute bottom-16 left-1/2 -translate-x-1/2 w-[85%] h-[100%] overflow-hidden rounded-2xl border border-white/10 shadow-md bg-white/5 pointer-events-none z-10 group-hover:scale-105 group-hover:-translate-y-1.5 transition-all duration-500 origin-bottom">
+        {off.photoUrl ? (
+          <img 
+            src={off.photoUrl} 
+            alt={off.name} 
+            className="w-full h-full object-cover select-none" 
+          />
+        ) : (
+          /* Fallback text avatar */
+          <div className="w-full h-full bg-[#FAF7EA] text-[#1A3C2E] flex items-center justify-center font-sans font-black text-2xl select-none">
+            {off.name.split(' ').map(n => n[0]).join('')}
+          </div>
+        )}
+      </div>
+
+      {/* 5. Floating Glassmorphic Footer Info Plate */}
+      <div className="absolute bottom-4 left-4 right-4 bg-[#0B1512]/90 backdrop-blur-md border border-white/10 p-3.5 rounded-2xl z-20 text-left shadow-lg group-hover:border-[#F5B400]/30 transition-all duration-500 flex flex-col justify-between">
         <div>
-          <h3 className="font-sans font-black text-white text-base group-hover:text-[#F5B400] transition-colors leading-tight mb-1">
+          <h3 className="font-sans font-black text-white text-xs md:text-sm group-hover:text-[#F5B400] transition-colors leading-tight mb-0.5 truncate">
             {off.name}
           </h3>
-          <span className="block font-mono text-[9px] font-black text-[#F5B400] uppercase tracking-widest leading-normal">
+          <span className="block font-mono text-[8px] md:text-[9px] font-black text-[#F5B400] uppercase tracking-wider leading-none">
             {off.position}
           </span>
-          {off.committee !== 'Executive Board' && (
-            <span className="block font-sans text-[10px] text-stone-300 font-semibold uppercase tracking-wider mt-0.5 mb-1.5">
-              {off.committee}
-            </span>
-          )}
         </div>
-        {off.quote && (
-          <p className="font-sans text-[11px] text-stone-300/85 italic leading-relaxed max-w-[180px] mx-auto mt-2">
-            "{off.quote}"
-          </p>
-        )}
-      </div>
-
-      <div className="mt-4 w-full pt-3 border-t border-white/10">
-        <a
-          href={`mailto:${off.email}`}
-          className="font-mono text-[9px] text-[#FAF7EA]/70 hover:text-[#F5B400] break-all px-1 rounded transition-colors"
-        >
-          {off.email}
-        </a>
+        
+        {/* Hover-reveal Contact / Quote row */}
+        <div className="h-0 opacity-0 group-hover:h-auto group-hover:opacity-100 group-hover:mt-2 border-t border-white/5 pt-1.5 transition-all duration-500 overflow-hidden flex flex-col gap-1">
+          {off.quote && (
+            <p className="font-sans text-[9px] text-stone-300 leading-tight italic truncate">
+              "{off.quote}"
+            </p>
+          )}
+          <a
+            href={`mailto:${off.email}`}
+            className="font-mono text-[8px] text-stone-400 hover:text-[#F5B400] truncate transition-colors"
+          >
+            {off.email}
+          </a>
+        </div>
       </div>
     </div>
   );
