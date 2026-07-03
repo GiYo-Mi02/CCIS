@@ -146,7 +146,7 @@ export default function InfoHub({ onNavigate }: { onNavigate?: (tab: string, eve
   const renderOfficerCard = (off: Officer) => (
     <div
       key={off.id}
-      className="relative w-full h-[330px] group overflow-visible mt-10 mb-4 flex flex-col justify-end"
+      className="relative w-[280px] max-w-[calc(100vw-3rem)] h-[380px] group overflow-visible mt-14 mb-4 flex flex-col justify-end"
       id={`officer-card-${off.id}`}
     >
       {/* 1. Offset Angled Accent Border Frame */}
@@ -161,7 +161,7 @@ export default function InfoHub({ onNavigate }: { onNavigate?: (tab: string, eve
       </div>
 
       {/* 4. Overlapping 3D Pop-out Portrait Frame */}
-      <div className="absolute bottom-16 left-1/2 -translate-x-1/2 w-[85%] h-[100%] overflow-hidden rounded-2xl border border-white/10 shadow-md bg-white/5 pointer-events-none z-10 group-hover:scale-105 group-hover:-translate-y-1.5 transition-all duration-500 origin-bottom">
+      <div className="absolute bottom-20 left-1/2 -translate-x-1/2 w-[88%] h-[98%] overflow-hidden rounded-2xl border border-white/10 shadow-md bg-white/5 pointer-events-none z-10 group-hover:scale-105 group-hover:-translate-y-1.5 transition-all duration-500 origin-bottom">
         {off.photoUrl ? (
           <img 
             src={off.photoUrl} 
@@ -528,8 +528,17 @@ export default function InfoHub({ onNavigate }: { onNavigate?: (tab: string, eve
                       Executive Board
                     </h3>
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 md:gap-8 justify-center">
-                    {execBoard.map(renderOfficerCard)}
+                  <div className="space-y-6 md:space-y-8">
+                    {/* Row 1: The Big 3 (Chairperson, Vice Chairperson, Secretary) */}
+                    <div className="flex flex-wrap gap-6 md:gap-8 justify-center">
+                      {execBoard.slice(0, 3).map(renderOfficerCard)}
+                    </div>
+                    {/* Row 2: Treasurer & Auditor */}
+                    {execBoard.length > 3 && (
+                      <div className="flex flex-wrap gap-6 md:gap-8 justify-center">
+                        {execBoard.slice(3).map(renderOfficerCard)}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -542,7 +551,7 @@ export default function InfoHub({ onNavigate }: { onNavigate?: (tab: string, eve
                       Year Level Representatives
                     </h3>
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 justify-center">
+                  <div className="flex flex-wrap gap-6 md:gap-8 justify-center">
                     {yearReps.map(renderOfficerCard)}
                   </div>
                 </div>
@@ -556,7 +565,7 @@ export default function InfoHub({ onNavigate }: { onNavigate?: (tab: string, eve
                       Working Committee Heads
                     </h3>
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8 justify-center">
+                  <div className="flex flex-wrap gap-6 md:gap-8 justify-center">
                     {[...committeeHeads, ...otherOfficers].map(renderOfficerCard)}
                   </div>
                 </div>
