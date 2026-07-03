@@ -109,14 +109,15 @@ export const checkIsProfane = (inputText: string): boolean => {
   // 4. Replace Leetspeak
   const leetMap: Record<string, string> = {
     '4': 'a', '@': 'a',
-    '3': 'e',
+    '3': 'e', '€': 'e',
     '1': 'i', '!': 'i', '|': 'i',
     '0': 'o',
     '5': 's', '$': 's',
     '7': 't',
     '8': 'b',
     '9': 'g',
-    'v': 'u'
+    'v': 'u',
+    '(': 'c', '[': 'c'
   };
   let leetCleaned = '';
   for (let i = 0; i < text.length; i++) {
@@ -148,6 +149,41 @@ export const checkIsProfane = (inputText: string): boolean => {
       if (token === blocked || token === blocked.replace(/(.)\1+/g, '$1')) {
         return true;
       }
+    }
+  }
+
+  // 8.5 Core Curse Roots Check (substring checks for high-confidence curse roots to catch concatenation)
+  const CORE_CURSE_ROOTS = [
+    'fuck', 'shit', 'cunt', 'pussy', 'bitch', 'asshole',
+    'tangina', 'tangena', 'putangina', 'putangena',
+    'gago', 'tarantado', 'ulol', 'kupal', 'pakyu', 'shet', 'shibal'
+  ];
+
+  for (const root of CORE_CURSE_ROOTS) {
+    if (
+      text.includes(root) ||
+      collapsed3.includes(root) ||
+      collapsedAll.includes(root)
+    ) {
+      return true;
+    }
+  }
+
+  // 8.6 Spaced-out Core Curse Check (catches spaces between letters like p u t a n g i n a)
+  const SPACED_CURSE_CHECK_ROOTS = [
+    'fuck', 'shit', 'cunt', 'pussy', 'bitch', 'asshole',
+    'tangina', 'tangena', 'putangina', 'putangena', 'pakyu', 'shibal'
+  ];
+  const textNoSpaces = text.replace(/\s+/g, '');
+  const collapsed3NoSpaces = collapsed3.replace(/\s+/g, '');
+  const collapsedAllNoSpaces = collapsedAll.replace(/\s+/g, '');
+  for (const root of SPACED_CURSE_CHECK_ROOTS) {
+    if (
+      textNoSpaces.includes(root) ||
+      collapsed3NoSpaces.includes(root) ||
+      collapsedAllNoSpaces.includes(root)
+    ) {
+      return true;
     }
   }
   
