@@ -151,16 +151,28 @@ export const checkIsProfane = (inputText: string): boolean => {
     }
   }
   
-  // 9. Regex / Substring Match for phrases
+  // 9. Substring match ONLY for multi-word phrases or emojis/symbols
   for (const blocked of BLOCKED_WORDS) {
     const cleanBlocked = blocked.replace(/[^a-z0-9\s]/g, '');
-    const collapsedBlocked = cleanBlocked.replace(/(.)\1+/g, '$1');
-    if (
-      text.includes(cleanBlocked) ||
-      collapsed3.includes(cleanBlocked) ||
-      collapsedAll.includes(collapsedBlocked)
-    ) {
-      return true;
+    
+    // If it is an emoji or symbol only
+    if (!cleanBlocked) {
+      if (inputText.includes(blocked)) {
+        return true;
+      }
+      continue;
+    }
+
+    // Only apply substring match if the blocked term is a multi-word phrase
+    if (blocked.includes(' ')) {
+      const collapsedBlocked = cleanBlocked.replace(/(.)\1+/g, '$1');
+      if (
+        text.includes(cleanBlocked) ||
+        collapsed3.includes(cleanBlocked) ||
+        collapsedAll.includes(collapsedBlocked)
+      ) {
+        return true;
+      }
     }
   }
   
