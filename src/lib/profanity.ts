@@ -156,7 +156,8 @@ export const checkIsProfane = (inputText: string): boolean => {
   const CORE_CURSE_ROOTS = [
     'fuck', 'shit', 'cunt', 'pussy', 'bitch', 'asshole',
     'tangina', 'tangena', 'putangina', 'putangena',
-    'gago', 'tarantado', 'ulol', 'kupal', 'pakyu', 'shet', 'shibal'
+    'gago', 'tarantado', 'ulol', 'kupal', 'pakyu', 'shet', 'shibal',
+    'pota', 'puta', 'potangina'
   ];
 
   for (const root of CORE_CURSE_ROOTS) {
@@ -172,7 +173,8 @@ export const checkIsProfane = (inputText: string): boolean => {
   // 8.6 Spaced-out Core Curse Check (catches spaces between letters like p u t a n g i n a)
   const SPACED_CURSE_CHECK_ROOTS = [
     'fuck', 'shit', 'cunt', 'pussy', 'bitch', 'asshole',
-    'tangina', 'tangena', 'putangina', 'putangena', 'pakyu', 'shibal'
+    'tangina', 'tangena', 'putangina', 'putangena', 'pakyu', 'shibal',
+    'pota', 'puta', 'potangina'
   ];
   const textNoSpaces = text.replace(/\s+/g, '');
   const collapsed3NoSpaces = collapsed3.replace(/\s+/g, '');
