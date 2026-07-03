@@ -1,12 +1,38 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageSquare, X, Send, Loader2, Lock, MessageCircle } from 'lucide-react';
+import { MessageSquare, X, Send, Loader2, Lock, MessageCircle, Clock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Conversation, Message } from '../types/database';
+import { checkIsProfane } from '../lib/profanity';
 
 interface SupportWidgetProps {
   onNavigate: (tab: string) => void;
 }
+
+const formatMessageTimeHeader = (dateStr: string): string => {
+  const date = new Date(dateStr);
+  const today = new Date();
+  const isSameDay = date.getDate() === today.getDate() &&
+                    date.getMonth() === today.getMonth() &&
+                    date.getFullYear() === today.getFullYear();
+  const timeStr = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+  if (isSameDay) {
+    return timeStr;
+  } else {
+    const dateStrFormatted = date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+    return `${dateStrFormatted} · ${timeStr}`;
+  }
+};
+
+const isWorkingHours = (): boolean => {
+  const now = new Date();
+  const day = now.getDay(); // 0 = Sun, 6 = Sat
+  const hour = now.getHours();
+  // Monday (1) to Friday (5), 8:00 AM (8) to 5:00 PM (17)
+  const isWeekday = day >= 1 && day <= 5;
+  const isOfficeHours = hour >= 8 && hour < 17;
+  return isWeekday && isOfficeHours;
+};
 
 export default function SupportWidget({ onNavigate }: SupportWidgetProps) {
   const { user, profile } = useAuth();
@@ -17,6 +43,7 @@ export default function SupportWidget({ onNavigate }: SupportWidgetProps) {
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [warningMsg, setWarningMsg] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -188,6 +215,12 @@ export default function SupportWidget({ onNavigate }: SupportWidgetProps) {
     e.preventDefault();
     if (!user || !conversation || !inputText.trim() || sending) return;
 
+    if (checkIsProfane(inputText)) {
+      setWarningMsg('Inappropriate language detected. Please check your message.');
+      return;
+    }
+    setWarningMsg(null);
+
     const messageText = inputText.trim();
     setInputText('');
     setSending(true);
@@ -301,6 +334,19 @@ export default function SupportWidget({ onNavigate }: SupportWidgetProps) {
 
         {/* Message / Content area */}
         <div className="flex-1 bg-[#FAF7EA]/30 overflow-y-auto p-4 flex flex-col gap-3 font-sans">
+          {/* Out of hours advisory banner */}
+          {user && !loading && !isWorkingHours() && (
+            <div className="bg-[#FAF7EA] border-2 border-[#1A3C2E]/10 rounded-2xl p-3.5 text-left text-xs text-stone-750 flex items-start gap-2.5 shadow-xs animate-fade-in shrink-0">
+              <Clock size={16} className="text-[#FFBC00] shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="font-bold text-[#1A3C2E]">CCIS Support Offline</p>
+                <p className="leading-relaxed text-[10.5px] text-stone-600">
+                  Our normal working hours are Mon–Fri, 8:00 AM–5:00 PM. Committee members may not reply immediately right now, but please leave your concern below and we will get back to you!
+                </p>
+              </div>
+            </div>
+          )}
+
           {!user ? (
             /* Guest / Logged out view */
             <div className="my-auto text-center flex flex-col items-center justify-center px-4 py-8">
@@ -343,28 +389,51 @@ export default function SupportWidget({ onNavigate }: SupportWidgetProps) {
                 </div>
               ) : (
                 /* Message history */
-                messages.map((m) => {
+                messages.map((m, idx) => {
                   const isMe = m.sender_role === 'student';
+                  
+                  // Determine if we should show a time header
+                  let showTimeHeader = false;
+                  if (idx === 0) {
+                    showTimeHeader = true;
+                  } else {
+                    const prevMsg = messages[idx - 1];
+                    const diffMs = new Date(m.created_at).getTime() - new Date(prevMsg.created_at).getTime();
+                    const diffMins = diffMs / (1000 * 60);
+                    if (diffMins > 10) {
+                      showTimeHeader = true;
+                    }
+                  }
+
                   return (
-                    <div
-                      key={m.id}
-                      className={`flex gap-2 items-start ${isMe ? 'justify-end' : 'justify-start'}`}
-                    >
-                      {!isMe && (
-                        <div className="w-6 h-6 rounded-full bg-[#1A3C2E] flex items-center justify-center shrink-0 border border-[#F5B400]/30">
-                          <MessageSquare size={10} className="text-white" />
+                    <React.Fragment key={m.id}>
+                      {showTimeHeader && (
+                        <div className="w-full text-center my-2 select-none shrink-0 animate-fade-in">
+                          <span className="text-[9px] font-mono tracking-wider font-bold text-stone-400 bg-stone-100/80 px-2.5 py-0.5 rounded-md border border-stone-200/40">
+                            {formatMessageTimeHeader(m.created_at)}
+                          </span>
                         </div>
                       )}
+
                       <div
-                        className={`px-3.5 py-2 rounded-2xl text-xs leading-relaxed shadow-2xs font-sans ${
-                          isMe
-                            ? 'bg-[#1A3C2E] text-white rounded-tr-none max-w-[80%]'
-                            : 'bg-stone-100 text-stone-800 rounded-tl-none max-w-[80%]'
-                        }`}
+                        className={`flex gap-2 items-start ${isMe ? 'justify-end' : 'justify-start'}`}
                       >
-                        {m.content}
+                        {!isMe && (
+                          <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center shrink-0 border border-[#F5B400]/30 overflow-hidden shadow-xs">
+                            <img src="/images/CCIS-Logo.png" alt="CCIS" className="w-5 h-5 object-contain" />
+                          </div>
+                        )}
+                        <div
+                          className={`px-3.5 py-2 rounded-2xl text-xs leading-relaxed shadow-2xs font-sans ${
+                            isMe
+                              ? 'bg-[#1A3C2E] text-white rounded-tr-none max-w-[80%]'
+                              : 'bg-stone-100 text-stone-800 rounded-tl-none max-w-[80%]'
+                          }`}
+                        >
+                          {m.content}
+                        </div>
                       </div>
-                    </div>
+                    </React.Fragment>
                   );
                 })
               )}
@@ -375,30 +444,49 @@ export default function SupportWidget({ onNavigate }: SupportWidgetProps) {
 
         {/* Input box (only when logged in) */}
         {user && !loading && (
-          <form
-            onSubmit={handleSend}
-            className="p-3 border-t border-stone-100 bg-white flex items-center gap-2 shrink-0"
-          >
-            <input
-              type="text"
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              placeholder="Type your message here..."
-              className="flex-1 bg-stone-50 border border-stone-100 focus:outline-none focus:ring-1 focus:ring-[#F5B400] focus:bg-white rounded-full px-4 py-2.5 text-xs font-sans transition-all"
-              disabled={sending}
-            />
-            <button
-              type="submit"
-              disabled={sending || !inputText.trim()}
-              className="w-9 h-9 rounded-full bg-[#1A3C2E] text-white hover:bg-[#123524] disabled:bg-stone-100 disabled:text-stone-300 disabled:scale-100 hover:scale-105 active:scale-95 transition-all flex items-center justify-center shrink-0 border border-[#F5B400]/20 cursor-pointer"
+          <div className="flex flex-col border-t border-stone-100 bg-white shrink-0">
+            {warningMsg && (
+              <div className="bg-rose-50 border-b border-rose-100 px-4 py-2 text-left text-[10px] text-rose-600 flex items-center gap-2 animate-fade-in">
+                <span className="font-bold uppercase tracking-wider bg-rose-100 px-1.5 py-0.5 rounded text-[8px] border border-rose-200">Blocked</span>
+                <span>{warningMsg}</span>
+              </div>
+            )}
+            <form
+              onSubmit={handleSend}
+              className="p-3 flex items-center gap-2"
             >
-              {sending ? (
-                <Loader2 className="animate-spin" size={14} />
-              ) : (
-                <Send size={14} />
-              )}
-            </button>
-          </form>
+              <textarea
+                value={inputText}
+                onChange={(e) => {
+                  setInputText(e.target.value);
+                  if (warningMsg) setWarningMsg(null);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (inputText.trim() && !sending) {
+                      handleSend(e as any);
+                    }
+                  }
+                }}
+                placeholder="Type your message here..."
+                rows={1}
+                className="flex-1 bg-stone-50 border border-stone-100 focus:outline-none focus:ring-1 focus:ring-[#F5B400] focus:bg-white rounded-2xl px-4 py-2 text-xs font-sans transition-all resize-none min-h-[36px] max-h-[100px] overflow-y-auto leading-relaxed"
+                disabled={sending}
+              />
+              <button
+                type="submit"
+                disabled={sending || !inputText.trim()}
+                className="w-9 h-9 rounded-full bg-[#1A3C2E] text-white hover:bg-[#123524] disabled:bg-stone-100 disabled:text-stone-300 disabled:scale-100 hover:scale-105 active:scale-95 transition-all flex items-center justify-center shrink-0 border border-[#F5B400]/20 cursor-pointer self-end mb-0.5"
+              >
+                {sending ? (
+                  <Loader2 className="animate-spin" size={14} />
+                ) : (
+                  <Send size={14} />
+                )}
+              </button>
+            </form>
+          </div>
         )}
       </div>
     </>

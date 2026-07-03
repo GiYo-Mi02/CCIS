@@ -5,6 +5,22 @@ import { useAuth } from '../../context/AuthContext';
 import { useAdmin } from '../AdminContext';
 import { Conversation, Message } from '../../types/database';
 import Pagination from '../components/Pagination';
+import { checkIsProfane } from '../../lib/profanity';
+
+const formatMessageTimeHeader = (dateStr: string): string => {
+  const date = new Date(dateStr);
+  const today = new Date();
+  const isSameDay = date.getDate() === today.getDate() &&
+                    date.getMonth() === today.getMonth() &&
+                    date.getFullYear() === today.getFullYear();
+  const timeStr = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+  if (isSameDay) {
+    return timeStr;
+  } else {
+    const dateStrFormatted = date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+    return `${dateStrFormatted} · ${timeStr}`;
+  }
+};
 
 export default function MessagesInbox() {
   const { profile } = useAuth();
@@ -285,6 +301,11 @@ export default function MessagesInbox() {
     e.preventDefault();
     if (!profile || !selectedCon || !inputText.trim() || sending) return;
 
+    if (checkIsProfane(inputText)) {
+      showToast('Inappropriate language detected. Please check your message.', 'error');
+      return;
+    }
+
     const messageText = inputText.trim();
     setInputText('');
     setSending(true);
@@ -491,49 +512,80 @@ export default function MessagesInbox() {
                   )}
 
                   <div className="space-y-3.5 mt-auto">
-                    {messages.map((msg) => {
+                    {messages.map((msg, idx) => {
                       const isAdminReply = msg.sender_role === 'admin';
-                      return (
-                        <div 
-                          key={msg.id} 
-                          className={`flex ${isAdminReply ? 'justify-end' : 'justify-start'} animate-fade-in`}
-                        >
-                          <div className={`flex items-start gap-2.5 max-w-[80%] ${isAdminReply ? 'flex-row-reverse' : 'flex-row'}`}>
-                            
-                            {/* Icon avatar */}
-                            <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
-                              isAdminReply 
-                                ? 'bg-[var(--color-primary-green,#1A3C2E)] text-[#F5B400] border border-[#F5B400]/20' 
-                                : 'bg-zinc-200 text-stone-600 border border-zinc-300'
-                            }`}>
-                              <User size={11} />
-                            </div>
+                      
+                      // Determine if we should show a time header
+                      let showTimeHeader = false;
+                      if (idx === 0) {
+                        showTimeHeader = true;
+                      } else {
+                        const prevMsg = messages[idx - 1];
+                        const diffMs = new Date(msg.created_at).getTime() - new Date(prevMsg.created_at).getTime();
+                        const diffMins = diffMs / (1000 * 60);
+                        if (diffMins > 10) {
+                          showTimeHeader = true;
+                        }
+                      }
 
-                            {/* Bubble body */}
-                            <div className="flex flex-col">
-                              <div className={`px-4 py-2.5 rounded-2xl text-xs leading-relaxed shadow-xs ${
-                                isAdminReply 
-                                  ? 'bg-[var(--color-primary-green,#1A3C2E)] text-[#FAF7EA] rounded-tr-none' 
-                                  : 'bg-white border border-zinc-150 text-[#222B26] rounded-tl-none'
-                              }`}>
-                                <p className="whitespace-pre-wrap" style={{ wordBreak: 'break-word', overflowWrap: 'break-word', whiteSpace: 'pre-wrap' }}>{msg.content}</p>
-                              </div>
-                              
-                              <span className={`text-[8.5px] font-mono text-zinc-400 mt-1 flex items-center gap-1 ${isAdminReply ? 'justify-end' : 'justify-start'}`}>
-                                <Clock size={8} />
-                                {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                {isAdminReply && (
-                                  <span className={`font-bold uppercase tracking-wider text-[7.5px] ml-1 ${
-                                    msg.read_by_student ? 'text-emerald-500' : 'text-zinc-300'
-                                  }`}>
-                                    · {msg.read_by_student ? 'Seen' : 'Sent'}
-                                  </span>
-                                )}
+                      return (
+                        <React.Fragment key={msg.id}>
+                          {showTimeHeader && (
+                            <div className="w-full text-center my-2 select-none shrink-0 animate-fade-in">
+                              <span className="text-[9px] font-mono tracking-wider font-bold text-stone-400 bg-stone-100/80 px-2.5 py-0.5 rounded-md border border-stone-200/40">
+                                {formatMessageTimeHeader(msg.created_at)}
                               </span>
                             </div>
+                          )}
 
+                          <div 
+                            className={`flex ${isAdminReply ? 'justify-end' : 'justify-start'} animate-fade-in`}
+                          >
+                            <div className={`flex items-start gap-2.5 max-w-[80%] ${isAdminReply ? 'flex-row-reverse' : 'flex-row'}`}>
+                              
+                              {/* Icon avatar */}
+                              <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden bg-white border ${
+                                isAdminReply 
+                                  ? 'border-[#F5B400]/30' 
+                                  : 'border-zinc-300'
+                              }`}>
+                                {isAdminReply ? (
+                                  <img src="/images/CCIS-Logo.png" alt="CCIS" className="w-5 h-5 object-contain animate-fade-in" />
+                                ) : selectedCon?.profiles?.avatar_url ? (
+                                  <img src={selectedCon.profiles.avatar_url} alt="" className="w-full h-full object-cover animate-fade-in" />
+                                ) : (
+                                  <span className="text-[10px] font-sans font-black text-[#1A3C2E] uppercase animate-fade-in">
+                                    {(selectedCon?.profiles?.full_name || 'U').split(' ').map(n => n[0]).join('')}
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Bubble body */}
+                              <div className="flex flex-col">
+                                <div className={`px-4 py-2.5 rounded-2xl text-xs leading-relaxed shadow-xs ${
+                                  isAdminReply 
+                                    ? 'bg-[var(--color-primary-green,#1A3C2E)] text-[#FAF7EA] rounded-tr-none' 
+                                    : 'bg-white border border-zinc-150 text-[#222B26] rounded-tl-none'
+                                }`}>
+                                  <p className="whitespace-pre-wrap" style={{ wordBreak: 'break-word', overflowWrap: 'break-word', whiteSpace: 'pre-wrap' }}>{msg.content}</p>
+                                </div>
+                                
+                                <span className={`text-[8.5px] font-mono text-zinc-400 mt-1 flex items-center gap-1 ${isAdminReply ? 'justify-end' : 'justify-start'}`}>
+                                  <Clock size={8} />
+                                  {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  {isAdminReply && (
+                                    <span className={`font-bold uppercase tracking-wider text-[7.5px] ml-1 ${
+                                      msg.read_by_student ? 'text-emerald-500' : 'text-zinc-300'
+                                    }`}>
+                                      · {msg.read_by_student ? 'Seen' : 'Sent'}
+                                    </span>
+                                  )}
+                                </span>
+                              </div>
+
+                            </div>
                           </div>
-                        </div>
+                        </React.Fragment>
                       );
                     })}
                   </div>

@@ -30,7 +30,8 @@ export default function AdminForm({
     existingThumbnails: [],
     removedThumbnails: [],
     isEditing: false,
-    editTargetId: null
+    editTargetId: null,
+    featured: false
   };
 
   const [formState, setFormState] = useState<AdminFormState>(initialFormState);
@@ -56,10 +57,16 @@ export default function AdminForm({
         existingThumbnails: itemToEdit.thumbnails,
         removedThumbnails: [],
         isEditing: true,
-        editTargetId: itemToEdit.id
+        editTargetId: itemToEdit.id,
+        featured: itemToEdit.featured || false
       });
+      // Clear file inputs in DOM
+      if (mainImageInputRef.current) mainImageInputRef.current.value = '';
+      if (thumbnailsInputRef.current) thumbnailsInputRef.current.value = '';
     } else {
       setFormState(initialFormState);
+      if (mainImageInputRef.current) mainImageInputRef.current.value = '';
+      if (thumbnailsInputRef.current) thumbnailsInputRef.current.value = '';
     }
   }, [itemToEdit]);
 
@@ -161,8 +168,8 @@ export default function AdminForm({
 
   const getStoragePathFromUrl = (url: string): string | null => {
     try {
-      const parts = url.split('/public/gallery-images/');
-      if (parts.length === 2) return parts[1];
+      const parts = url.split('gallery-images/');
+      if (parts.length >= 2) return parts.slice(1).join('gallery-images/');
       return null;
     } catch {
       return null;
@@ -246,7 +253,8 @@ export default function AdminForm({
             posted_by: formState.postedBy.trim() || 'Anonymous',
             image_url: mainImageUrl,
             thumbnails: combinedThumbnails,
-            aspect_ratio: formState.aspectRatio
+            aspect_ratio: formState.aspectRatio,
+            featured: formState.featured
           })
           .eq('id', formState.editTargetId);
 
@@ -290,7 +298,8 @@ export default function AdminForm({
           imageUrl: mainImageUrl,
           thumbnails: combinedThumbnails,
           aspectRatio: formState.aspectRatio,
-          createdAt: new Date().toISOString()
+          featured: formState.featured,
+          createdAt: itemToEdit?.createdAt || new Date().toISOString()
         };
 
         onSuccess(updatedItem, true);
@@ -306,7 +315,8 @@ export default function AdminForm({
             posted_by: formState.postedBy.trim() || 'Anonymous',
             image_url: mainImageUrl,
             thumbnails: combinedThumbnails,
-            aspect_ratio: formState.aspectRatio
+            aspect_ratio: formState.aspectRatio,
+            featured: formState.featured
           }])
           .select();
 
@@ -323,6 +333,7 @@ export default function AdminForm({
             imageUrl: inserted.image_url,
             thumbnails: inserted.thumbnails || [],
             aspectRatio: inserted.aspect_ratio as 'portrait' | 'landscape' | 'square',
+            featured: inserted.featured || false,
             createdAt: inserted.created_at
           };
 
@@ -443,6 +454,20 @@ export default function AdminForm({
                 />
               </div>
 
+              {/* Featured toggle option */}
+              <div className="flex items-center gap-3 bg-[#FAF7EA]/50 p-4 rounded-2xl border border-[#1A3C2E]/10 select-none">
+                <input
+                  type="checkbox"
+                  id="featured-toggle"
+                  checked={formState.featured}
+                  onChange={e => setFormState(prev => ({ ...prev, featured: e.target.checked }))}
+                  className="w-4 h-4 rounded text-[#1A3C2E] border-stone-300 focus:ring-[#1A3C2E]/40 cursor-pointer"
+                />
+                <label htmlFor="featured-toggle" className="text-xs font-bold text-stone-700 uppercase tracking-wider cursor-pointer">
+                  Featured (Highlight in Hero Carousel)
+                </label>
+              </div>
+
               <div>
                 <label className="block text-xs font-bold text-stone-600 uppercase tracking-wider mb-2 text-left">
                   Description
@@ -463,7 +488,7 @@ export default function AdminForm({
               {/* Main Image File Picker */}
               <div>
                 <label className="block text-xs font-bold text-stone-600 uppercase tracking-wider mb-2 text-left">
-                  Main Featured Image <span className="text-rose-500">*</span>
+                  Main Featured Image {formState.isEditing ? <span className="text-stone-400 font-normal font-sans tracking-normal lowercase">(optional)</span> : <span className="text-rose-500">*</span>}
                 </label>
                 <div className="flex items-center gap-3">
                   <input

@@ -26,6 +26,9 @@ interface AuthContextType {
   clearBanNotice: () => void;
   emailValidationError: string | null;
   clearEmailValidationError: () => void;
+  ipBanned: boolean;
+  bannedIpAddress: string;
+  ipBanReason: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -45,6 +48,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [emailValidationError, setEmailValidationError] = useState<string | null>(null);
   const [accountAgeHours, setAccountAgeHours] = useState<number>(0);
   const [verificationCountdown, setVerificationCountdown] = useState<number>(0);
+
+  const [ipBanned, setIpBanned] = useState(false);
+  const [bannedIpAddress, setBannedIpAddress] = useState('');
+  const [ipBanReason, setIpBanReason] = useState('');
 
   const clearBanNotice = useCallback(() => setBanNotice(null), []);
   const clearEmailValidationError = useCallback(() => setEmailValidationError(null), []);
@@ -103,8 +110,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
+    const checkIpBan = async (): Promise<boolean> => {
+      try {
+        const res = await fetch('https://api.ipify.org?format=json');
+        if (!res.ok) return false;
+        const data = await res.json();
+        const ip = data.ip;
+        if (!ip) return false;
+
+        const { data: banData } = await supabase
+          .from('ip_bans')
+          .select('*')
+          .eq('ip_address', ip);
+
+        if (banData && banData.length > 0) {
+          const ban = banData[0];
+          const isBanned = !ban.banned_until || new Date(ban.banned_until) > new Date();
+          if (isBanned) {
+            if (mounted) {
+              setIpBanned(true);
+              setBannedIpAddress(ip);
+              setIpBanReason(ban.reason || 'Violating CCIS portal terms of service.');
+              setSession(null);
+              setUser(null);
+              setProfile(null);
+              setLoading(false);
+            }
+            await supabase.auth.signOut();
+            return true;
+          }
+        }
+      } catch (err) {
+        console.error('IP ban check error:', err);
+      }
+      return false;
+    };
+
     const initAuth = async () => {
       try {
+        const isIpBanned = await checkIpBan();
+        if (isIpBanned) return;
+
         const { data: { session: currentSession } } = await supabase.auth.getSession();
         if (!mounted) return;
 
@@ -128,6 +174,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (currentSession?.user) {
           const p = await fetchProfile(currentSession.user.id);
+          
+          // Sync IP address to profiles table
+          try {
+            const res = await fetch('https://api.ipify.org?format=json');
+            if (res.ok) {
+              const ipData = await res.json();
+              if (ipData.ip) {
+                await supabase
+                  .from('profiles')
+                  .update({ last_ip: ipData.ip })
+                  .eq('id', currentSession.user.id);
+              }
+            }
+          } catch (e) {
+            console.error('Failed to sync last_ip:', e);
+          }
+
           const isBanned = p?.banned && (!p.banned_until || new Date(p.banned_until) > new Date());
           if (isBanned) {
             await supabase.auth.signOut();
@@ -155,6 +218,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
         if (!mounted) return;
+        
+        const isIpBanned = await checkIpBan();
+        if (isIpBanned) return;
 
         if (newSession?.user) {
           const email = newSession.user.email || '';
@@ -315,6 +381,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       clearBanNotice,
       emailValidationError,
       clearEmailValidationError,
+      ipBanned,
+      bannedIpAddress,
+      ipBanReason,
     }}>
       {children}
       {emailValidationError && (

@@ -368,17 +368,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
     return r.semester === selectedSemester;
   });
 
-  // Last updated timestamp calculation
-  const lastUpdatedText = (() => {
-    if (reports.length === 0) return 'No updates yet';
-    const dates = reports.map(r => new Date(r.createdAt).getTime());
-    const maxDate = new Date(Math.max(...dates));
-    return maxDate.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  })();
+
 
   // Generate dynamic list of semesters for form dropdown
   const formSemestersOptions = Array.from(new Set(reports.map(r => r.semester))).sort((a, b) => (a as string).localeCompare(b as string));
@@ -782,14 +772,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
           <p className="text-stone-600 text-sm mt-3 leading-relaxed">
             Every report the council publishes, in one place.
           </p>
-          <div className="mt-6 flex flex-wrap items-center gap-3 text-xs text-stone-400 font-mono">
-            <span className="bg-stone-200/50 px-3 py-1 rounded-md border border-stone-200">
-              LEDGER STATUS: ACTIVE
-            </span>
-            <span className="bg-stone-200/50 px-3 py-1 rounded-md border border-stone-200">
-              LAST UPDATE: {lastUpdatedText}
-            </span>
-          </div>
+
         </div>
 
         {/* Filter Navigation Pill-Tabs */}

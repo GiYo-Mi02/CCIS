@@ -15,6 +15,7 @@ export interface GalleryItem {
   thumbnails: string[];
   aspectRatio: 'portrait' | 'landscape' | 'square';
   indexLabel?: string;
+  featured: boolean;
   createdAt: string;
 }
 
@@ -32,6 +33,7 @@ export interface AdminFormState {
   removedThumbnails: string[]; // Track deleted thumbnails during form session to clean up storage on submit
   isEditing: boolean;
   editTargetId: string | null;
+  featured: boolean;
 }
 
 export interface Toast {

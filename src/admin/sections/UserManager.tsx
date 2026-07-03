@@ -34,6 +34,14 @@ export default function UserManager() {
   const [customBanTime, setCustomBanTime] = useState('');
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
+  // IP Ban State
+  const [bannedIps, setBannedIps] = useState<any[]>([]);
+  const [loadingBannedIps, setLoadingBannedIps] = useState(false);
+
+  // Manual IP Ban form states
+  const [manualIp, setManualIp] = useState('');
+  const [manualIpReason, setManualIpReason] = useState('');
+
   // Debounce search input
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -80,8 +88,32 @@ export default function UserManager() {
     }
   };
 
+  const fetchBannedIps = async () => {
+    setLoadingBannedIps(true);
+    try {
+      const { data, error } = await supabase
+        .from('ip_bans')
+        .select(`
+          id,
+          ip_address,
+          reason,
+          created_at,
+          profiles:banned_by (full_name, email)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setBannedIps(data || []);
+    } catch (err: any) {
+      console.error('Failed to load banned IPs:', err.message);
+    } finally {
+      setLoadingBannedIps(false);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
+    fetchBannedIps();
   }, [currentPage, debouncedSearch]);
 
   // Toggle Profile complete status (Unlock student profile for editing)
@@ -204,6 +236,101 @@ export default function UserManager() {
       showToast('Unban failed: ' + err.message, 'error');
     } finally {
       setActionLoadingId(null);
+    }
+  };
+
+  const handleInitiateIpBan = async (user: Profile) => {
+    let ip = user.last_ip;
+    if (!ip) {
+      ip = prompt(`This user does not have a recorded IP address. Please enter the IP address you wish to ban manually:`);
+      if (!ip) return;
+      // Basic IP regex validation
+      const ipRegex = /^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$|^([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}$/;
+      if (!ipRegex.test(ip.trim())) {
+        showToast('Please enter a valid IPv4 or IPv6 address.', 'warning');
+        return;
+      }
+    }
+
+    const reason = prompt(`Specify the reason for banning the IP address ${ip} associated with ${user.full_name || user.email}:`, "Violating CCIS student portal guidelines.");
+    if (reason === null) return; // cancelled
+
+    setActionLoadingId(user.id);
+    try {
+      // 1. Insert into ip_bans table
+      const { error: banError } = await supabase
+        .from('ip_bans')
+        .insert({
+          ip_address: ip.trim(),
+          banned_by: currentAdmin?.id,
+          reason: reason
+        });
+
+      if (banError) throw banError;
+
+      // 2. Also ban the user profile itself for consistency
+      const { error: userError } = await supabase
+        .from('profiles')
+        .update({ banned: true })
+        .eq('id', user.id);
+
+      if (userError) throw userError;
+
+      showToast(`Successfully blacklisted IP ${ip} and banned student account.`, 'success');
+      fetchUsers();
+      fetchBannedIps();
+    } catch (err: any) {
+      showToast('IP Ban failed: ' + err.message, 'error');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleManualIpBan = async () => {
+    if (!manualIp.trim()) {
+      showToast('Please enter an IP address to ban.', 'warning');
+      return;
+    }
+    const ipRegex = /^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$|^([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}$/;
+    if (!ipRegex.test(manualIp.trim())) {
+      showToast('Please enter a valid IPv4 or IPv6 address.', 'warning');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('ip_bans')
+        .insert({
+          ip_address: manualIp.trim(),
+          banned_by: currentAdmin?.id,
+          reason: manualIpReason.trim() || "Violating CCIS portal terms of service."
+        });
+
+      if (error) throw error;
+
+      showToast(`Successfully blacklisted IP ${manualIp.trim()}`, 'success');
+      setManualIp('');
+      setManualIpReason('');
+      fetchBannedIps();
+    } catch (err: any) {
+      showToast('Manual IP Ban failed: ' + err.message, 'error');
+    }
+  };
+
+  const handleRemoveIpBan = async (ipBanId: string, ipAddress: string) => {
+    if (!confirm(`Are you sure you want to lift the IP ban on ${ipAddress}?`)) return;
+    try {
+      const { error } = await supabase
+        .from('ip_bans')
+        .delete()
+        .eq('id', ipBanId);
+
+      if (error) throw error;
+
+      showToast(`Removed IP ban restriction on ${ipAddress}`, 'success');
+      fetchBannedIps();
+    } catch (err: any) {
+      showToast('Failed to lift IP ban: ' + err.message, 'error');
     }
   };
 
@@ -352,6 +479,14 @@ export default function UserManager() {
                                   </span>
                                 </>
                               )}
+                              {user.last_ip && (
+                                <>
+                                  <span className="hidden sm:inline text-stone-300">•</span>
+                                  <span className="font-mono font-semibold text-rose-600 bg-rose-50 border border-rose-100 px-1.5 py-0.2 rounded" title="Last recorded IP address">
+                                    IP: {user.last_ip}
+                                  </span>
+                                </>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -462,6 +597,18 @@ export default function UserManager() {
                               title={isSelf ? 'You cannot ban yourself' : 'Restrict/Ban User'}
                             >
                               <Ban size={14} />
+                            </button>
+                          )}
+
+                          {/* IP Ban Toggle Action */}
+                          {!isSelf && (
+                            <button
+                              onClick={() => handleInitiateIpBan(user)}
+                              disabled={isLoading}
+                              className="p-1.5 rounded-lg text-stone-400 hover:text-red-700 hover:bg-red-50 transition-colors"
+                              title={user.last_ip ? `IP Ban device: ${user.last_ip}` : "IP Ban student (manual IP entry required)"}
+                            >
+                              <ShieldAlert size={14} />
                             </button>
                           )}
 
@@ -588,6 +735,92 @@ export default function UserManager() {
           </div>
         </div>
       )}
+
+      {/* Banned IP Addresses Manager Panel */}
+      <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden shadow-sm p-6 space-y-4">
+        <div>
+          <h2 className="text-lg font-black text-rose-750 flex items-center gap-2">
+            <ShieldAlert size={20} className="text-rose-600" /> Blacklisted IP Address Repository
+          </h2>
+          <p className="text-stone-500 text-xs mt-1">
+            Devices matching these public IP addresses are permanently blocked from accessing any CCIS portal pages.
+          </p>
+        </div>
+
+        {/* Manual IP Blacklist Form */}
+        <div className="flex flex-col md:flex-row gap-3 items-end bg-[#FAF7EA] p-4 rounded-xl border border-stone-200">
+          <div className="flex-1 w-full space-y-1">
+            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">IP Address to Blacklist</label>
+            <input
+              type="text"
+              placeholder="e.g. 112.198.84.22"
+              value={manualIp}
+              onChange={(e) => setManualIp(e.target.value)}
+              className="w-full bg-white border border-stone-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-[#F5B400] font-mono text-[#1A3C2E]"
+            />
+          </div>
+          <div className="flex-1 w-full space-y-1">
+            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Reason for Ban</label>
+            <input
+              type="text"
+              placeholder="e.g. Repeated profane support widget messaging spam"
+              value={manualIpReason}
+              onChange={(e) => setManualIpReason(e.target.value)}
+              className="w-full bg-white border border-stone-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-[#F5B400] text-stone-700"
+            />
+          </div>
+          <button
+            onClick={handleManualIpBan}
+            className="w-full md:w-auto bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-5 py-2.5 rounded-lg shrink-0 transition-colors uppercase tracking-wider shadow-sm cursor-pointer"
+          >
+            Blacklist IP
+          </button>
+        </div>
+
+        {loadingBannedIps ? (
+          <div className="py-8 flex justify-center">
+            <div className="w-5 h-5 border-2 border-rose-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : bannedIps.length === 0 ? (
+          <div className="text-center py-6 text-stone-400 text-xs font-mono">
+            No IP addresses are currently blacklisted.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs text-left">
+              <thead className="bg-stone-50 border-b border-stone-150 text-stone-500 font-mono text-[9px] uppercase tracking-wider">
+                <tr>
+                  <th className="px-4 py-2.5 font-bold">Banned IP Address</th>
+                  <th className="px-4 py-2.5 font-bold">Ban Trigger Date</th>
+                  <th className="px-4 py-2.5 font-bold">Banned By</th>
+                  <th className="px-4 py-2.5 font-bold">Reason / Context</th>
+                  <th className="px-4 py-2.5 font-bold text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-150 font-sans">
+                {bannedIps.map((ban: any) => (
+                  <tr key={ban.id} className="hover:bg-rose-50/20 transition-colors">
+                    <td className="px-4 py-3 font-mono font-bold text-rose-600">{ban.ip_address}</td>
+                    <td className="px-4 py-3 text-stone-500">{new Date(ban.created_at).toLocaleString()}</td>
+                    <td className="px-4 py-3 font-medium text-stone-700">
+                      {ban.profiles?.full_name || ban.profiles?.email || 'System'}
+                    </td>
+                    <td className="px-4 py-3 text-stone-600 italic">"{ban.reason || 'No reason specified'}"</td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        onClick={() => handleRemoveIpBan(ban.id, ban.ip_address)}
+                        className="text-emerald-600 hover:text-emerald-700 font-bold hover:underline bg-transparent border-none cursor-pointer text-xs"
+                      >
+                        Lift Restriction
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -26,6 +26,7 @@ export interface Profile {
   approved_by: string | null;
   rejection_reason: string | null;
   contact_number: string | null;
+  last_ip: string | null;
   created_at: string;
   updated_at: string;
 }

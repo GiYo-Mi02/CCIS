@@ -187,7 +187,7 @@ export default function LoadingScreen() {
         ref={word2Ref}
         className="absolute left-0 right-0 text-center top-[48%] text-[#FAF7EA] font-sans font-extrabold text-[clamp(3rem,8.5vw,6.5rem)] tracking-tighter uppercase italic leading-none opacity-0 select-none"
       >
-        CREATE
+        CREATE.
       </div>
 
       {/* Waypoint 3: CONNECT */}
@@ -195,7 +195,7 @@ export default function LoadingScreen() {
         ref={word3Ref}
         className="absolute left-0 right-0 text-center top-[68%] text-[#F5B400] font-sans font-extrabold text-[clamp(3rem,8.5vw,6.5rem)] tracking-tighter uppercase italic leading-none opacity-0 select-none"
       >
-        CONNECT
+        CONNECT.
       </div>
     </div>
   );

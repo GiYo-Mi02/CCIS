@@ -64,7 +64,7 @@ export default function DetailModal({
         </button>
 
         {/* LEFT COLUMN: Metadata & Description */}
-        <div className="w-full md:w-[35%] p-6 sm:p-8 flex flex-col justify-between overflow-y-auto max-h-[40vh] md:max-h-full border-b md:border-b-0 md:border-r border-stone-200/60">
+        <div className="w-full md:w-[45%] p-6 sm:p-8 md:p-10 flex flex-col justify-between overflow-y-auto max-h-[45vh] md:max-h-full border-b md:border-b-0 md:border-r border-stone-200/60">
           <div className="space-y-4 text-left">
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-mono tracking-widest uppercase font-black bg-[#1A3C2E]/10 text-[#1A3C2E] border border-[#1A3C2E]/20 px-3.5 py-1.5 rounded-full">
@@ -75,11 +75,11 @@ export default function DetailModal({
               </span>
             </div>
 
-            <h3 className="font-sans font-black text-xl sm:text-2xl md:text-3xl text-stone-900 tracking-tight leading-tight">
+            <h3 className="font-marcellus font-black text-xl sm:text-2xl md:text-3xl text-stone-900 tracking-tight leading-snug">
               {item.title}
             </h3>
 
-            <p className="text-stone-600 text-xs sm:text-sm leading-relaxed whitespace-pre-line font-sans font-medium">
+            <p className="text-stone-600 text-sm md:text-[15px] leading-relaxed whitespace-pre-line font-sans font-medium mt-4">
               {item.description}
             </p>
           </div>
@@ -147,7 +147,7 @@ export default function DetailModal({
         </div>
 
         {/* RIGHT COLUMN: Feature Image & Thumbnails Grid */}
-        <div className="w-full md:w-[65%] p-6 sm:p-8 bg-stone-100/30 flex flex-col justify-center gap-4 max-h-[50vh] md:max-h-full">
+        <div className="w-full md:w-[55%] p-6 sm:p-8 md:p-10 bg-stone-100/30 flex flex-col justify-center gap-4 max-h-[50vh] md:max-h-full">
           
           {/* Main Featured Image Container */}
           <div className="relative w-full flex-1 min-h-[220px] md:min-h-[380px] rounded-2xl overflow-hidden border border-stone-200/55 bg-black flex items-center justify-center shadow-inner">

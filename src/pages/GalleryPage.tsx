@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Camera, Edit, Trash2, Plus, X, Maximize2, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
 
 // Types & Sub-components
 import { GalleryItem, GalleryCategory, Toast } from '../types/gallery';
@@ -13,14 +14,33 @@ interface GalleryPageProps {
 }
 
 export default function GalleryPage({ isAdmin = false }: GalleryPageProps) {
+  const { user } = useAuth();
+
   // App states
   const [items, setItems] = useState<GalleryItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedCategory, setSelectedCategory] = useState<GalleryCategory>('All');
   const [detailItem, setDetailItem] = useState<GalleryItem | null>(null);
+  const [customOrder, setCustomOrder] = useState<string[]>([]);
+  const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
   
   // Custom Toasts State
   const [toasts, setToasts] = useState<Toast[]>([]);
+
+  // Sync custom order from local storage
+  useEffect(() => {
+    const key = `ccis-gallery-order-${user?.id || 'guest'}`;
+    const stored = localStorage.getItem(key);
+    if (stored) {
+      try {
+        setCustomOrder(JSON.parse(stored));
+      } catch (e) {
+        console.error('Failed to parse stored gallery order:', e);
+      }
+    } else {
+      setCustomOrder([]);
+    }
+  }, [user?.id]);
 
   // Admin controls
   const [showAdminForm, setShowAdminForm] = useState<boolean>(false);
@@ -89,6 +109,7 @@ export default function GalleryPage({ isAdmin = false }: GalleryPageProps) {
             imageUrl: item.image_url,
             thumbnails: item.thumbnails || [],
             aspectRatio: (item.aspect_ratio || 'landscape') as 'portrait' | 'landscape' | 'square',
+            featured: item.featured || false,
             createdAt: item.created_at
           }));
           setItems(mapped);
@@ -109,12 +130,71 @@ export default function GalleryPage({ isAdmin = false }: GalleryPageProps) {
 
   const getStoragePathFromUrl = (url: string): string | null => {
     try {
-      const parts = url.split('/public/gallery-images/');
-      if (parts.length === 2) return parts[1];
+      const parts = url.split('gallery-images/');
+      if (parts.length >= 2) return parts.slice(1).join('gallery-images/');
       return null;
     } catch {
       return null;
     }
+  };
+
+  // Sort items according to local storage custom order
+  const getSortedItems = (itemsList: GalleryItem[]): GalleryItem[] => {
+    if (!customOrder || customOrder.length === 0) return itemsList;
+    
+    const orderedItems: GalleryItem[] = [];
+    const newItems: GalleryItem[] = [];
+    const itemMap = new Map(itemsList.map(item => [item.id, item]));
+    
+    customOrder.forEach(id => {
+      const item = itemMap.get(id);
+      if (item) {
+        orderedItems.push(item);
+        itemMap.delete(id);
+      }
+    });
+    
+    itemMap.forEach(item => {
+      newItems.push(item);
+    });
+    
+    newItems.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    
+    return [...newItems, ...orderedItems];
+  };
+
+  const handleDragStart = (e: React.DragEvent, id: string) => {
+    setDraggedItemId(id);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    if (!draggedItemId || draggedItemId === targetId) return;
+
+    const sorted = getSortedItems(items);
+    const draggedIdx = sorted.findIndex(item => item.id === draggedItemId);
+    const targetIdx = sorted.findIndex(item => item.id === targetId);
+
+    if (draggedIdx === -1 || targetIdx === -1) return;
+
+    const updated = [...sorted];
+    const [draggedItem] = updated.splice(draggedIdx, 1);
+    updated.splice(targetIdx, 0, draggedItem);
+
+    const newOrder = updated.map(item => item.id);
+    setCustomOrder(newOrder);
+
+    const key = `ccis-gallery-order-${user?.id || 'guest'}`;
+    localStorage.setItem(key, JSON.stringify(newOrder));
+  };
+
+  const handleDragEnd = () => {
+    setDraggedItemId(null);
   };
 
   // Execute storage and DB deletion
@@ -183,7 +263,7 @@ export default function GalleryPage({ isAdmin = false }: GalleryPageProps) {
   };
 
   // Filter items
-  const filteredItems = items.filter(item => {
+  const filteredItems = getSortedItems(items).filter(item => {
     if (selectedCategory === 'All') return true;
     return item.category === selectedCategory;
   });
@@ -288,7 +368,7 @@ export default function GalleryPage({ isAdmin = false }: GalleryPageProps) {
         </div>
 
         <HeroCarousel 
-          items={items.slice(0, 6)}
+          items={items.filter(item => item.featured)}
           onEditClick={(item) => {
             setEditTargetItem(item);
             setShowAdminForm(true);
@@ -384,37 +464,58 @@ export default function GalleryPage({ isAdmin = false }: GalleryPageProps) {
               {columns.map((col, colIdx) => (
                 <div key={colIdx} className="flex flex-col gap-4">
                   {col.map(item => {
-                    const derivedIndex = getDerivedIndexLabel(item, filteredItems);
-                    
                     return (
                       <div
                         key={item.id}
-                        className="group relative overflow-hidden rounded-2xl bg-white border border-stone-200/50 shadow-sm transition-all duration-300 hover:shadow-lg hover:border-[#1A3C2E]/30 focus-within:ring-2 focus-within:ring-[#1A3C2E] cursor-pointer"
+                        draggable={true}
+                        onDragStart={(e) => handleDragStart(e, item.id)}
+                        onDragOver={(e) => handleDragOver(e)}
+                        onDrop={(e) => handleDrop(e, item.id)}
+                        onDragEnd={handleDragEnd}
+                        className={`group relative overflow-hidden rounded-2xl bg-white border border-stone-200/50 shadow-sm transition-all duration-300 hover:shadow-xl hover:border-[#1A3C2E]/30 hover:-translate-y-2 focus-within:ring-2 focus-within:ring-[#1A3C2E] cursor-grab active:cursor-grabbing ${
+                          draggedItemId === item.id ? 'opacity-40 border-dashed border-2 border-[#1A3C2E]' : ''
+                        }`}
                         onClick={() => setDetailItem(item)}
                       >
                         
                         {/* Image aspect box */}
-                        <div className="overflow-hidden relative bg-stone-100">
+                        <div className="overflow-hidden relative bg-stone-100 w-full h-full">
                           <img
                             src={item.imageUrl}
                             alt={item.title}
-                            className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
+                            className="w-full h-auto object-cover transition-all duration-500 group-hover:scale-105 group-hover:brightness-75 group-hover:opacity-90"
                             loading="lazy"
                           />
                           
-                          {/* Overlay */}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-4 text-white">
-                            <span className="text-[10px] font-mono tracking-widest uppercase font-bold bg-[#FAF7EA]/25 backdrop-blur-md px-2.5 py-1 rounded-full w-max text-white">
-                              {item.category}
-                            </span>
-                            
+                          {/* Hover metadata overlay */}
+                          <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-5 text-white">
                             <div className="flex items-center justify-between">
-                              <span className="text-xs font-semibold opacity-90 truncate max-w-[150px]">
-                                {item.postedBy}
+                              <span className="text-[10px] font-mono tracking-widest uppercase font-black bg-[#FAF7EA]/25 backdrop-blur-md px-2.5 py-1 rounded-full text-white">
+                                {item.category}
                               </span>
-                              <span className="text-xs flex items-center gap-1 font-bold">
-                                View <Maximize2 size={10} />
-                              </span>
+                              {item.featured && (
+                                <span className="text-[9px] font-bold font-mono text-[#F5B400] bg-black/40 px-2 py-0.5 rounded-full border border-[#F5B400]/30">
+                                  Featured
+                                </span>
+                              )}
+                            </div>
+                            
+                            <div className="space-y-2 text-left">
+                              <h3 className="font-marcellus text-sm sm:text-base md:text-lg font-black tracking-tight leading-tight line-clamp-3 text-white font-serif">
+                                {item.title}
+                              </h3>
+                              <p className="text-[11px] font-sans text-stone-200 line-clamp-2 opacity-95">
+                                {item.description}
+                              </p>
+                              
+                              <div className="flex items-center justify-between pt-1 border-t border-white/20 mt-1">
+                                <span className="text-[10px] font-bold opacity-80 truncate max-w-[130px]">
+                                  By {item.postedBy}
+                                </span>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-[#F5B400] flex items-center gap-1">
+                                  View <Maximize2 size={10} />
+                                </span>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -426,7 +527,7 @@ export default function GalleryPage({ isAdmin = false }: GalleryPageProps) {
                             onClick={e => e.stopPropagation()}
                           >
                             {deleteConfirmId === item.id ? (
-                              <div className="bg-white rounded-xl shadow-xl border border-stone-200 p-2 flex items-center gap-1.5 animate-fade-in text-stone-800">
+                              <div className="bg-white rounded-xl shadow-xl border border-stone-200 p-2 flex items-center gap-1.5 animate-fade-in text-stone-800 cursor-default">
                                 <span className="text-[9px] font-bold font-mono">Delete?</span>
                                 <button
                                   onClick={() => handleConfirmDelete(item.id)}
@@ -467,22 +568,6 @@ export default function GalleryPage({ isAdmin = false }: GalleryPageProps) {
                             )}
                           </div>
                         )}
-
-                        {/* Card bottom details */}
-                        <div className="p-4 flex items-center justify-between border-t border-stone-100 bg-[#FAF7EA]/20">
-                          <span className="font-mono text-xs text-stone-400 font-bold tracking-wider">
-                            {derivedIndex}
-                          </span>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDetailItem(item);
-                            }}
-                            className="text-[11px] font-black uppercase tracking-wider text-[#1A3C2E] hover:text-[#F5B400] transition-colors flex items-center gap-1 focus:outline-none focus:underline cursor-pointer"
-                          >
-                            Details ↗
-                          </button>
-                        </div>
 
                       </div>
                     );

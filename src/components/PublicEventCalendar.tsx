@@ -1,7 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Calendar, ChevronLeft, ChevronRight, Clock, MapPin, X, Loader2 } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Clock, MapPin, X, Loader2, Zap, CalendarDays, CalendarRange } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+
+const getTodayStr = (): string => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 interface EventItemDB {
   id: string;
@@ -62,37 +70,51 @@ export function UpcomingEventsList({ onNavigate }: UpcomingEventsListProps) {
   }
 
   return (
-    <div className="space-y-3 font-sans">
-      <h3 className="font-mono text-xs uppercase tracking-wider text-[#5E6E64] font-bold">Upcoming Directives</h3>
-      <div className="space-y-2.5">
+    <div className="space-y-4 font-sans">
+      <h3 className="font-sans text-xs uppercase tracking-wider text-[#5E6E64] font-black flex items-center gap-1.5">
+        <CalendarRange size={14} className="text-[#123524]" /> Upcoming Directives
+      </h3>
+      <div className="space-y-3">
         {upcoming.map(evt => (
-          <div key={evt.id} className="bg-white p-3.5 rounded-2xl border border-zinc-150 shadow-xs flex items-center justify-between gap-3">
-            <div className="flex items-start gap-3 flex-1 min-w-0">
+          <div key={evt.id} className="bg-white p-4 rounded-2xl border-2 border-stone-200 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-between gap-4">
+            <div className="flex items-start gap-3.5 flex-1 min-w-0">
               {evt.banner_url ? (
-                <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-zinc-150 relative">
+                <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-stone-200 relative shadow-sm">
                   <img src={evt.banner_url} alt="" className="w-full h-full object-cover" />
-                  <div className={`absolute left-0 top-0 bottom-0 w-1 ${
+                  <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${
                     evt.category === 'priority' ? 'bg-[#FFBC00]' : 'bg-[#123524]'
                   }`} />
                 </div>
               ) : (
-                <div className={`w-2.5 h-10 rounded-full shrink-0 ${
-                  evt.category === 'priority' ? 'bg-[#FFBC00]' : 'bg-[#123524]'
-                }`} />
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border shadow-xs transition-colors duration-300 ${
+                  evt.category === 'priority' 
+                    ? 'bg-[#FFBC00]/15 border-[#FFBC00]/30 text-[#8F6A00]' 
+                    : 'bg-[#123524]/10 border-[#123524]/20 text-[#123524]'
+                }`}>
+                  {evt.category === 'priority' ? <Zap size={20} className="animate-pulse" /> : <CalendarDays size={20} />}
+                </div>
               )}
-              <div className="flex-1 min-w-0 space-y-0.5 text-left">
-                <span className="text-[10px] font-mono text-[#5E6E64]">📅 {evt.event_date}</span>
-                <h4 className="font-bold text-xs text-[#123524] truncate">{evt.title}</h4>
+              <div className="flex-1 min-w-0 space-y-1 text-left">
+                <span className="text-[10.5px] font-black text-[#123524] bg-stone-100 px-2.5 py-0.5 rounded-md inline-flex items-center gap-1">
+                  <Calendar size={11} className="text-[#FFBC00] shrink-0" /> {evt.event_date}
+                </span>
+                <h4 className="font-bold text-xs text-[#123524] truncate mt-1">{evt.title}</h4>
                 <p className="text-[10.5px] text-[#5E6E64] truncate">{evt.description}</p>
               </div>
             </div>
             
-            <button
-              onClick={() => onNavigate && onNavigate('registration', evt.id)}
-              className="text-[10px] font-bold text-[#123524] hover:text-[#FFBC00] hover:bg-[#123524] border border-[#123524]/20 hover:border-transparent px-2.5 py-1 rounded-lg transition-all shrink-0"
-            >
-              Register
-            </button>
+            {evt.event_date < getTodayStr() ? (
+              <span className="text-[10px] font-bold text-stone-400 bg-stone-100 border border-stone-200 px-2.5 py-1 rounded-lg cursor-not-allowed select-none shrink-0 animate-fade-in">
+                Event has Ended
+              </span>
+            ) : (
+              <button
+                onClick={() => onNavigate && onNavigate('registration', evt.id)}
+                className="text-[10px] font-bold text-[#123524] hover:text-[#FFBC00] hover:bg-[#123524] border border-[#123524]/20 hover:border-transparent px-2.5 py-1.5 rounded-lg transition-all shrink-0"
+              >
+                Register
+              </button>
+            )}
           </div>
         ))}
       </div>
@@ -101,9 +123,10 @@ export function UpcomingEventsList({ onNavigate }: UpcomingEventsListProps) {
 }
 
 export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab: string, eventId?: string) => void }) {
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 5, 16)); // Target June 16, 2026 as reference base month
+  const todayStr = getTodayStr();
+  const [currentDate, setCurrentDate] = useState(new Date()); 
   const [events, setEvents] = useState<EventItemDB[]>([]);
-  const [selectedDateStr, setSelectedDateStr] = useState<string>('2026-06-16');
+  const [selectedDateStr, setSelectedDateStr] = useState<string>(todayStr);
   const [filter, setFilter] = useState<'all' | 'general' | 'priority'>('all');
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
@@ -215,8 +238,8 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
   };
 
   const handleJumpToToday = () => {
-    setCurrentDate(new Date(2026, 5, 16)); // Today reference locked for 2026 June
-    setSelectedDateStr('2026-06-16');
+    setCurrentDate(new Date());
+    setSelectedDateStr(getTodayStr());
   };
 
   const handleDayClick = (dateStr: string, isCurrentMonth: boolean) => {
@@ -241,7 +264,7 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
   const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   // Today marker check
-  const isToday = (dateStr: string) => dateStr === '2026-06-16';
+  const isToday = (dateStr: string) => dateStr === todayStr;
 
   const renderEventList = (eventsList: EventItemDB[]) => {
     if (eventsList.length === 0) {
@@ -270,10 +293,10 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
                   <img src={evt.banner_url} alt="" className="w-full h-full object-cover" />
                 </div>
               )}
-              <div className="space-y-1 flex-1 min-w-0">
-                <div className="flex flex-wrap items-center gap-2 text-[10.5px] font-mono text-[#5E6E64]">
-                  <span className="flex items-center gap-0.5"><Clock size={11} /> {evt.event_time || 'TBA'}</span>
-                  {evt.location && <span className="flex items-center gap-0.5">📍 {evt.location}</span>}
+              <div className="space-y-1.5 flex-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-3 text-[11px] font-mono text-[#5E6E64]">
+                  <span className="flex items-center gap-1"><Clock size={12} className="text-[#123524]" /> {evt.event_time || 'TBA'}</span>
+                  {evt.location && <span className="flex items-center gap-1"><MapPin size={12} className="text-[#123524]" /> {evt.location}</span>}
                 </div>
                 <h4 className="font-sans font-bold text-[#123524] text-base leading-snug">{evt.title}</h4>
                 {evt.description && <p className="text-[#5E6E64] text-xs leading-relaxed">{evt.description}</p>}
@@ -288,12 +311,18 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
               }`}>
                 {evt.category}
               </span>
-              <button
-                onClick={() => onNavigate && onNavigate('registration', evt.id)}
-                className="text-[10px] font-bold bg-[#123524] hover:bg-[#FFBC00] text-white hover:text-[#123524] px-3 py-1.5 rounded-lg transition-all shadow-xs"
-              >
-                Register
-              </button>
+              {evt.event_date < todayStr ? (
+                <span className="text-[10px] font-bold text-stone-400 bg-stone-100 border border-stone-200 px-3 py-1.5 rounded-lg cursor-not-allowed select-none animate-fade-in">
+                  Event has Ended
+                </span>
+              ) : (
+                <button
+                  onClick={() => onNavigate && onNavigate('registration', evt.id)}
+                  className="text-[10px] font-bold bg-[#123524] hover:bg-[#FFBC00] text-white hover:text-[#123524] px-3 py-1.5 rounded-lg transition-all shadow-xs"
+                >
+                  Register
+                </button>
+              )}
             </div>
           </div>
         ))}
@@ -306,7 +335,8 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
       {/* Month Navigation Control Header */}
       <div className="flex items-center justify-between pb-3 border-b border-zinc-100 font-sans">
         <div className="flex items-center gap-3">
-          <h3 className="font-sans font-black text-[#123524] text-lg">
+          <h3 className="font-sans font-black text-[#123524] text-xl flex items-center gap-2">
+            <CalendarRange size={22} className="text-[#FFBC00] shrink-0" />
             {monthLabels[month]} {year}
           </h3>
           <button
@@ -352,11 +382,11 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
       </div>
 
       {/* Calendar Grid Container */}
-      <div className="border border-zinc-150 rounded-2xl overflow-hidden shadow-xs bg-white">
+      <div className="border-2 border-[#123524]/20 rounded-2xl overflow-hidden shadow-sm bg-white transition-all duration-300 hover:shadow-md">
         {/* Days of Week Header */}
-        <div className="grid grid-cols-7 border-b border-zinc-150 bg-stone-50/50 text-center py-2">
+        <div className="grid grid-cols-7 border-b-2 border-[#123524]/15 bg-stone-50/70 text-center py-2.5">
           {daysOfWeek.map(day => (
-            <span key={day} className="font-mono font-bold text-[10px] text-[#5E6E64] uppercase tracking-wider">
+            <span key={day} className="font-mono font-black text-[10px] text-[#5E6E64] uppercase tracking-wider">
               {day}
             </span>
           ))}
@@ -369,22 +399,32 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
             <p className="text-[10px] font-mono uppercase tracking-wider">Loading Schedules...</p>
           </div>
         ) : (
-          <div className="grid grid-cols-7 grid-rows-5 divide-x divide-y divide-zinc-150">
+          <div className="grid grid-cols-7 grid-rows-5 divide-x-2 divide-y-2 divide-[#123524]/10 border-t border-stone-200">
             {cells.map((cell, idx) => {
               const { dateStr, day, isCurrentMonth } = cell;
               const isSelected = selectedDateStr === dateStr;
               
-              const dayEvents = eventsMap.get(dateStr) || [];
-              const filteredDayEvents = dayEvents.filter(
+              const cellEvents = eventsMap.get(dateStr) || [];
+              const filteredDayEvents = cellEvents.filter(
                 e => filter === 'all' || e.category === filter
               );
               
               const hasEvents = filteredDayEvents.length > 0;
               const isTodayCell = isToday(dateStr);
 
-              // Responsive dots rendering configuration
-              const priorityCount = filteredDayEvents.filter(e => e.category === 'priority').length;
-              const generalCount = filteredDayEvents.filter(e => e.category === 'general').length;
+              let cellBgClass = 'bg-white hover:bg-stone-50';
+              let cellBorderClass = '';
+              
+              if (!isCurrentMonth) {
+                cellBgClass = 'bg-stone-100/50 text-stone-300 cursor-not-allowed';
+              } else if (isSelected) {
+                cellBgClass = 'bg-[#FAF7EA] ring-2 ring-[#FFBC00] z-10';
+              } else if (hasEvents) {
+                cellBgClass = 'bg-white hover:bg-stone-50/80';
+                // Bottom thick highlights indicator
+                cellBorderClass = 'relative after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[4px] ' + 
+                  (filteredDayEvents.some(e => e.category === 'priority') ? 'after:bg-[#FFBC00]' : 'after:bg-[#123524]');
+              }
 
               return (
                 <div
@@ -392,47 +432,47 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
                   onClick={() => handleDayClick(dateStr, isCurrentMonth)}
                   onMouseEnter={(e) => handleMouseEnter(e, dateStr, filteredDayEvents)}
                   onMouseLeave={handleMouseLeave}
-                  className={`relative cursor-pointer transition-colors outline-none select-none flex flex-col items-center justify-between ${
-                    isCurrentMonth 
-                      ? isSelected 
-                        ? 'bg-amber-50/20 ring-2 ring-[#FFBC00] z-10' 
-                        : 'bg-white hover:bg-zinc-50/50' 
-                      : 'bg-zinc-50 text-zinc-300 cursor-not-allowed'
-                  } ${isMobile ? 'h-11 p-1' : 'h-16 p-1.5'}`}
+                  className={`relative cursor-pointer transition-all duration-200 outline-none select-none flex flex-col justify-between group ${cellBgClass} ${cellBorderClass} ${
+                    isMobile ? 'h-14 p-1.5' : 'md:min-h-[100px] md:h-24 p-2'
+                  }`}
                 >
-                  {/* Day Number badge */}
-                  <div className={`text-xs font-bold font-sans flex items-center justify-center rounded-full ${
-                    isTodayCell
-                      ? 'bg-[#123524] text-white w-6 h-6 shadow-sm'
-                      : 'text-stone-800'
-                  }`}>
-                    {day}
+                  {/* Day Number badge & category indicators */}
+                  <div className="w-full flex justify-between items-start">
+                    <div className={`text-sm md:text-[15px] font-black font-sans flex items-center justify-center rounded-full transition-all duration-300 ${
+                      isTodayCell
+                        ? 'bg-[#123524] text-white w-7 h-7 shadow-sm scale-105'
+                        : isCurrentMonth ? 'text-[#123524]' : 'text-stone-300'
+                    }`}>
+                      {day}
+                    </div>
+                    
+                    {isMobile && hasEvents && (
+                      <span className={`w-2 h-2 rounded-full shrink-0 mt-1 ${
+                        filteredDayEvents.some(e => e.category === 'priority') ? 'bg-[#FFBC00]' : 'bg-[#123524]'
+                      }`} />
+                    )}
                   </div>
 
-                  {/* Event indicator dots */}
-                  {isCurrentMonth && hasEvents && (
-                    <div className="w-full flex items-center justify-center gap-0.5 mt-0.5">
-                      {isMobile ? (
-                        <>
-                          {priorityCount > 0 && <span className="w-1.5 h-1.5 rounded-full bg-[#FFBC00]" />}
-                          {generalCount > 0 && <span className="w-1.5 h-1.5 rounded-full bg-[#123524]" />}
-                        </>
-                      ) : (
-                        <>
-                          {filteredDayEvents.slice(0, 3).map((evt, eIdx) => (
-                            <span
-                              key={evt.id}
-                              className={`w-1.5 h-1.5 rounded-full ${
-                                evt.category === 'priority' ? 'bg-[#FFBC00]' : 'bg-[#123524]'
-                              }`}
-                            />
-                          ))}
-                          {filteredDayEvents.length > 3 && (
-                            <span className="text-[7.5px] font-mono font-black text-stone-500 leading-none">
-                              +{filteredDayEvents.length - 3}
-                            </span>
-                          )}
-                        </>
+                  {/* Event indicators capsules (Desktop only) */}
+                  {!isMobile && isCurrentMonth && hasEvents && (
+                    <div className="w-full flex flex-col gap-1 mt-1 overflow-hidden pointer-events-none">
+                      {filteredDayEvents.slice(0, 2).map((evt) => (
+                        <div
+                          key={evt.id}
+                          className={`text-[9px] px-1.5 py-0.5 rounded font-sans truncate font-bold text-left w-full border transition-all duration-300 group-hover:scale-[1.02] ${
+                            evt.category === 'priority'
+                              ? 'bg-[#FFBC00]/15 text-[#8F6A00] border-[#FFBC00]/30'
+                              : 'bg-[#123524]/10 text-[#123524] border-[#123524]/20'
+                          }`}
+                          title={evt.title}
+                        >
+                          {evt.title}
+                        </div>
+                      ))}
+                      {filteredDayEvents.length > 2 && (
+                        <div className="text-[8px] font-mono font-black text-stone-400 text-left pl-1">
+                          +{filteredDayEvents.length - 2} more
+                        </div>
                       )}
                     </div>
                   )}
@@ -446,8 +486,9 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
       {/* 3. SELECTED DAY PANEL (DESKTOP DETAIL BLOCK) */}
       {!isMobile && (
         <div className="bg-zinc-50/50 p-5 rounded-2xl border border-zinc-200 shadow-inner font-sans animate-fade-in">
-          <div className="border-b border-zinc-200 pb-2.5 mb-3">
-            <h4 className="font-sans font-black text-xs uppercase tracking-wider text-[#123524]">
+          <div className="border-b-2 border-zinc-200 pb-2.5 mb-3 flex items-center gap-2">
+            <h4 className="font-sans font-black text-sm uppercase tracking-wider text-[#123524] flex items-center gap-2">
+              <span className="inline-block w-2.5 h-2.5 rounded-full bg-[#FFBC00] animate-pulse" />
               Agenda for: {new Date(selectedDateStr).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
             </h4>
           </div>
@@ -519,15 +560,21 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
                       <div className={`w-full h-3 shrink-0 ${firstEvent.category === 'priority' ? 'bg-[#FFBC00]' : 'bg-[#123524]'}`} />
                     )}
                     
-                    <div className="p-3.5 space-y-1.5 font-sans">
-                      <span className="block text-[9px] font-mono uppercase tracking-wider text-stone-400">
-                        {firstEvent.event_time || 'TBA'} {firstEvent.location ? `| ${firstEvent.location}` : ''}
+                    <div className="p-3.5 space-y-2.5 font-sans">
+                      <span className="flex items-center flex-wrap gap-2 text-[9px] font-mono uppercase tracking-wider text-stone-500 font-bold">
+                        <Clock size={10} className="text-[#123524] shrink-0" /> {firstEvent.event_time || 'TBA'}
+                        {firstEvent.location && (
+                          <>
+                            <span className="opacity-40">•</span>
+                            <MapPin size={10} className="text-[#123524] shrink-0" /> {firstEvent.location}
+                          </>
+                        )}
                       </span>
                       <h5 className="font-bold text-xs text-[#123524] leading-snug line-clamp-2">
                         {firstEvent.title}
                       </h5>
                       {firstEvent.description && (
-                        <p className="text-[10px] text-[#5E6E64] line-clamp-2 leading-relaxed mt-0.5">
+                        <p className="text-[10px] text-[#5E6E64] line-clamp-2 leading-relaxed mt-0.5 font-medium">
                           {firstEvent.description}
                         </p>
                       )}
