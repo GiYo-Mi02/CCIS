@@ -146,28 +146,32 @@ export default function InfoHub({ onNavigate }: { onNavigate?: (tab: string, eve
   const renderOfficerCard = (off: Officer) => (
     <div
       key={off.id}
-      className="relative w-[280px] max-w-[calc(100vw-3rem)] h-[380px] group overflow-visible mt-14 mb-4 flex flex-col justify-end"
+      className="relative w-[280px] max-w-[calc(100vw-3rem)] h-[395px] group overflow-visible mt-16 mb-6 flex flex-col justify-end transition-all duration-500"
       id={`officer-card-${off.id}`}
     >
       {/* 1. Offset Angled Accent Border Frame */}
-      <div className="absolute inset-x-0 bottom-0 top-10 rounded-3xl border-2 border-[#F5B400]/20 translate-x-2.5 translate-y-2.5 -rotate-2 pointer-events-none group-hover:translate-x-0 group-hover:translate-y-0 group-hover:rotate-0 transition-all duration-500" />
+      <div className="absolute inset-x-0 bottom-0 top-10 rounded-3xl border-2 border-[#F5B400]/15 translate-x-3 translate-y-3 -rotate-3 pointer-events-none group-hover:translate-x-0 group-hover:translate-y-0 group-hover:rotate-0 group-hover:border-[#F5B400]/35 transition-all duration-500" />
 
-      {/* 2. Main Skewed/Tilted Background Panel Card */}
-      <div className="absolute inset-x-0 bottom-0 top-10 bg-gradient-to-br from-[#123524] to-[#0A1A13] rounded-3xl border border-white/10 shadow-lg group-hover:shadow-2xl transition-all duration-500 origin-bottom transform group-hover:scale-[1.01] -rotate-1 group-hover:rotate-0 overflow-hidden" />
+      {/* 2. Main Skewed/Tilted Background Panel Card with Dynamic Elevation & Ambient Glow */}
+      <div className="absolute inset-x-0 bottom-0 top-10 bg-gradient-to-br from-[#163628] via-[#0E2219] to-[#060D0A] rounded-3xl border border-white/10 shadow-2xl group-hover:shadow-[0_30px_60px_rgba(0,0,0,0.6)] group-hover:shadow-[#123524]/30 transition-all duration-500 origin-bottom transform group-hover:scale-[1.02] group-hover:-translate-y-3.5 -rotate-1 group-hover:rotate-0 overflow-hidden" />
 
-      {/* 3. Rotated/Vertical Department Label */}
-      <div className="absolute top-16 right-4 font-mono font-black text-[#F5B400]/15 group-hover:text-[#F5B400]/35 text-[9px] uppercase tracking-[0.25em] transition-colors duration-300 [writing-mode:vertical-lr] select-none pointer-events-none">
+      {/* 3. Rotated/Vertical Department Label with Slide Interaction */}
+      <div className="absolute top-16 right-4 font-mono font-black text-[#F5B400]/10 group-hover:text-[#F5B400]/30 text-[9px] uppercase tracking-[0.3em] transition-all duration-500 [writing-mode:vertical-lr] select-none pointer-events-none group-hover:translate-y-2">
         {off.committee === 'Executive Board' ? 'EXECUTIVE' : off.committee.replace('Committee', '').trim()}
       </div>
 
-      {/* 4. Overlapping 3D Pop-out Portrait Frame */}
-      <div className="absolute bottom-20 left-1/2 -translate-x-1/2 w-[88%] h-[98%] overflow-hidden rounded-2xl border border-white/10 shadow-md bg-white/5 pointer-events-none z-10 group-hover:scale-105 group-hover:-translate-y-1.5 transition-all duration-500 origin-bottom">
+      {/* 4. Overlapping 3D Pop-out Portrait Frame with Bottom Blend Overlay */}
+      <div className="absolute bottom-20 left-1/2 -translate-x-1/2 w-[88%] h-[98%] overflow-hidden rounded-2xl border border-white/10 shadow-lg bg-white/5 pointer-events-none z-10 group-hover:shadow-2xl group-hover:scale-106 group-hover:-translate-y-4 group-hover:border-[#F5B400]/30 transition-all duration-500 origin-bottom">
         {off.photoUrl ? (
-          <img 
-            src={off.photoUrl} 
-            alt={off.name} 
-            className="w-full h-full object-cover select-none" 
-          />
+          <div className="relative w-full h-full">
+            <img 
+              src={off.photoUrl} 
+              alt={off.name} 
+              className="w-full h-full object-cover select-none" 
+            />
+            {/* Ambient bottom blend overlay inside frame */}
+            <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none" />
+          </div>
         ) : (
           /* Fallback text avatar */
           <div className="w-full h-full bg-[#FAF7EA] text-[#1A3C2E] flex items-center justify-center font-sans font-black text-2xl select-none">
@@ -176,8 +180,8 @@ export default function InfoHub({ onNavigate }: { onNavigate?: (tab: string, eve
         )}
       </div>
 
-      {/* 5. Floating Glassmorphic Footer Info Plate */}
-      <div className="absolute bottom-4 left-4 right-4 bg-[#0B1512]/90 backdrop-blur-md border border-white/10 p-3.5 rounded-2xl z-20 text-left shadow-lg group-hover:border-[#F5B400]/30 transition-all duration-500 flex flex-col justify-between">
+      {/* 5. Floating Glassmorphic Footer Info Plate with Layered Elevation */}
+      <div className="absolute bottom-4 left-4 right-4 bg-[#07130F]/90 backdrop-blur-md border border-white/10 p-3.5 rounded-2xl z-20 text-left shadow-2xl group-hover:shadow-[0_15px_30px_rgba(0,0,0,0.5)] group-hover:border-[#F5B400]/40 group-hover:-translate-y-4 transition-all duration-500 flex flex-col justify-between">
         <div>
           <h3 className="font-sans font-black text-white text-xs md:text-sm group-hover:text-[#F5B400] transition-colors leading-tight mb-0.5 truncate">
             {off.name}
