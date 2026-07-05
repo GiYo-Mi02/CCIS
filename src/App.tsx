@@ -6,6 +6,7 @@ import InfoHub from './components/InfoHub';
 import RegistrationSection from './components/Registration';
 import PublicEventCalendar, { UpcomingEventsList } from './components/PublicEventCalendar';
 import FaqSection from './components/FaqSection';
+import DeveloperDedication from './components/DeveloperDedication';
 import Footer from './components/Footer';
 import LoadingScreen from './components/LoadingScreen';
 import AuthPage from './pages/AuthPage';
@@ -166,6 +167,9 @@ export default function App({ onAdminSwitch }: AppProps) {
 
               </div>
             </section>
+            
+            {/* Developer dedication section */}
+            <DeveloperDedication />
             
             {/* Common FAQ collapsible stack */}
             <FaqSection />

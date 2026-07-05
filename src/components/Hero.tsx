@@ -7,7 +7,7 @@ interface HeroProps {
 }
 
 const HERO_IMAGES = [
-  '/images/hero-section.jpg',
+  '/images/hero-section.png',
   '/images/hero-section2.png',
   '/images/hero-section3.jpg'
 ];
