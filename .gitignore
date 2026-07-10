@@ -6,3 +6,5 @@ coverage/
 *.log
 .env*
 !.env.example
+k6_load_test.js
+k6_diagnostic.json

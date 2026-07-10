@@ -208,19 +208,33 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
     setRegistering(true);
 
     try {
-      // Insert new registration
-      const { data: regData, error: regError } = await supabase
+      // Register for event using database RPC (enforces atomic slots capacity gate)
+      const { data: rawData, error: regError } = await supabase.rpc('register_for_event', {
+        p_event_id: selectedEventId,
+        p_profile_id: user.id,
+      });
+
+      if (regError) {
+        if (regError.message.includes('EVENT_FULL')) {
+          setRegistrationError('Sorry, this event is already full!');
+        } else if (regError.message.includes('ALREADY_REGISTERED')) {
+          setRegistrationError('You are already registered for this computing event!');
+        } else {
+          setRegistrationError('Failed to register. Please try again.');
+        }
+        setRegistering(false);
+        return;
+      }
+
+      // Fetch the registered event details (since RPC returns raw event_registrations row)
+      const { data: regData, error: fetchError } = await supabase
         .from('event_registrations')
-        .insert({
-          event_id: selectedEventId,
-          profile_id: user.id,
-          status: 'confirmed',
-        })
         .select('*, events(title, event_date, location)')
+        .eq('id', rawData.id)
         .single();
 
-      if (regError || !regData) {
-        setRegistrationError('Failed to register. Please try again.');
+      if (fetchError || !regData) {
+        setRegistrationError('Failed to retrieve registration details. Please try again.');
         setRegistering(false);
         return;
       }
