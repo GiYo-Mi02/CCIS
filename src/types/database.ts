@@ -72,6 +72,7 @@ export interface Officer {
   quote?: string | null;
   committees?: { name: string } | null;
   term?: string | null;
+  organization?: string | null;
 }
 
 export interface Announcement {

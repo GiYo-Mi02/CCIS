@@ -12,6 +12,7 @@ export default function OfficersManager() {
   const { showToast } = useAdmin();
   const [tab, setTab] = useState<Tab>('officers');
   const [selectedTerm, setSelectedTerm] = useState<string>('2026-2027');
+  const [selectedOrg, setSelectedOrg] = useState<string>('Student Council');
   const [officers, setOfficers] = useState<Officer[]>([]);
   const [committees, setCommittees] = useState<Committee[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,7 +33,12 @@ export default function OfficersManager() {
   useEffect(() => { fetchData(); }, []);
 
   const moveOfficer = async (id: string, direction: 'up' | 'down') => {
-    const sorted = [...officers].sort((a, b) => a.display_order - b.display_order);
+    const sorted = [...officers]
+      .filter(o => 
+        (o.term || '2026-2027') === selectedTerm && 
+        (o.organization || 'Student Council') === selectedOrg
+      )
+      .sort((a, b) => a.display_order - b.display_order);
     const idx = sorted.findIndex(o => o.id === id);
     if ((direction === 'up' && idx === 0) || (direction === 'down' && idx === sorted.length - 1)) return;
     const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
@@ -55,12 +61,21 @@ export default function OfficersManager() {
   const saveOfficer = async (form: Partial<Officer>) => {
     // If committee_id is empty string, convert to null for Executive Board classification
     const commId = form.committee_id === '' ? null : form.committee_id;
+    const orgVal = form.organization || 'Student Council';
+    
+    // Calculate display order relative to the active organization and term
+    const orgOfficers = officers.filter(o => 
+      (o.term || '2026-2027') === (form.term || selectedTerm) && 
+      (o.organization || 'Student Council') === orgVal
+    );
+
     if (isCreating) {
       const { error } = await supabase.from('officers').insert({
         name: form.name, position: form.position, committee_id: commId,
         photo_url: form.photo_url, email: form.email, quote: form.quote,
         term: form.term || '2026-2027',
-        display_order: officers.length + 1,
+        organization: orgVal,
+        display_order: orgOfficers.length + 1,
       });
       if (error) { showToast('Failed to add officer', 'error'); return; }
       showToast('Officer added!');
@@ -69,6 +84,7 @@ export default function OfficersManager() {
         name: form.name, position: form.position, committee_id: commId,
         photo_url: form.photo_url, email: form.email, quote: form.quote,
         term: form.term || '2026-2027',
+        organization: orgVal,
       }).eq('id', form.id);
       if (error) { showToast('Failed to update', 'error'); return; }
       showToast('Officer updated!');
@@ -135,7 +151,10 @@ export default function OfficersManager() {
   }
 
   const sortedOfficers = [...officers]
-    .filter(o => (o.term || '2026-2027') === selectedTerm)
+    .filter(o => 
+      (o.term || '2026-2027') === selectedTerm &&
+      (o.organization || 'Student Council') === selectedOrg
+    )
     .sort((a, b) => a.display_order - b.display_order);
 
   return (
@@ -148,15 +167,25 @@ export default function OfficersManager() {
         </div>
 
         {tab === 'officers' && (
-          <select 
-            value={selectedTerm} 
-            onChange={(e) => setSelectedTerm(e.target.value)} 
-            className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold uppercase tracking-wider text-gray-500 shadow-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400]"
-          >
-            <option value="2026-2027">AY 2026-2027</option>
-            <option value="2025-2026">AY 2025-2026</option>
-            <option value="2024-2025">AY 2024-2025</option>
-          </select>
+          <div className="flex gap-2">
+            <select 
+              value={selectedTerm} 
+              onChange={(e) => setSelectedTerm(e.target.value)} 
+              className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold uppercase tracking-wider text-gray-500 shadow-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400]"
+            >
+              <option value="2026-2027">AY 2026-2027</option>
+              <option value="2025-2026">AY 2025-2026</option>
+              <option value="2024-2025">AY 2024-2025</option>
+            </select>
+            <select 
+              value={selectedOrg} 
+              onChange={(e) => setSelectedOrg(e.target.value)} 
+              className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold uppercase tracking-wider text-gray-500 shadow-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400]"
+            >
+              <option value="Student Council">Student Council</option>
+              <option value="Computer Society">Computer Society</option>
+            </select>
+          </div>
         )}
 
         <div className="flex-1" />
@@ -174,7 +203,20 @@ export default function OfficersManager() {
           onClick={() => {
             setIsCreating(true);
             if (tab === 'officers') {
-              setEditingOfficer({ name: '', position: '', committee_id: committees[0]?.id, photo_url: '', email: '', term: selectedTerm, display_order: officers.length + 1 });
+              const orgOfficers = officers.filter(o => 
+                (o.term || '2026-2027') === selectedTerm && 
+                (o.organization || 'Student Council') === selectedOrg
+              );
+              setEditingOfficer({ 
+                name: '', 
+                position: '', 
+                committee_id: '', 
+                photo_url: '', 
+                email: '', 
+                term: selectedTerm, 
+                organization: selectedOrg, 
+                display_order: orgOfficers.length + 1 
+              });
             } else {
               setEditingCommittee({ name: '', description: '', head_name: '', responsibilities: [] });
             }
@@ -298,13 +340,22 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
           </select>
         </div>
       </div>
-      <div>
-        <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Academic Year (Term)</label>
-        <select value={form.term || '2026-2027'} onChange={(e) => setForm({ ...form, term: e.target.value })} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400]">
-          <option value="2026-2027">AY 2026-2027</option>
-          <option value="2025-2026">AY 2025-2026</option>
-          <option value="2024-2025">AY 2024-2025</option>
-        </select>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Academic Year (Term)</label>
+          <select value={form.term || '2026-2027'} onChange={(e) => setForm({ ...form, term: e.target.value })} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400]">
+            <option value="2026-2027">AY 2026-2027</option>
+            <option value="2025-2026">AY 2025-2026</option>
+            <option value="2024-2025">AY 2024-2025</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Organization</label>
+          <select value={form.organization || 'Student Council'} onChange={(e) => setForm({ ...form, organization: e.target.value })} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400]">
+            <option value="Student Council">Student Council</option>
+            <option value="Computer Society">Computer Society</option>
+          </select>
+        </div>
       </div>
       <div>
         <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Quote / Campaign Tagline</label>

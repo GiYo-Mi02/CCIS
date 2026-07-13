@@ -25,6 +25,7 @@ export interface Officer {
   order: number;
   quote?: string;
   term?: string;
+  organization?: string;
 }
 
 export interface Committee {

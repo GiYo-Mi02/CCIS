@@ -27,6 +27,7 @@ export default function InfoHub({ onNavigate }: { onNavigate?: (tab: string, eve
   const [expandedFaq, setExpandedFaq] = useState<string | null>(null);
   const [activeInfoTab, setActiveInfoTab] = useState<'college' | 'council' | 'compsoc'>('college');
   const [selectedTerm, setSelectedTerm] = useState<string>('2026-2027');
+  const [selectedOrg, setSelectedOrg] = useState<'council' | 'compsoc'>('council');
   
   // Dynamic database collections
   const [officers, setOfficers] = useState<Officer[]>([]);
@@ -63,7 +64,8 @@ export default function InfoHub({ onNavigate }: { onNavigate?: (tab: string, eve
           email: o.email,
           order: o.display_order,
           quote: o.quote || '',
-          term: o.term || '2026-2027'
+          term: o.term || '2026-2027',
+          organization: o.organization || 'Student Council'
         })));
       }
       setLoading(false);
@@ -95,19 +97,23 @@ export default function InfoHub({ onNavigate }: { onNavigate?: (tab: string, eve
     );
   }
 
-  // Categorize and sort officers based on the selected term
-  const filteredOfficers = officers.filter(o => o.term === selectedTerm);
+  // Categorize and sort officers based on the selected term and organization
+  const filteredOfficers = officers.filter(o => 
+    o.term === selectedTerm && 
+    (selectedOrg === 'compsoc' ? o.organization === 'Computer Society' : (o.organization === 'Student Council' || !o.organization))
+  );
 
-  const execBoardRoles = ['chairperson', 'president', 'vice chairperson', 'vice president', 'secretary', 'treasurer', 'auditor'];
+  const execBoardRoles = ['chairperson', 'president', 'vice chairperson', 'vice president', 'secretary', 'treasurer', 'auditor', 'public information officer', 'pio'];
 
   const getExecBoardRank = (position: string) => {
     const pos = position.toLowerCase().replace(/\s+/g, ' ').trim();
     if (pos === 'chairperson' || pos === 'president') return 1;
-    if (pos === 'vice chairperson' || pos === 'vice  chairperson' || pos === 'vice president') return 2;
+    if (pos.includes('vice chairperson') || pos.includes('vice president')) return 2;
     if (pos === 'secretary') return 3;
     if (pos === 'treasurer') return 4;
     if (pos === 'auditor') return 5;
-    return 6;
+    if (pos.includes('public information officer') || pos === 'pio') return 6;
+    return 7;
   };
 
   const getYearLevel = (position: string) => {
@@ -121,18 +127,22 @@ export default function InfoHub({ onNavigate }: { onNavigate?: (tab: string, eve
 
   const execBoard = filteredOfficers.filter(o => {
     const pos = o.position.toLowerCase().replace(/\s+/g, ' ').trim();
-    return execBoardRoles.some(r => pos === r || (r === 'vice chairperson' && pos === 'vice  chairperson'));
+    return execBoardRoles.some(r => 
+      pos === r || 
+      (r === 'vice president' && pos.includes('vice president')) ||
+      (r === 'vice chairperson' && pos.includes('vice chairperson'))
+    );
   }).sort((a, b) => getExecBoardRank(a.position) - getExecBoardRank(b.position));
 
   const yearReps = filteredOfficers.filter(o => {
     const pos = o.position.toLowerCase();
-    const isExec = execBoardRoles.some(r => pos.replace(/\s+/g, ' ').trim() === r || (r === 'vice chairperson' && pos.replace(/\s+/g, ' ').trim() === 'vice  chairperson'));
+    const isExec = execBoard.some(e => e.id === o.id);
     return !isExec && (pos.includes('year representative') || pos.includes('year rep') || pos.includes('representative'));
   }).sort((a, b) => getYearLevel(a.position) - getYearLevel(b.position));
 
   const committeeHeads = filteredOfficers.filter(o => {
     const pos = o.position.toLowerCase();
-    const isExec = execBoardRoles.some(r => pos.replace(/\s+/g, ' ').trim() === r || (r === 'vice chairperson' && pos.replace(/\s+/g, ' ').trim() === 'vice  chairperson'));
+    const isExec = execBoard.some(e => e.id === o.id);
     const isYear = pos.includes('year representative') || pos.includes('year rep') || pos.includes('representative');
     return !isExec && !isYear && (pos.includes('head') || o.committee !== 'Executive Board');
   });
@@ -267,7 +277,10 @@ export default function InfoHub({ onNavigate }: { onNavigate?: (tab: string, eve
             </div>
             {/* Student Council Logo */}
             <div 
-              onClick={() => setActiveInfoTab('council')}
+              onClick={() => {
+                setActiveInfoTab('council');
+                setSelectedOrg('council');
+              }}
               className={`flex items-center gap-3 p-3 rounded-xl transition-all cursor-pointer hover:bg-[#FAF7EA]/50 ${
                 activeInfoTab === 'council' ? 'ring-2 ring-[#F5B400] bg-[#FAF7EA]/30' : ''
               }`}
@@ -280,7 +293,10 @@ export default function InfoHub({ onNavigate }: { onNavigate?: (tab: string, eve
             </div>
             {/* Computer Society Logo */}
             <div 
-              onClick={() => setActiveInfoTab('compsoc')}
+              onClick={() => {
+                setActiveInfoTab('compsoc');
+                setSelectedOrg('compsoc');
+              }}
               className={`flex items-center gap-3 p-3 rounded-xl transition-all cursor-pointer hover:bg-[#FAF7EA]/50 ${
                 activeInfoTab === 'compsoc' ? 'ring-2 ring-[#F5B400] bg-[#FAF7EA]/30' : ''
               }`}
@@ -494,25 +510,54 @@ export default function InfoHub({ onNavigate }: { onNavigate?: (tab: string, eve
           
           <div className="text-center mb-12">
             <span className="font-mono text-xs uppercase tracking-[0.2em] text-[#5E6E64] font-bold font-semibold">Leadership</span>
-            <h2 className="font-sans font-black text-3xl md:text-4xl text-[#1A3C2E] mt-1">CCIS Student Council Officers</h2>
-            <p className="text-[#5E6E64] text-xs md:text-sm mt-2 font-mono uppercase tracking-widest">Commitment, Service, Integrity</p>
+            <h2 className="font-sans font-black text-3xl md:text-4xl text-[#1A3C2E] mt-1">
+              {selectedOrg === 'compsoc' ? 'Computer Society Executives' : 'CCIS Student Council Officers'}
+            </h2>
+            <p className="text-[#5E6E64] text-xs md:text-sm mt-2 font-mono uppercase tracking-widest">
+              {selectedOrg === 'compsoc' ? 'Innovating, Developing, Empowering' : 'Commitment, Service, Integrity'}
+            </p>
             <div className="h-1 w-16 bg-[#F5B400] mx-auto mt-3 rounded-full mb-6" />
             
-            {/* Term Selector */}
-            <div className="inline-flex items-center gap-2 bg-[#FAF7EA] rounded-full border border-[#1A3C2E]/10 p-1 shadow-xs">
-              {['2026-2027', '2025-2026', '2024-2025'].map((t) => (
+            {/* Double Switcher layout */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-4">
+              <div className="inline-flex items-center gap-1.5 bg-[#FAF7EA] rounded-full border border-[#1A3C2E]/10 p-1 shadow-xs font-sans">
                 <button
-                  key={t}
-                  onClick={() => setSelectedTerm(t)}
-                  className={`px-4 py-1.5 rounded-full text-xs font-bold font-sans transition-all cursor-pointer ${
-                    selectedTerm === t
+                  onClick={() => setSelectedOrg('council')}
+                  className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                    selectedOrg === 'council'
                       ? 'bg-[#1A3C2E] text-[#FAF7EA] shadow-xs'
                       : 'text-stone-500 hover:text-[#1A3C2E]'
                   }`}
                 >
-                  AY {t}
+                  Student Council
                 </button>
-              ))}
+                <button
+                  onClick={() => setSelectedOrg('compsoc')}
+                  className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                    selectedOrg === 'compsoc'
+                      ? 'bg-[#1A3C2E] text-[#FAF7EA] shadow-xs'
+                      : 'text-stone-500 hover:text-[#1A3C2E]'
+                  }`}
+                >
+                  Computer Society
+                </button>
+              </div>
+
+              <div className="inline-flex items-center gap-1.5 bg-[#FAF7EA] rounded-full border border-[#1A3C2E]/10 p-1 shadow-xs font-sans">
+                {['2026-2027', '2025-2026', '2024-2025'].map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setSelectedTerm(t)}
+                    className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                      selectedTerm === t
+                        ? 'bg-[#1A3C2E] text-[#FAF7EA] shadow-xs'
+                        : 'text-stone-500 hover:text-[#1A3C2E]'
+                    }`}
+                  >
+                    AY {t}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
