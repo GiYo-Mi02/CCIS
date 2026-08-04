@@ -92,9 +92,9 @@ export default function AdminForm({
     if (!allowedTypes.includes(file.type)) {
       return `File type ${file.type} is not supported. Use JPG, PNG or WEBP.`;
     }
-    const maxSize = 5 * 1024 * 1024; // 5MB
+    const maxSize = 10 * 1024 * 1024; // 10MB
     if (file.size > maxSize) {
-      return `File ${file.name} exceeds the 5MB size limit.`;
+      return `File ${file.name} exceeds the 10MB size limit.`;
     }
     return null;
   };
@@ -506,7 +506,7 @@ export default function AdminForm({
                     <Upload size={14} className="text-[#1A3C2E]" />
                     Select Main Image
                   </label>
-                  <span className="text-[10px] text-stone-400 font-mono">JPG, PNG, WEBP (Max 5MB)</span>
+                  <span className="text-[10px] text-stone-400 font-mono">JPG, PNG, WEBP (Max 10MB)</span>
                 </div>
 
                 {formState.imagePreview && (

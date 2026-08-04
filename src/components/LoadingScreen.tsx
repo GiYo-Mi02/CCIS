@@ -3,31 +3,30 @@ import { gsap } from 'gsap';
 
 export default function LoadingScreen() {
   const [isComplete, setIsComplete] = useState(() => {
-    // Check if the animation has already played in this browser session
     if (typeof window !== 'undefined') {
       return sessionStorage.getItem('ccis_loader_played') === 'true';
     }
     return false;
   });
 
-  const overlayRef = useRef<HTMLDivElement>(null);
-  const word1Ref = useRef<HTMLDivElement>(null);
-  const word2Ref = useRef<HTMLDivElement>(null);
-  const word3Ref = useRef<HTMLDivElement>(null);
-  const lineRef = useRef<HTMLDivElement>(null);
-  const logoRef = useRef<HTMLDivElement>(null);
+  const overlayRef    = useRef<HTMLDivElement>(null);
+  const logoRef       = useRef<HTMLDivElement>(null);
+  const word1Ref      = useRef<HTMLDivElement>(null); // CODE.
+  const word2Ref      = useRef<HTMLDivElement>(null); // CREATE.
+  const word3Ref      = useRef<HTMLDivElement>(null); // CONNECT.
+  const barTrackRef   = useRef<HTMLDivElement>(null);
+  const barFillRef    = useRef<HTMLDivElement>(null);
+  const barPercentRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     if (isComplete) return;
 
-    // Create GSAP context for clean resource cleanup on component unmount
     const ctx = gsap.context(() => {
       const tl = gsap.timeline({
         onComplete: () => {
-          // Slide-up exit transition of the entire loading overlay
           gsap.to(overlayRef.current, {
             yPercent: -100,
-            duration: 0.8,
+            duration: 0.75,
             ease: 'power4.inOut',
             onComplete: () => {
               sessionStorage.setItem('ccis_loader_played', 'true');
@@ -37,104 +36,70 @@ export default function LoadingScreen() {
         },
       });
 
-      // Unified transition speeds and easing curves
-      const easeIn = 'power3.out';
-      const easeOut = 'power2.in';
+      // ── Initial states ──────────────────────────────────────
+      gsap.set(logoRef.current,   { opacity: 0, scale: 0.88, y: 8 });
+      gsap.set(word1Ref.current,  { opacity: 0, y: 20 });
+      gsap.set(word2Ref.current,  { opacity: 0, y: 20 });
+      gsap.set(word3Ref.current,  { opacity: 0, y: 20 });
+      gsap.set(barTrackRef.current, { opacity: 0, scaleX: 0, transformOrigin: 'left center' });
+      gsap.set(barFillRef.current,  { width: '0%' });
 
-      // Set initial values
-      gsap.set(lineRef.current, { top: '38.5%', width: '0%', opacity: 0 });
-      gsap.set(word1Ref.current, { opacity: 0, y: 30 });
-      gsap.set(word2Ref.current, { opacity: 0, y: 30 });
-      gsap.set(word3Ref.current, { opacity: 0, y: 30 });
-      gsap.set(logoRef.current, { opacity: 0, scale: 0.95 });
-
-      // ==========================================
-      // WAYPOINT 1 — "LEAD." (Top Zone)
-      // ==========================================
+      // ── 1) Logo fades in ────────────────────────────────────
       tl.to(logoRef.current, {
-        opacity: 1,
-        scale: 1,
-        duration: 1.0,
-        ease: 'power3.out'
+        opacity: 1, scale: 1, y: 0,
+        duration: 0.7, ease: 'power3.out',
       })
-      .to(lineRef.current, { 
-        top: '43.6%', 
-        opacity: 1, 
-        width: '22%', 
-        duration: 0.6, 
-        ease: easeIn 
-      }, '-=0.6')
-      .to(word1Ref.current, { 
-        opacity: 1, 
-        y: 0, 
-        duration: 0.6, 
-        ease: easeIn 
-      }, '-=0.4')
-      .to(word1Ref.current, { 
-        opacity: 0, 
-        y: -15, 
-        duration: 0.4, 
-        ease: easeOut 
-      }, '+=0.6'); // Hold focus for 0.6 seconds
 
-      // ==========================================
-      // WAYPOINT 2 — "CREATE" (Middle Zone)
-      // ==========================================
-      // Travel the horizontal line down and expand it slightly wider
-      tl.to(lineRef.current, { 
-        top: '61.5%', 
-        width: '32%', 
-        duration: 0.6, 
-        ease: 'power3.inOut' 
-      })
-      .to(word2Ref.current, { 
-        opacity: 1, 
-        y: 0, 
-        duration: 0.6, 
-        ease: easeIn 
-      }, '-=0.2')
-      .to(word2Ref.current, { 
-        opacity: 0, 
-        y: -15, 
-        duration: 0.4, 
-        ease: easeOut 
-      }, '+=0.6'); // Hold focus for 0.6 seconds
+      // ── 2) Bar track reveals ────────────────────────────────
+      .to(barTrackRef.current, {
+        opacity: 1, scaleX: 1,
+        duration: 0.4, ease: 'power2.out',
+      }, '-=0.1')
 
-      // ==========================================
-      // WAYPOINT 3 — "CONNECT" (Bottom Zone)
-      // ==========================================
-      // Travel the horizontal line down and adjust width
-      tl.to(lineRef.current, { 
-        top: '81.5%', 
-        width: '28%', 
-        duration: 0.6, 
-        ease: 'power3.inOut' 
-      })
-      .to(word3Ref.current, { 
-        opacity: 1, 
-        y: 0, 
-        duration: 0.6, 
-        ease: easeIn 
-      }, '-=0.2')
-      .to(word3Ref.current, { 
-        opacity: 0, 
-        y: -15, 
-        duration: 0.4, 
-        ease: easeOut 
-      }, '+=0.6')
-      .to(lineRef.current, { 
-        opacity: 0, 
-        width: '0%', 
-        duration: 0.4, 
-        ease: easeOut 
-      }, '-=0.4')
-      .to(logoRef.current, {
-        opacity: 0,
-        scale: 0.95,
-        duration: 0.4,
-        ease: easeOut
-      }, '-=0.4'); // Shrink and fade the traveling line and logo with the final word
+      // ── 3) Bar starts filling (runs in parallel with words) ─
+      .to(barFillRef.current, {
+        width: '100%',
+        duration: 3.0,           // covers the 3 words × ~1s each
+        ease: 'linear',
+        onUpdate: function () {
+          if (barPercentRef.current) {
+            barPercentRef.current.textContent = `${Math.round(this.progress() * 100)}%`;
+          }
+        },
+      }, '+=0.05')
 
+      // ── 4) CODE. — in then out ──────────────────────────────
+      .to(word1Ref.current, {
+        opacity: 1, y: 0,
+        duration: 0.45, ease: 'power3.out',
+      }, '<')                    // start same time as bar fill
+      .to(word1Ref.current, {
+        opacity: 0, y: -14,
+        duration: 0.35, ease: 'power2.in',
+      }, '+=0.65')               // hold ~0.65s then fade out
+
+      // ── 5) CREATE. — in then out ────────────────────────────
+      .to(word2Ref.current, {
+        opacity: 1, y: 0,
+        duration: 0.45, ease: 'power3.out',
+      }, '+=0.1')
+      .to(word2Ref.current, {
+        opacity: 0, y: -14,
+        duration: 0.35, ease: 'power2.in',
+      }, '+=0.65')
+
+      // ── 6) CONNECT. — in then out ───────────────────────────
+      .to(word3Ref.current, {
+        opacity: 1, y: 0,
+        duration: 0.45, ease: 'power3.out',
+      }, '+=0.1')
+      .to(word3Ref.current, {
+        opacity: 0, y: -14,
+        duration: 0.35, ease: 'power2.in',
+      }, '+=0.65')
+
+      // ── 7) Brief hold before exit ────────────────────────────
+      .to({}, { duration: 0.25 });
     });
 
     return () => ctx.revert();
@@ -145,57 +110,100 @@ export default function LoadingScreen() {
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-[100] flex flex-col justify-center items-center bg-[#1A3C2E] select-none overflow-hidden pointer-events-auto"
+      className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#1A3C2E] select-none overflow-hidden pointer-events-auto"
       id="ccis-loading-screen"
     >
-      {/* Background radial visual highlights */}
-      <div className="absolute inset-0 opacity-[0.03] pointer-events-none">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vh] h-[80vh] border-[3px] border-[#F5B400] rounded-full" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60vh] h-[60vh] border-[1.5px] border-[#F5B400] rounded-full" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[40vh] h-[40vh] border-[1px] border-[#FAF7EA] rounded-full" />
-      </div>
-
-      {/* CCIS Council Logo Watermark (centered in background) */}
+      {/* Radial glow */}
       <div
-        ref={logoRef}
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none select-none opacity-0"
-      >
-        <img
-          src="/images/ccis_logo.jpg"
-          alt="CCIS Logo Watermark"
-          className="w-[45vh] h-[45vh] max-w-[320px] max-h-[320px] rounded-full object-cover opacity-[0.06] border border-[#FAF7EA]/5 shadow-2xl"
-          referrerPolicy="no-referrer"
-        />
-      </div>
-
-      {/* Traveling Horizontal Gold Divider */}
-      <div
-        ref={lineRef}
-        className="absolute left-1/2 -translate-x-1/2 h-[2px] bg-[#F5B400] opacity-0 pointer-events-none rounded-full"
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(245,180,0,0.07) 0%, transparent 70%)',
+        }}
       />
 
-      {/* Waypoint 1: CODE. */}
-      <div
-        ref={word1Ref}
-        className="absolute left-0 right-0 text-center top-[28%] text-[#FAF7EA] font-sans font-extrabold text-[clamp(3rem,8.5vw,6.5rem)] tracking-tighter uppercase italic leading-none opacity-0 select-none"
-      >
-        CODE.
+      {/* Decorative rings */}
+      <div className="absolute inset-0 opacity-[0.04] pointer-events-none">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[72vh] h-[72vh] border-[2px] border-[#F5B400] rounded-full" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[52vh] h-[52vh] border-[1.5px] border-[#F5B400] rounded-full" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[34vh] h-[34vh] border border-[#FAF7EA] rounded-full" />
       </div>
 
-      {/* Waypoint 2: CREATE */}
-      <div
-        ref={word2Ref}
-        className="absolute left-0 right-0 text-center top-[48%] text-[#FAF7EA] font-sans font-extrabold text-[clamp(3rem,8.5vw,6.5rem)] tracking-tighter uppercase italic leading-none opacity-0 select-none"
-      >
-        CREATE.
-      </div>
+      {/* ── Main content ── */}
+      <div className="relative z-10 flex flex-col items-center gap-8 w-full max-w-[300px] px-6">
 
-      {/* Waypoint 3: CONNECT */}
-      <div
-        ref={word3Ref}
-        className="absolute left-0 right-0 text-center top-[68%] text-[#F5B400] font-sans font-extrabold text-[clamp(3rem,8.5vw,6.5rem)] tracking-tighter uppercase italic leading-none opacity-0 select-none"
-      >
-        CONNECT.
+        {/* Logo */}
+        <div ref={logoRef} className="opacity-0">
+          <img
+            src="/images/ccis_logo.jpg"
+            alt="CCIS Logo"
+            className="w-28 h-28 rounded-full object-cover shadow-2xl ring-2 ring-[#F5B400]/40"
+            referrerPolicy="no-referrer"
+          />
+        </div>
+
+        {/* Cycling word area — fixed height so layout doesn't jump */}
+        <div className="relative h-[clamp(3rem,9vw,5.5rem)] w-full flex items-center justify-center">
+
+          {/* CODE. */}
+          <div
+            ref={word1Ref}
+            className="absolute inset-0 flex items-center justify-center opacity-0
+                       text-[#FAF7EA] font-extrabold italic uppercase tracking-tight
+                       text-[clamp(2.8rem,8.5vw,5rem)] leading-none"
+          >
+            Code.
+          </div>
+
+          {/* CREATE. */}
+          <div
+            ref={word2Ref}
+            className="absolute inset-0 flex items-center justify-center opacity-0
+                       text-[#F5B400] font-extrabold italic uppercase tracking-tight
+                       text-[clamp(2.8rem,8.5vw,5rem)] leading-none"
+          >
+            Create.
+          </div>
+
+          {/* CONNECT. */}
+          <div
+            ref={word3Ref}
+            className="absolute inset-0 flex items-center justify-center opacity-0
+                       text-[#FAF7EA] font-extrabold italic uppercase tracking-tight
+                       text-[clamp(2.8rem,8.5vw,5rem)] leading-none"
+          >
+            Connect.
+          </div>
+        </div>
+
+        {/* Loading bar */}
+        <div className="w-full flex flex-col items-end gap-[5px]">
+          <span
+            ref={barPercentRef}
+            className="text-[#F5B400]/60 text-[10px] font-mono font-semibold tabular-nums"
+          >
+            0%
+          </span>
+
+          {/* Track */}
+          <div
+            ref={barTrackRef}
+            className="w-full h-[3px] rounded-full overflow-hidden opacity-0"
+            style={{ background: 'rgba(250,247,234,0.12)' }}
+          >
+            {/* Fill */}
+            <div
+              ref={barFillRef}
+              className="h-full rounded-full"
+              style={{
+                width: '0%',
+                background: 'linear-gradient(90deg, #b07e00 0%, #F5B400 55%, #ffe168 100%)',
+                boxShadow: '0 0 10px rgba(245,180,0,0.55)',
+              }}
+            />
+          </div>
+        </div>
+
       </div>
     </div>
   );

@@ -161,14 +161,11 @@ export default function NavBar({ activeTab, setActiveTab }: NavBarProps) {
           {/* Left: Brand Logo Block */}
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => handleNavClick('home')}>
             <div className="w-11 h-11 bg-[#FAF7EA] rounded-full flex items-center justify-center shadow-md border border-[#F5B400] overflow-hidden">
-              <CouncilSeal size={38} interactive={false} src="/images/ccis_logo.jpg" />
+              <CouncilSeal size={38} interactive={false} src="/images/CCIS-Logo.png" />
             </div>
             <div className="flex flex-col">
               <span className="font-sans font-black uppercase text-sm tracking-tight text-[#FAF7EA]">
-                CCIS Student Council
-              </span>
-              <span className="font-mono text-[9px] uppercase tracking-wider text-[#F5B400] font-bold">
-                Centralized Website
+                College of Computing<br></br>Information Sciences
               </span>
             </div>
           </div>
@@ -271,7 +268,7 @@ export default function NavBar({ activeTab, setActiveTab }: NavBarProps) {
               /* Logged-out: Sign In button */
               <button
                 onClick={() => handleNavClick('login')}
-                className="bg-[#F5B400] text-[#1A3C2E] px-5 py-2 rounded-full font-sans font-black text-[11px] uppercase tracking-widest shadow-sm hover:bg-[#ffc522] transition-colors"
+                className="bg-[#F5B400] text-[#1A3C2E] px-5 py-2 rounded font-sans font-black text-[11px] uppercase tracking-widest shadow-sm hover:bg-[#ffc522] transition-colors"
                 id="nav-cta-signin"
               >
                 SIGN IN

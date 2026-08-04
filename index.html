@@ -3,7 +3,37 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/png" href="/images/ccis_logo.png" />
+
+    <!-- ============================================================ -->
+    <!-- SECURITY HEADERS                                             -->
+    <!-- ============================================================ -->
+
+    <!-- Content Security Policy — fallback for non-Vercel environments.
+         In production (Vercel), HTTP headers in vercel.json take precedence. -->
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'self';
+      script-src 'self' 'unsafe-inline';
+      style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
+      font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:;
+      img-src 'self' data: blob: https://lh3.googleusercontent.com https://*.supabase.co;
+      connect-src 'self' https://*.supabase.co wss://*.supabase.co;
+      frame-ancestors 'none';
+      base-uri 'self';
+      form-action 'self';
+    " />
+
+    <!-- Prevents MIME-type sniffing attacks -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+
+    <!-- Prevents this page from being embedded in iframes (clickjacking) -->
+    <meta http-equiv="X-Frame-Options" content="DENY" />
+
+    <!-- Controls referrer info sent when navigating away -->
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
+
+    <!-- ============================================================ -->
+
+    <link rel="icon" type="image/png" href="/images/CCIS-Logo.png" />
     <title>CCIS Centralized Website</title>
   </head>
   <body>
@@ -11,4 +41,3 @@
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Edit3, Trash2, Users, ChevronUp, ChevronDown, Trash } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Plus, Edit3, Trash2, Users, ChevronUp, ChevronDown, Trash, Upload, X, Link as LinkIcon, Image as ImageIcon, Loader2, RefreshCw } from 'lucide-react';
 import { useAdmin } from '../AdminContext';
 import { supabase } from '../../lib/supabase';
 import { Officer, Committee } from '../../types/database';
@@ -221,7 +221,7 @@ export default function OfficersManager() {
               setEditingCommittee({ name: '', description: '', head_name: '', responsibilities: [] });
             }
           }}
-          className="bg-[#F5B400] hover:bg-[#ffc522] text-[#1A3C2E] px-5 py-2.5 rounded-lg font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-sm transition-colors"
+          className="bg-[#F5B400] hover:bg-[#ffc522] text-[#1A3C2E] px-5 py-2.5 rounded-lg font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-sm transition-colors cursor-pointer"
         >
           <Plus size={15} /> Add {tab === 'officers' ? 'Officer' : 'Committee'}
         </button>
@@ -319,31 +319,191 @@ export default function OfficersManager() {
   );
 }
 
-function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partial<Officer>; committees: Committee[]; onSave: (o: Partial<Officer>) => void; onClose: () => void }) {
+function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partial<Officer>; committees: Committee[]; onSave: (o: Partial<Officer>) => Promise<void> | void; onClose: () => void }) {
+  const { showToast } = useAdmin();
   const [form, setForm] = useState({ ...officer });
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>(officer.photo_url || '');
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [photoInputMode, setPhotoInputMode] = useState<'upload' | 'link'>('upload');
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl && previewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
+  const validateFile = (file: File): string | null => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      return `File format ${file.type} is not supported. Use JPG, PNG or WEBP.`;
+    }
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      return `File "${file.name}" exceeds the 10MB size limit.`;
+    }
+    return null;
+  };
+
+  const handleFileChange = (file: File) => {
+    const errorMsg = validateFile(file);
+    if (errorMsg) {
+      showToast(errorMsg, 'error');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    if (previewUrl && previewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(previewUrl);
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+    setSelectedFile(file);
+    setPreviewUrl(objectUrl);
+    setForm(prev => ({ ...prev, photo_url: objectUrl }));
+    showToast('Image selected! Save officer to upload.', 'info');
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFileChange(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleRemovePhoto = () => {
+    if (previewUrl && previewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setSelectedFile(null);
+    setPreviewUrl('');
+    setForm(prev => ({ ...prev, photo_url: '' }));
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    showToast('Photo link removed', 'info');
+  };
+
+  const handleSave = async () => {
+    if (!form.name || !form.name.trim()) {
+      showToast('Please provide officer name', 'error');
+      return;
+    }
+
+    setIsUploading(true);
+    let finalPhotoUrl = form.photo_url || '';
+
+    try {
+      if (selectedFile) {
+        setUploadProgress(25);
+        const uuid = crypto.randomUUID();
+        const cleanFileName = selectedFile.name.replace(/[^a-zA-Z0-9.]/g, '_');
+        const storagePath = `officers/${uuid}-${cleanFileName}`;
+
+        setUploadProgress(50);
+        const { error: uploadErr } = await supabase.storage
+          .from('gallery-images')
+          .upload(storagePath, selectedFile, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (uploadErr) throw uploadErr;
+
+        setUploadProgress(85);
+        const { data: urlData } = supabase.storage
+          .from('gallery-images')
+          .getPublicUrl(storagePath);
+
+        if (!urlData || !urlData.publicUrl) {
+          throw new Error('Failed to retrieve uploaded image public URL.');
+        }
+
+        finalPhotoUrl = urlData.publicUrl;
+
+        if (officer.photo_url && officer.photo_url.includes('gallery-images/officers/')) {
+          const oldPathParts = officer.photo_url.split('gallery-images/');
+          if (oldPathParts.length >= 2) {
+            supabase.storage.from('gallery-images').remove([oldPathParts[1]]).catch(console.error);
+          }
+        }
+      }
+
+      await onSave({
+        ...form,
+        photo_url: finalPhotoUrl,
+      });
+    } catch (err: any) {
+      console.error('Error uploading officer photo:', err);
+      showToast(err.message || 'Failed to upload photo', 'error');
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(null);
+    }
+  };
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 text-left">
       <div>
-        <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Name</label>
-        <input type="text" value={form.name || ''} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400]" />
+        <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">
+          Full Name <span className="text-rose-500">*</span>
+        </label>
+        <input
+          type="text"
+          value={form.name || ''}
+          onChange={(e) => setForm({ ...form, name: e.target.value })}
+          placeholder="e.g. Juan Dela Cruz"
+          className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400]"
+        />
       </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Position</label>
-          <input type="text" value={form.position || ''} onChange={(e) => setForm({ ...form, position: e.target.value })} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400]" />
+          <input
+            type="text"
+            value={form.position || ''}
+            onChange={(e) => setForm({ ...form, position: e.target.value })}
+            placeholder="e.g. Vice Chairperson"
+            className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400]"
+          />
         </div>
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Committee</label>
-          <select value={form.committee_id || ''} onChange={(e) => setForm({ ...form, committee_id: e.target.value })} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400]">
-            <option value="">Executive Officers (Executive Board)</option>
-            {committees.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Committee / Classification</label>
+          <select
+            value={form.committee_id || ''}
+            onChange={(e) => setForm({ ...form, committee_id: e.target.value })}
+            className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400]"
+          >
+            <option value="">Executive Officers (Executive Board / ExeBoard)</option>
+            {committees.map(c => <option key={c.id} value={c.id}>{c.name} (Executive Committee / ExeCom)</option>)}
           </select>
         </div>
       </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Academic Year (Term)</label>
-          <select value={form.term || '2026-2027'} onChange={(e) => setForm({ ...form, term: e.target.value })} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400]">
+          <select
+            value={form.term || '2026-2027'}
+            onChange={(e) => setForm({ ...form, term: e.target.value })}
+            className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400]"
+          >
             <option value="2026-2027">AY 2026-2027</option>
             <option value="2025-2026">AY 2025-2026</option>
             <option value="2024-2025">AY 2024-2025</option>
@@ -351,28 +511,223 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
         </div>
         <div>
           <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Organization</label>
-          <select value={form.organization || 'Student Council'} onChange={(e) => setForm({ ...form, organization: e.target.value })} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400]">
+          <select
+            value={form.organization || 'Student Council'}
+            onChange={(e) => setForm({ ...form, organization: e.target.value })}
+            className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400]"
+          >
             <option value="Student Council">Student Council</option>
             <option value="Computer Society">Computer Society</option>
           </select>
         </div>
       </div>
+
       <div>
         <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Quote / Campaign Tagline</label>
-        <input type="text" value={form.quote || ''} onChange={(e) => setForm({ ...form, quote: e.target.value })} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400]" placeholder="Enter campaign tagline or quote..." />
+        <input
+          type="text"
+          value={form.quote || ''}
+          onChange={(e) => setForm({ ...form, quote: e.target.value })}
+          className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400]"
+          placeholder="Enter campaign tagline or quote..."
+        />
       </div>
-      <div>
-        <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Photo URL</label>
-        <input type="text" value={form.photo_url || ''} onChange={(e) => setForm({ ...form, photo_url: e.target.value })} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400]" />
-        {form.photo_url && <div className="mt-2 w-16 h-16 rounded-full overflow-hidden border-2 border-[#FAF7EA]"><img src={form.photo_url} alt="Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" /></div>}
+
+      {/* Officer Photo Management Section */}
+      <div className="bg-gray-50 p-4 rounded-xl border border-gray-200/80 space-y-3">
+        <div className="flex items-center justify-between">
+          <label className="block text-xs font-bold uppercase tracking-wider text-gray-600">
+            Officer Photo
+          </label>
+          {previewUrl && (
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60 font-semibold">
+              {selectedFile ? 'New Image Ready' : 'Photo Attached'}
+            </span>
+          )}
+        </div>
+
+        {/* Hidden File Input */}
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={(e) => {
+            if (e.target.files && e.target.files.length > 0) {
+              handleFileChange(e.target.files[0]);
+            }
+          }}
+          accept="image/jpeg,image/png,image/webp"
+          className="hidden"
+          id="officer-photo-file-input"
+        />
+
+        {previewUrl ? (
+          /* Active Image Card View with Clear/Remove Option */
+          <div className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm flex items-center gap-4">
+            <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-[#F5B400] bg-gray-100 flex-shrink-0">
+              <img
+                src={previewUrl}
+                alt="Officer preview"
+                className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${form.name || 'Officer'}`;
+                }}
+              />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold text-gray-800 truncate">
+                {selectedFile ? selectedFile.name : (form.photo_url || 'Active Photo')}
+              </p>
+              <p className="text-[11px] text-gray-400 truncate">
+                {selectedFile
+                  ? `${(selectedFile.size / 1024).toFixed(1)} KB (Local File)`
+                  : (form.photo_url?.startsWith('http') ? 'External / Storage Link' : 'Image preview active')}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="px-2.5 py-1.5 text-xs font-semibold bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg flex items-center gap-1 transition-colors"
+                title="Replace photo"
+              >
+                <RefreshCw size={12} /> Replace
+              </button>
+              <button
+                type="button"
+                onClick={handleRemovePhoto}
+                className="px-2.5 py-1.5 text-xs font-semibold bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-lg flex items-center gap-1 transition-colors cursor-pointer"
+                title="Remove photo link"
+              >
+                <Trash2 size={12} /> Remove Link Photo
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* Empty Photo State: Drag & Drop + Direct URL Tab Options */
+          <div className="space-y-3">
+            {/* Input Mode Selector */}
+            <div className="flex items-center gap-2 border-b border-gray-200 pb-2">
+              <button
+                type="button"
+                onClick={() => setPhotoInputMode('upload')}
+                className={`px-3 py-1 rounded-md text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors ${
+                  photoInputMode === 'upload'
+                    ? 'bg-[#F5B400] text-[#1A3C2E]'
+                    : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <Upload size={12} /> Drop / Upload Image
+              </button>
+              <button
+                type="button"
+                onClick={() => setPhotoInputMode('link')}
+                className={`px-3 py-1 rounded-md text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors ${
+                  photoInputMode === 'link'
+                    ? 'bg-[#F5B400] text-[#1A3C2E]'
+                    : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <LinkIcon size={12} /> Paste Image Link
+              </button>
+            </div>
+
+            {photoInputMode === 'upload' ? (
+              /* Drag and Drop Zone */
+              <div
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onClick={() => fileInputRef.current?.click()}
+                className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all duration-200 ${
+                  isDragging
+                    ? 'border-[#F5B400] bg-[#FAF7EA] scale-[1.01]'
+                    : 'border-gray-300 hover:border-[#F5B400] bg-white hover:bg-gray-50'
+                }`}
+              >
+                <div className="w-10 h-10 rounded-full bg-[#FAF7EA] text-[#1A3C2E] flex items-center justify-center mx-auto mb-2 border border-[#F5B400]/30">
+                  <Upload size={18} />
+                </div>
+                <p className="text-xs font-bold text-gray-700">
+                  {isDragging ? 'Drop photo here to upload' : 'Click or Drag & Drop photo here'}
+                </p>
+                <p className="text-[10px] text-gray-400 mt-1">
+                  Supports JPG, PNG, WEBP (Max 10MB)
+                </p>
+              </div>
+            ) : (
+              /* Direct URL Input Field (Preserved Link) */
+              <div>
+                <input
+                  type="text"
+                  value={form.photo_url || ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setForm({ ...form, photo_url: val });
+                    setPreviewUrl(val);
+                  }}
+                  placeholder="https://example.com/officer_photo.jpg"
+                  className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400]"
+                />
+                <p className="text-[10px] text-gray-400 mt-1">
+                  Enter a direct web image URL to link an existing photo.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
+
       <div>
         <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Email</label>
-        <input type="email" value={form.email || ''} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400]" />
+        <input
+          type="email"
+          value={form.email || ''}
+          onChange={(e) => setForm({ ...form, email: e.target.value })}
+          placeholder="officer@ccis-council.org"
+          className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400]"
+        />
       </div>
+
+      {/* Progress Bar Indicator */}
+      {uploadProgress !== null && (
+        <div className="w-full space-y-1 pt-1">
+          <div className="flex items-center justify-between text-[11px] font-mono text-gray-500">
+            <span>Uploading photo to storage...</span>
+            <span>{uploadProgress}%</span>
+          </div>
+          <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-[#F5B400] transition-all duration-300 rounded-full"
+              style={{ width: `${uploadProgress}%` }}
+            />
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
-        <button onClick={() => onSave(form)} className="px-5 py-2.5 bg-[#F5B400] hover:bg-[#ffc522] text-[#1A3C2E] rounded-lg font-bold text-xs uppercase tracking-wider shadow-sm transition-colors">Save Officer</button>
-        <button onClick={onClose} className="px-4 py-2.5 text-xs text-gray-400 hover:text-gray-600 transition-colors">Cancel</button>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={isUploading}
+          className="px-5 py-2.5 bg-[#F5B400] hover:bg-[#ffc522] text-[#1A3C2E] rounded-lg font-bold text-xs uppercase tracking-wider shadow-sm transition-colors flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+        >
+          {isUploading ? (
+            <>
+              <Loader2 size={14} className="animate-spin" /> Saving Officer...
+            </>
+          ) : (
+            'Save Officer'
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={isUploading}
+          className="px-4 py-2.5 text-xs text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
+        >
+          Cancel
+        </button>
       </div>
     </div>
   );
@@ -401,3 +756,4 @@ function CommitteeForm({ committee, onSave, onClose }: { committee: Partial<Comm
     </div>
   );
 }
+

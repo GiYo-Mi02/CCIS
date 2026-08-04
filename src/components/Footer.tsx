@@ -25,17 +25,25 @@ export default function Footer({ onNavClick, onAdminSwitch }: FooterProps) {
           
           {/* Column 1: Organization brand info */}
           <div className="space-y-4">
-            <div className="flex items-center gap-2.5">
-              <div className="bg-[#FAF7EA] p-1.5 rounded-full border border-[#F5B400]/40 flex items-center justify-center">
-                <CouncilSeal size={32} interactive={false} src="/images/ccis_logo.jpg" />
+            {/* Circular logo + title side by side */}
+            <div className="flex flex-row items-center gap-4">
+              <div className="relative w-20 h-20 shrink-0">
+                {/* Outer decorative ring */}
+                <div className="absolute inset-0 rounded-full border-2 border-[#F5B400]/30 scale-110" />
+                {/* Inner ring */}
+                <div className="absolute inset-0 rounded-full border border-[#F5B400]/50" />
+                {/* Logo circle */}
+                <div className="w-full h-full rounded-full bg-[#FAF7EA] overflow-hidden shadow-xl flex items-center justify-center">
+                  <CouncilSeal size={76} interactive={false} src="/images/CCIS-Logo.png" />
+                </div>
               </div>
-              <h3 className="font-sans font-black text-white text-base tracking-tight uppercase">
-                CCIS Student Council
+              <h3 className="font-sans font-black text-white text-sm tracking-tight uppercase leading-snug">
+                College of Computing<br />Information Sciences
               </h3>
             </div>
             
             <p className="text-stone-300 text-xs leading-relaxed max-w-xs">
-              Serving our tigers with modern technical foundations, devoted administrative governance, and creative college spirits.
+              Serving our herons with modern technical foundations, devoted administrative governance, and creative college spirits.
             </p>
           </div>
 

@@ -128,7 +128,7 @@ export default function AdminSidebar({ collapsed, onToggle, onExitAdmin }: Admin
             <span className="font-sans font-black text-xs uppercase tracking-tight text-white truncate">
               CCIS DevCom
             </span>
-            <span className="font-mono text-[8px] uppercase tracking-widest text-[#F5B400] font-bold">
+            <span className="font-sans font-medium text-[11px] uppercase tracking-widest text-[#F5B400] truncate">
               Admin Panel
             </span>
           </div>

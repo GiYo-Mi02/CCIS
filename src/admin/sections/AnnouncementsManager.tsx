@@ -260,8 +260,8 @@ function AnnouncementForm({ announcement, isCreating, onSave, onClose }: {
       alert('Please upload an image file.');
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      alert('File size must be under 5MB.');
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File size must be under 10MB.');
       return;
     }
 

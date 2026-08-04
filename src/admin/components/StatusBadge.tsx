@@ -9,12 +9,12 @@ interface StatusBadgeProps {
 }
 
 const VARIANT_CLASSES: Record<BadgeVariant, string> = {
-  success: 'bg-[#2E7D32]/12 text-[#2E7D32] border-[#2E7D32]/25',
-  warning: 'bg-[#E0A100]/12 text-[#B38600] border-[#E0A100]/25',
-  danger: 'bg-[#C0392B]/12 text-[#C0392B] border-[#C0392B]/25',
-  info: 'bg-[#F5B400]/12 text-[#B38600] border-[#F5B400]/25',
-  neutral: 'bg-gray-100 text-gray-500 border-gray-200',
-  draft: 'bg-gray-100 text-gray-500 border-gray-200',
+  success: 'bg-[#e6f5ed] text-[#1a7a4a] border-[#1a7a4a]/25',
+  warning: 'bg-[#fffbea] text-[#b8860b] border-[#b8860b]/25',
+  danger:  'bg-[#fdecea] text-[#c0392b] border-[#c0392b]/25',
+  info:    'bg-[#c0d5f0] text-[#105389] border-[#105389]/25',
+  neutral: 'bg-[#eaecf4] text-[#47528a] border-[#47528a]/20',
+  draft:   'bg-[#eaecf4] text-[#47528a] border-[#47528a]/20',
 };
 
 export default function StatusBadge({ variant, label, className = '' }: StatusBadgeProps) {

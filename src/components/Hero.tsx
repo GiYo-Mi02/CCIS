@@ -88,7 +88,7 @@ export default function Hero({ onLearnMoreClick, onAnnouncementsClick }: HeroPro
             
             <button
               onClick={onLearnMoreClick}
-              className="border border-white/30 text-white/80 hover:text-white hover:border-white/60 px-6 py-3 text-xs font-bold uppercase tracking-widest flex items-center gap-2 transition-all duration-300 cursor-pointer backdrop-blur-sm"
+              className="border border-white/30 text-white/80 hover:text-white hover:border-white/60 px-6 py-3 text-xs font-semibold uppercase tracking-widest flex items-center gap-2 transition-all duration-300 cursor-pointer backdrop-blur-sm"
               id="hero-cta-learn-more"
             >
               About the Council <ArrowRight size={13} />
@@ -107,7 +107,7 @@ export default function Hero({ onLearnMoreClick, onAnnouncementsClick }: HeroPro
             </div>
             <div>
               <span className="block font-black text-2xl md:text-3xl text-[#F5B400]">1.5k+</span>
-              <span className="text-[10px] uppercase tracking-wider text-[#FAF7EA]/50 font-black">CCIS Tigers</span>
+              <span className="text-[10px] uppercase tracking-wider text-[#FAF7EA]/50 font-black">CCIS Herons</span>
             </div>
           </div>
         </div>

@@ -62,7 +62,7 @@ export default function AdminLogin() {
           </div>
 
           {error && (
-            <div className="mb-5 bg-red-500/15 border border-red-500/30 text-red-300 text-xs px-4 py-2.5 rounded-lg">
+            <div className="mb-5 bg-[#fdecea] border border-[#c0392b] text-[#c0392b] text-xs px-4 py-2.5 rounded-lg font-sans">
               {error}
             </div>
           )}

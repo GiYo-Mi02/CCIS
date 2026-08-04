@@ -103,17 +103,18 @@ export default function InfoHub({ onNavigate }: { onNavigate?: (tab: string, eve
     (selectedOrg === 'compsoc' ? o.organization === 'Computer Society' : (o.organization === 'Student Council' || !o.organization))
   );
 
-  const execBoardRoles = ['chairperson', 'president', 'vice chairperson', 'vice president', 'secretary', 'treasurer', 'auditor', 'public information officer', 'pio'];
+  const execBoardRoles = ['chairperson', 'president', 'vice chairperson', 'vice president', 'secretary', 'treasurer', 'auditor', 'public information officer', 'pio', 'pro', 'public relations officer', 'business manager'];
 
   const getExecBoardRank = (position: string) => {
     const pos = position.toLowerCase().replace(/\s+/g, ' ').trim();
-    if (pos === 'chairperson' || pos === 'president') return 1;
-    if (pos.includes('vice chairperson') || pos.includes('vice president')) return 2;
-    if (pos === 'secretary') return 3;
-    if (pos === 'treasurer') return 4;
-    if (pos === 'auditor') return 5;
-    if (pos.includes('public information officer') || pos === 'pio') return 6;
-    return 7;
+    if (pos.includes('chairperson') || pos.includes('president')) return 1;
+    if (pos.includes('vice chairperson') || pos.includes('vice president') || pos.includes('vp')) return 2;
+    if (pos.includes('secretary')) return 3;
+    if (pos.includes('treasurer')) return 4;
+    if (pos.includes('auditor')) return 5;
+    if (pos.includes('public information officer') || pos.includes('pio') || pos.includes('public relations officer') || pos.includes('pro')) return 6;
+    if (pos.includes('business manager')) return 7;
+    return 8;
   };
 
   const getYearLevel = (position: string) => {
@@ -127,12 +128,29 @@ export default function InfoHub({ onNavigate }: { onNavigate?: (tab: string, eve
 
   const execBoard = filteredOfficers.filter(o => {
     const pos = o.position.toLowerCase().replace(/\s+/g, ' ').trim();
-    return execBoardRoles.some(r => 
+    const isYearRep = pos.includes('year representative') || pos.includes('year rep') || pos.includes('representative');
+    if (isYearRep) return false;
+    
+    // Explicitly assigned to Executive Board committee OR matching an executive position keyword
+    const isExecCommittee = o.committee === 'Executive Board';
+    const isExecRole = execBoardRoles.some(r => 
       pos === r || 
-      (r === 'vice president' && pos.includes('vice president')) ||
-      (r === 'vice chairperson' && pos.includes('vice chairperson'))
+      pos.includes(r) ||
+      pos.includes('president') ||
+      pos.includes('chairperson') ||
+      pos.includes('secretary') ||
+      pos.includes('treasurer') ||
+      pos.includes('auditor') ||
+      pos.includes('pio') ||
+      pos.includes('pro') ||
+      pos.includes('business manager')
     );
-  }).sort((a, b) => getExecBoardRank(a.position) - getExecBoardRank(b.position));
+
+    return isExecCommittee || isExecRole;
+  }).sort((a, b) => {
+    if (a.order && b.order && a.order !== b.order) return a.order - b.order;
+    return getExecBoardRank(a.position) - getExecBoardRank(b.position);
+  });
 
   const yearReps = filteredOfficers.filter(o => {
     const pos = o.position.toLowerCase();
@@ -144,7 +162,8 @@ export default function InfoHub({ onNavigate }: { onNavigate?: (tab: string, eve
     const pos = o.position.toLowerCase();
     const isExec = execBoard.some(e => e.id === o.id);
     const isYear = pos.includes('year representative') || pos.includes('year rep') || pos.includes('representative');
-    return !isExec && !isYear && (pos.includes('head') || o.committee !== 'Executive Board');
+    // Committee heads belong to specific working committees (not Executive Board)
+    return !isExec && !isYear && o.committee !== 'Executive Board';
   });
 
   const otherOfficers = filteredOfficers.filter(o => {
@@ -167,7 +186,7 @@ export default function InfoHub({ onNavigate }: { onNavigate?: (tab: string, eve
 
       {/* 3. Rotated/Vertical Department Label with Slide Interaction */}
       <div className="absolute top-16 right-4 font-mono font-black text-[#F5B400]/10 group-hover:text-[#F5B400]/30 text-[9px] uppercase tracking-[0.3em] transition-all duration-500 [writing-mode:vertical-lr] select-none pointer-events-none group-hover:translate-y-2">
-        {off.committee === 'Executive Board' ? 'EXECUTIVE' : off.committee.replace('Committee', '').trim()}
+        {off.committee === 'Executive Board' ? 'EXEBOARD' : `EXECOM - ${off.committee.replace('Committee', '').trim()}`}
       </div>
 
       {/* 4. Overlapping 3D Pop-out Portrait Frame with Bottom Blend Overlay */}
@@ -606,13 +625,20 @@ export default function InfoHub({ onNavigate }: { onNavigate?: (tab: string, eve
                 </div>
               )}
 
-              {/* Working Committee Heads Section */}
+              {/* Executive Committee (ExeCom) / Committee Heads Section */}
               {(committeeHeads.length > 0 || otherOfficers.length > 0) && (
                 <div>
                   <div className="text-left mb-6">
-                    <h3 className="font-sans font-extrabold text-[#1A3C2E] text-base md:text-lg uppercase tracking-wider border-b border-[#1A3C2E]/10 pb-2">
-                      Working Committee Heads
-                    </h3>
+                    <div className="border-b border-[#1A3C2E]/10 pb-2 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                      <h3 className="font-sans font-extrabold text-[#1A3C2E] text-base md:text-lg uppercase tracking-wider flex items-center gap-2">
+                        <span>Executive Committee</span>
+                        <span className="text-[11px] font-mono font-bold text-[#1A3C2E] bg-[#F5B400] px-2.5 py-0.5 rounded-full uppercase">ExeCom</span>
+                      </h3>
+                      <span className="text-xs text-[#5E6E64] font-mono">Working Committee Heads & Division Chairs</span>
+                    </div>
+                    <p className="text-xs text-stone-500 font-sans mt-1.5">
+                      Leading our specialized working committees, operations, and student initiatives.
+                    </p>
                   </div>
                   <div className="flex flex-wrap gap-6 md:gap-8 justify-center">
                     {[...committeeHeads, ...otherOfficers].map(renderOfficerCard)}

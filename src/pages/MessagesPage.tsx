@@ -30,28 +30,14 @@ export default function MessagesPage({ onNavigate }: MessagesPageProps) {
     const initConversation = async () => {
       setLoading(true);
       try {
-        let { data: con, error } = await supabase
-          .from('conversations')
-          .select('*')
-          .eq('profile_id', user.id)
-          .maybeSingle();
+        // Use the ensure_conversation() RPC which does INSERT ... ON CONFLICT DO NOTHING
+        // internally, so it never throws a 409 duplicate key error.
+        const { data: con, error } = await supabase
+          .rpc('ensure_conversation')
+          .single();
 
         if (error) {
           console.error('Error fetching conversation:', error.message);
-        }
-
-        if (!con) {
-          const { data: newCon, error: insErr } = await supabase
-            .from('conversations')
-            .insert({ profile_id: user.id })
-            .select()
-            .single();
-
-          if (insErr) {
-            console.error('Error creating conversation:', insErr.message);
-          } else {
-            con = newCon;
-          }
         }
 
         setConversation(con as Conversation);

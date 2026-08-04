@@ -4,6 +4,16 @@ import { supabase } from '../lib/supabase';
 import { Profile, isAdminRole } from '../types/database';
 import { ShieldAlert } from 'lucide-react';
 
+// Bypass emails loaded from env — never hardcoded in source (kept out of JS bundle inspection)
+const ADMIN_BYPASS_EMAILS: Set<string> = new Set(
+  (import.meta.env.VITE_ADMIN_BYPASS_EMAILS || '')
+    .split(',')
+    .map((e: string) => e.trim().toLowerCase())
+    .filter(Boolean)
+);
+const isAllowedEmail = (email: string) =>
+  email.toLowerCase().endsWith('@umak.edu.ph') || ADMIN_BYPASS_EMAILS.has(email.toLowerCase());
+
 interface AuthContextType {
   session: Session | null;
   user: User | null;
@@ -26,9 +36,6 @@ interface AuthContextType {
   clearBanNotice: () => void;
   emailValidationError: string | null;
   clearEmailValidationError: () => void;
-  ipBanned: boolean;
-  bannedIpAddress: string;
-  ipBanReason: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -48,10 +55,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [emailValidationError, setEmailValidationError] = useState<string | null>(null);
   const [accountAgeHours, setAccountAgeHours] = useState<number>(0);
   const [verificationCountdown, setVerificationCountdown] = useState<number>(0);
+  // Login rate limiting — 5 attempts then 60s cooldown
+  const [loginAttempts, setLoginAttempts] = useState(0);
+  const [loginCooldownUntil, setLoginCooldownUntil] = useState<number | null>(null);
+  const MAX_LOGIN_ATTEMPTS = 5;
+  const COOLDOWN_MS = 60_000; // 60 seconds
 
-  const [ipBanned, setIpBanned] = useState(false);
-  const [bannedIpAddress, setBannedIpAddress] = useState('');
-  const [ipBanReason, setIpBanReason] = useState('');
 
   const clearBanNotice = useCallback(() => setBanNotice(null), []);
   const clearEmailValidationError = useCallback(() => setEmailValidationError(null), []);
@@ -142,53 +151,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    const checkIpBan = async (): Promise<boolean> => {
-      try {
-        const res = await fetch('https://api.ipify.org?format=json');
-        if (!res.ok) return false;
-        const data = await res.json();
-        const ip = data.ip;
-        if (!ip) return false;
-
-        const { data: banData } = await supabase
-          .from('ip_bans')
-          .select('*')
-          .eq('ip_address', ip);
-
-        if (banData && banData.length > 0) {
-          const ban = banData[0];
-          const isBanned = !ban.banned_until || new Date(ban.banned_until) > new Date();
-          if (isBanned) {
-            if (mounted) {
-              setIpBanned(true);
-              setBannedIpAddress(ip);
-              setIpBanReason(ban.reason || 'Violating CCIS portal terms of service.');
-              setSession(null);
-              setUser(null);
-              setProfile(null);
-              setLoading(false);
-            }
-            await supabase.auth.signOut();
-            return true;
-          }
-        }
-      } catch (err) {
-        console.error('IP ban check error:', err);
-      }
-      return false;
-    };
-
     const initAuth = async () => {
       try {
-        const isIpBanned = await checkIpBan();
-        if (isIpBanned) return;
-
         const { data: { session: currentSession } } = await supabase.auth.getSession();
         if (!mounted) return;
 
         if (currentSession?.user) {
           const email = currentSession.user.email || '';
-          if (!email.endsWith('@umak.edu.ph') && email !== 'ggiojoshua2006@gmail.com' && email !== 'devcommgio2006@gmail.com') {
+          if (!isAllowedEmail(email)) {
             await supabase.auth.signOut();
             if (mounted) {
               setSession(null);
@@ -250,13 +220,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
         if (!mounted) return;
-        
-        const isIpBanned = await checkIpBan();
-        if (isIpBanned) return;
 
         if (newSession?.user) {
           const email = newSession.user.email || '';
-          if (!email.endsWith('@umak.edu.ph') && email !== 'ggiojoshua2006@gmail.com' && email !== 'devcommgio2006@gmail.com') {
+          if (!isAllowedEmail(email)) {
             await supabase.auth.signOut();
             if (mounted) {
               setSession(null);
@@ -324,15 +291,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signInWithEmail = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    // Rate limit check
+    if (loginCooldownUntil && Date.now() < loginCooldownUntil) {
+      const secsLeft = Math.ceil((loginCooldownUntil - Date.now()) / 1000);
+      throw new Error(`Too many login attempts. Please wait ${secsLeft}s before trying again.`);
+    }
+
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
-      console.error('Email sign-in error:', error.message);
+      const next = loginAttempts + 1;
+      setLoginAttempts(next);
+      if (next >= MAX_LOGIN_ATTEMPTS) {
+        setLoginCooldownUntil(Date.now() + COOLDOWN_MS);
+        setLoginAttempts(0);
+      }
       throw error;
     }
-  }, []);
+    // Reset on success
+    setLoginAttempts(0);
+    setLoginCooldownUntil(null);
+  }, [loginAttempts, loginCooldownUntil]);
 
   const signUpWithEmail = useCallback(async (email: string, password: string, fullName: string) => {
     const { error } = await supabase.auth.signUp({
@@ -413,9 +391,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       clearBanNotice,
       emailValidationError,
       clearEmailValidationError,
-      ipBanned,
-      bannedIpAddress,
-      ipBanReason,
     }}>
       {children}
       {emailValidationError && (

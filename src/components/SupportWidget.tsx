@@ -58,39 +58,26 @@ export default function SupportWidget({ onNavigate }: SupportWidgetProps) {
 
     const initConversation = async () => {
       try {
-        let { data: con, error } = await supabase
-          .from('conversations')
-          .select('*')
-          .eq('profile_id', user.id)
-          .maybeSingle();
+        // Use the ensure_conversation() RPC which does INSERT ... ON CONFLICT DO NOTHING
+        // internally, so it never throws a 409 duplicate key error.
+        const { data: con, error } = await supabase
+          .rpc('ensure_conversation')
+          .single();
 
         if (error) {
           console.error('Error fetching conversation:', error.message);
-        }
-
-        // If conversation does not exist, we will create it
-        if (!con) {
-          const { data: newCon, error: insErr } = await supabase
-            .from('conversations')
-            .insert({ profile_id: user.id })
-            .select()
-            .single();
-
-          if (insErr) {
-            console.error('Error creating conversation:', insErr.message);
-          } else {
-            con = newCon;
-          }
+          return;
         }
 
         if (con) {
-          setConversation(con as Conversation);
+          const conversation = con as Conversation;
+          setConversation(conversation);
           
           // Count unread messages from admin
           const { count, error: countErr } = await supabase
             .from('messages')
             .select('*', { count: 'exact', head: true })
-            .eq('conversation_id', con.id)
+            .eq('conversation_id', conversation.id)
             .eq('sender_role', 'admin')
             .eq('read_by_student', false);
 

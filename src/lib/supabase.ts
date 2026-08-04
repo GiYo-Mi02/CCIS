@@ -1,9 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 
-// --- CLIENT CLOCK SKEW AUTOCORRECTION WORKAROUND ---
-// If the user's system clock is skewed (e.g. 1 hour behind due to timezone/DST issues),
-// Supabase/GoTrue will reject session parsing with "Session as retrieved from URL was issued in the future".
-// We detect this by decoding the JWT 'iat' claim from hash or localStorage, and syncing Date.now() if needed.
+// --- CLIENT CLOCK SKEW AUTOCORRECTION ---
+// If the user's system clock is behind (e.g. due to timezone/DST issues), Supabase/GoTrue
+// rejects session parsing. We detect the skew from the JWT 'iat' claim and pass it to
+// Supabase's own clockSkewInSeconds option — scoped only to Supabase, not global Date.now.
+let clockSkewSeconds = 0;
 try {
   let token: string | null = null;
 
@@ -14,41 +15,42 @@ try {
     token = params.get('access_token');
   }
 
-  // 2. Parse from localStorage session cache
+  // 2. Parse from sessionStorage/localStorage session cache
   if (!token) {
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
-        const val = localStorage.getItem(key);
-        if (val) {
-          const parsed = JSON.parse(val);
-          token = parsed?.currentSession?.access_token || parsed?.access_token || null;
+    for (const storage of [sessionStorage, localStorage]) {
+      for (let i = 0; i < storage.length; i++) {
+        const key = storage.key(i);
+        if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
+          const val = storage.getItem(key);
+          if (val) {
+            const parsed = JSON.parse(val);
+            token = parsed?.currentSession?.access_token || parsed?.access_token || null;
+          }
+          break;
         }
-        break;
       }
+      if (token) break;
     }
   }
 
-  // 3. Synchronize Date.now offset if token IAT is in the future
+  // 3. Compute skew in seconds from IAT claim
   if (token) {
     const parts = token.split('.');
     if (parts.length === 3) {
       const payloadDecoded = atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'));
       const payload = JSON.parse(payloadDecoded);
-      if (payload && payload.iat) {
+      if (payload?.iat) {
         const iatMs = payload.iat * 1000;
         const nowMs = Date.now();
         if (iatMs > nowMs) {
-          const offset = (iatMs - nowMs) + 5000; // 5s buffer to ensure it starts in the past
-          const originalNow = Date.now;
-          Date.now = () => originalNow() + offset;
-          console.warn(`[Supabase Clock Sync] Local clock is behind. Compensating Date.now() offset: +${offset}ms`);
+          // Positive skew = local clock is behind server
+          clockSkewSeconds = Math.round((iatMs - nowMs) / 1000) + 5; // 5s safety buffer
         }
       }
     }
   }
 } catch (e) {
-  console.error('[Supabase Clock Sync] Initialization error:', e);
+  // Non-critical — proceed with zero skew
 }
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -60,4 +62,14 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    // Store tokens in sessionStorage — cleared when the tab closes, reducing XSS theft window
+    storage: window.sessionStorage,
+    autoRefreshToken: true,
+    persistSession: true,
+    // Pass clock skew to Supabase only — does NOT mutate global Date.now
+    ...(clockSkewSeconds > 0 ? { clockSkewInSeconds: clockSkewSeconds } : {}),
+  },
+});
+

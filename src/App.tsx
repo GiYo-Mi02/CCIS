@@ -26,7 +26,7 @@ interface AppProps {
 export default function App({ onAdminSwitch }: AppProps) {
   const [activeTab, setActiveTab] = useState<string>('home');
   const [preselectedEventId, setPreselectedEventId] = useState<string | null>(null);
-  const { user, profile, updateProfile, isPending, isUnverified, isAdmin, ipBanned, bannedIpAddress, ipBanReason } = useAuth();
+  const { user, profile, updateProfile, isPending, isUnverified, isAdmin } = useAuth();
 
   // Multi-route smooth scroll coordinator (e.g. for scrolling to contact desks)
   useEffect(() => {
@@ -59,42 +59,6 @@ export default function App({ onAdminSwitch }: AppProps) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Full-screen IP Ban Screen
-  if (ipBanned) {
-    return (
-      <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col items-center justify-center p-6 text-center font-sans">
-        <div className="max-w-md w-full bg-zinc-900 rounded-3xl border border-red-500/30 p-8 shadow-2xl space-y-6">
-          <div className="w-20 h-20 bg-red-500/10 border-2 border-red-500 text-red-500 rounded-full flex items-center justify-center mx-auto animate-pulse">
-            <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
-          </div>
-          <div className="space-y-2">
-            <h1 className="text-xl font-black uppercase tracking-wider text-red-500">Access Restricted</h1>
-            <p className="text-zinc-400 text-xs leading-relaxed">
-              Your IP address has been permanently blacklisted by the CCIS Student Council administrator for violating terms of service.
-            </p>
-          </div>
-          
-          <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 text-left font-mono space-y-1.5">
-            <div className="text-[10px] text-zinc-500 uppercase tracking-wider">Security Report</div>
-            <div className="text-xs flex justify-between">
-              <span className="text-zinc-500">Restricted IP:</span>
-              <span className="text-red-400 font-bold">{bannedIpAddress}</span>
-            </div>
-            <div className="text-xs flex flex-col gap-0.5">
-              <span className="text-zinc-500">Reason:</span>
-              <span className="text-zinc-300 italic">{ipBanReason}</span>
-            </div>
-          </div>
-
-          <p className="text-[10px] text-zinc-500 leading-normal">
-            If you believe this restriction is an error, please contact the CCIS Student Council IT Support team or your administrator.
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   // Full-screen pages (no navbar/footer)
   if (activeTab === 'login' || (user && (!profile || !profile.profile_complete || (isPending && !isUnverified)))) {

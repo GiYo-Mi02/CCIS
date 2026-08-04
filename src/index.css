@@ -28,8 +28,9 @@
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
-/* Global headings styling based on Marcellus branding */
-h1, h2, h3, h4, h5, h6, .font-marcellus {
+/* Marcellus is for print/formal documents only — NOT UI headings (per UMak CIC spec) */
+/* Web UI headings use Metropolis via font-sans utility class */
+.font-marcellus {
   font-family: var(--font-serif);
 }
 
