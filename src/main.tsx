@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { AuthProvider } from './context/AuthContext';
 import RootRouter from './RootRouter';
+import ErrorBoundary from './components/ErrorBoundary';
 import './index.css';
 
 // One-time cleanup of legacy localStorage keys from the mock-data version
@@ -20,8 +21,10 @@ if (!localStorage.getItem('ccis_v2_migrated')) {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <AuthProvider>
-      <RootRouter />
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <RootRouter />
+      </AuthProvider>
+    </ErrorBoundary>
   </StrictMode>,
 );

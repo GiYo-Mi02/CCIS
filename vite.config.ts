@@ -21,12 +21,12 @@ export default defineConfig(() => {
     build: {
       // Strip all console.* calls from the production bundle.
       // Dev server is unaffected — logs still work during development.
-      minify: 'esbuild',
+      minify: 'esbuild' as const,
       target: 'esnext',
     },
     esbuild: {
       // Drop console logs and debugger statements in production only
-      drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : [],
+      drop: process.env.NODE_ENV === 'production' ? (['console', 'debugger'] as ('console' | 'debugger')[]) : [],
     },
   };
 });

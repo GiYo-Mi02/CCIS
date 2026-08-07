@@ -44,6 +44,9 @@ function AdminAppInner({ onExitAdmin }: AdminAppProps) {
   }
 
   if (!isAdmin) {
+    if (window.location.pathname.startsWith('/admin')) {
+      window.history.replaceState({}, '', '/');
+    }
     return <AdminLogin />;
   }
 

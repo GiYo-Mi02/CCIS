@@ -15,6 +15,7 @@ import MessagesPage from './pages/MessagesPage';
 import GalleryPage from './pages/GalleryPage';
 import BukasKabanPage from './pages/BukasKabanPage';
 import PatchPage from './pages/PatchPage';
+import NotFoundPage from './pages/NotFoundPage';
 import { useAuth } from './context/AuthContext';
 import SubscriptionPreferenceModal from './components/SubscriptionPreferenceModal';
 import SupportWidget from './components/SupportWidget';
@@ -23,10 +24,91 @@ interface AppProps {
   onAdminSwitch?: () => void;
 }
 
+const tabToPathMap: Record<string, string> = {
+  home: '/',
+  info: '/about',
+  announcements: '/announcements',
+  registration: '/events',
+  gallery: '/gallery',
+  transparency: '/transparency',
+  patch: '/patch',
+  messages: '/helpdesk',
+  account: '/account',
+  login: '/login',
+  admin: '/admin/dashboard',
+};
+
+const pathToTabMap: Record<string, string> = {
+  '/': 'home',
+  '/home': 'home',
+  '/about': 'info',
+  '/info': 'info',
+  '/announcements': 'announcements',
+  '/events': 'registration',
+  '/registration': 'registration',
+  '/gallery': 'gallery',
+  '/transparency': 'transparency',
+  '/bukas-kaban': 'transparency',
+  '/patch': 'patch',
+  '/devlog': 'patch',
+  '/helpdesk': 'messages',
+  '/messages': 'messages',
+  '/account': 'account',
+  '/profile': 'account',
+  '/login': 'login',
+};
+
 export default function App({ onAdminSwitch }: AppProps) {
-  const [activeTab, setActiveTab] = useState<string>('home');
+  const getInitialTab = () => {
+    const path = window.location.pathname.toLowerCase();
+    if (path.startsWith('/admin')) {
+      return 'admin';
+    }
+    if (pathToTabMap[path]) {
+      return pathToTabMap[path];
+    }
+    if (path !== '/' && path !== '') {
+      return '404';
+    }
+    return 'home';
+  };
+
+  const [activeTab, setActiveTab] = useState<string>(getInitialTab);
   const [preselectedEventId, setPreselectedEventId] = useState<string | null>(null);
-  const { user, profile, updateProfile, isPending, isUnverified, isAdmin } = useAuth();
+  const { user, profile, updateProfile, isPending, isUnverified, isAdmin, loading } = useAuth();
+
+  // Strict Admin Route Guard: If a non-admin attempts to access /admin URLs, sanitize the URL back to '/'
+  useEffect(() => {
+    if (!loading && !isAdmin && (activeTab === 'admin' || window.location.pathname.startsWith('/admin'))) {
+      if (window.location.pathname.startsWith('/admin')) {
+        window.history.replaceState({}, '', '/');
+      }
+      setActiveTab('home');
+    }
+  }, [loading, isAdmin, activeTab]);
+
+  // Listen to browser Back/Forward navigation
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname.toLowerCase();
+      if (path.startsWith('/admin')) {
+        if (!isAdmin) {
+          window.history.replaceState({}, '', '/');
+          setActiveTab('home');
+        } else {
+          setActiveTab('admin');
+        }
+      } else if (pathToTabMap[path]) {
+        setActiveTab(pathToTabMap[path]);
+      } else if (path !== '/' && path !== '') {
+        setActiveTab('404');
+      } else {
+        setActiveTab('home');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [isAdmin]);
 
   // Multi-route smooth scroll coordinator (e.g. for scrolling to contact desks)
   useEffect(() => {
@@ -36,13 +118,11 @@ export default function App({ onAdminSwitch }: AppProps) {
   }, [activeTab]);
 
   const handleLearnMore = () => {
-    setActiveTab('info');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    handleNavigate('info');
   };
 
   const handleAnnouncementsRoute = () => {
-    setActiveTab('announcements');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    handleNavigate('announcements');
   };
 
   const handleNavigate = (tab: string, eventId?: string) => {
@@ -51,6 +131,10 @@ export default function App({ onAdminSwitch }: AppProps) {
       return;
     }
     setActiveTab(tab);
+    const targetPath = tabToPathMap[tab] || '/';
+    if (window.location.pathname !== targetPath) {
+      window.history.pushState({ tab }, '', targetPath);
+    }
     if (tab === 'registration' && eventId) {
       setPreselectedEventId(eventId);
     } else if (tab !== 'registration') {
@@ -198,6 +282,12 @@ export default function App({ onAdminSwitch }: AppProps) {
             ) : (
               <AuthPage onNavigate={handleNavigate} />
             )}
+          </div>
+        )}
+
+        {activeTab === '404' && (
+          <div className="animate-fade-in">
+            <NotFoundPage onNavigate={handleNavigate} />
           </div>
         )}
       </main>

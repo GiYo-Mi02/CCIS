@@ -20,9 +20,68 @@ export function useAdmin(): AdminContextType {
   return ctx;
 }
 
+const sectionToPathMap: Record<string, string> = {
+  dashboard: '/admin/dashboard',
+  announcements: '/admin/announcements',
+  registration: '/admin/events',
+  scanner: '/admin/scanner',
+  officers: '/admin/officers',
+  messages: '/admin/messages',
+  calendar: '/admin/calendar',
+  settings: '/admin/settings',
+  users: '/admin/users',
+  verification: '/admin/verification',
+  faqs: '/admin/faqs',
+};
+
+const pathToSectionMap: Record<string, string> = {
+  '/admin': 'dashboard',
+  '/admin/': 'dashboard',
+  '/admin/dashboard': 'dashboard',
+  '/admin/announcements': 'announcements',
+  '/admin/events': 'registration',
+  '/admin/registration': 'registration',
+  '/admin/scanner': 'scanner',
+  '/admin/officers': 'officers',
+  '/admin/messages': 'messages',
+  '/admin/inbox': 'messages',
+  '/admin/calendar': 'calendar',
+  '/admin/settings': 'settings',
+  '/admin/roles': 'settings',
+  '/admin/users': 'users',
+  '/admin/verification': 'verification',
+  '/admin/faqs': 'faqs',
+};
+
 export function AdminProvider({ children }: { children: React.ReactNode }) {
+  const getInitialSection = () => {
+    const path = window.location.pathname.toLowerCase();
+    return pathToSectionMap[path] || 'dashboard';
+  };
+
   // Navigation
-  const [activeSection, setActiveSection] = useState('dashboard');
+  const [activeSection, setActiveSectionState] = useState(getInitialSection);
+
+  // Listen to browser back/forward navigation within admin
+  React.useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname.toLowerCase();
+      if (path.startsWith('/admin')) {
+        const section = pathToSectionMap[path] || 'dashboard';
+        setActiveSectionState(section);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const setActiveSection = useCallback((section: string) => {
+    setActiveSectionState(section);
+    const targetPath = sectionToPathMap[section] || '/admin/dashboard';
+    if (window.location.pathname !== targetPath) {
+      window.history.pushState({ section }, '', targetPath);
+    }
+  }, []);
 
   // Toasts
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
