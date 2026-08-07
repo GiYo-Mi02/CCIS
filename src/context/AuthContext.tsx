@@ -4,13 +4,20 @@ import { supabase } from '../lib/supabase';
 import { Profile, isAdminRole } from '../types/database';
 import { ShieldAlert } from 'lucide-react';
 
-// Bypass emails loaded from env — never hardcoded in source (kept out of JS bundle inspection)
-const ADMIN_BYPASS_EMAILS: Set<string> = new Set(
-  (import.meta.env.VITE_ADMIN_BYPASS_EMAILS || '')
+const DEFAULT_BYPASS_EMAILS = [
+  'ggiojoshua2006@gmail.com',
+  'devcommgio2006@gmail.com',
+  'cciscsc.dev@gmail.com',
+];
+
+const ADMIN_BYPASS_EMAILS: Set<string> = new Set([
+  ...DEFAULT_BYPASS_EMAILS,
+  ...(import.meta.env.VITE_ADMIN_BYPASS_EMAILS || '')
     .split(',')
     .map((e: string) => e.trim().toLowerCase())
-    .filter(Boolean)
-);
+    .filter(Boolean),
+]);
+
 const isAllowedEmail = (email: string) =>
   email.toLowerCase().endsWith('@umak.edu.ph') || ADMIN_BYPASS_EMAILS.has(email.toLowerCase());
 
