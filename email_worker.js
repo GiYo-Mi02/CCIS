@@ -19,14 +19,14 @@ try {
 }
 
 const supabaseUrl = env['VITE_SUPABASE_URL'] || process.env.VITE_SUPABASE_URL;
-const supabaseKey = env['VITE_SUPABASE_ANON_KEY'] || process.env.VITE_SUPABASE_ANON_KEY;
+const supabaseKey = env['SUPABASE_SERVICE_ROLE_KEY'] || process.env.SUPABASE_SERVICE_ROLE_KEY || env['VITE_SUPABASE_ANON_KEY'] || process.env.VITE_SUPABASE_ANON_KEY;
 
 // SMTP configuration
-const smtpHost = env['SMTP_HOST'] || 'smtp.gmail.com';
-const smtpPort = parseInt(env['SMTP_PORT'] || '587');
-const smtpUser = env['SMTP_USER'] || 'devcommgio2006@gmail.com';
-const smtpPass = env['SMTP_PASS'] || 'hfksiwmxnhttvoii';
-const smtpFrom = env['SMTP_FROM'] || '"CCIS Student Council" <devcommgio2006@gmail.com>';
+const smtpHost = env['SMTP_HOST'] || process.env.SMTP_HOST || 'smtp.gmail.com';
+const smtpPort = parseInt(env['SMTP_PORT'] || process.env.SMTP_PORT || '587');
+const smtpUser = env['SMTP_USER'] || process.env.SMTP_USER;
+const smtpPass = env['SMTP_PASS'] || process.env.SMTP_PASS;
+const smtpFrom = env['SMTP_FROM'] || process.env.SMTP_FROM || `"CCIS Student Council" <${smtpUser || ''}>`;
 
 if (!supabaseUrl || !supabaseKey) {
   console.error('[Email Worker] Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY credentials.');
@@ -50,6 +50,8 @@ const transporter = nodemailer.createTransport({
 
 console.log(`[Email Worker] SMTP transporter configured for ${smtpUser} via ${smtpHost}:${smtpPort}`);
 
+let permissionDeniedLogged = false;
+
 async function processQueue() {
   try {
     const { data: dequeuedItems, error: dequeueError } = await supabase.rpc(
@@ -58,9 +60,20 @@ async function processQueue() {
     );
 
     if (dequeueError) {
-      console.error('[Email Worker] Error dequeuing emails:', dequeueError.message);
+      if (dequeueError.message && dequeueError.message.toLowerCase().includes('permission denied')) {
+        if (!permissionDeniedLogged) {
+          console.warn('\n⚠️  [Email Worker] Permission denied for function public.dequeue_emails(integer).');
+          console.warn('👉 FIX: Run 28_grant_dequeue_emails.sql in your Supabase SQL Editor:');
+          console.warn('   GRANT EXECUTE ON FUNCTION public.dequeue_emails(INTEGER) TO anon, authenticated, service_role;\n');
+          permissionDeniedLogged = true;
+        }
+      } else {
+        console.error('[Email Worker] Error dequeuing emails:', dequeueError.message);
+      }
       return;
     }
+
+    permissionDeniedLogged = false;
 
     if (dequeuedItems && dequeuedItems.length > 0) {
       console.log(`[Email Worker] Processing batch of ${dequeuedItems.length} queued email(s)...`);

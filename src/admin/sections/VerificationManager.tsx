@@ -4,7 +4,7 @@ import {
 } from 'lucide-react';
 import { useAdmin } from '../AdminContext';
 import { useAuth } from '../../context/AuthContext';
-import { supabase } from '../../lib/supabase';
+import { supabase, triggerEmailWorker } from '../../lib/supabase';
 import { Profile } from '../../types/database';
 import { getApprovalEmail, getRejectionEmail } from '../../utils/verificationEmails';
 import Pagination from '../components/Pagination';
@@ -113,6 +113,7 @@ export default function VerificationManager() {
         showToast('Profile approved, but failed to queue notification email.', 'warning');
       } else {
         showToast(`Approved ${user.full_name || user.email} successfully! Email notification queued.`, 'success');
+        triggerEmailWorker();
       }
 
       // Remove from view list
@@ -163,6 +164,7 @@ export default function VerificationManager() {
         showToast('Profile rejected, but failed to queue notification email.', 'warning');
       } else {
         showToast(`Rejected submission for ${rejectingUser.full_name || rejectingUser.email}. Email notification queued.`, 'success');
+        triggerEmailWorker();
       }
 
       // Remove from view list

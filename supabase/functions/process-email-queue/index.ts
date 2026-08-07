@@ -1,7 +1,8 @@
 // @ts-nocheck
-// Follow Supabase Edge Functions standard imports for Deno
+// Supabase Edge Function: Automated SMTP Email Queue Processor
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
+import nodemailer from "npm:nodemailer@^6.9.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,21 +18,36 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+
+    // Read SMTP Credentials strictly from secure Supabase Secrets / Environment Variables
+    const smtpHost = Deno.env.get("SMTP_HOST") || "smtp.gmail.com";
+    const smtpPort = parseInt(Deno.env.get("SMTP_PORT") || "587");
+    const smtpUser = Deno.env.get("SMTP_USER");
+    const smtpPass = Deno.env.get("SMTP_PASS");
+    const smtpFrom = Deno.env.get("SMTP_FROM") || `"CCIS Student Council" <${smtpUser}>`;
 
     if (!supabaseUrl || !supabaseServiceKey) {
       throw new Error("Missing database environment credentials.");
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // If Resend API key is missing, we simulate sending (useful for dev/test)
-    const isSimulation = !resendApiKey;
-    if (isSimulation) {
-      console.warn("RESEND_API_KEY is not configured. Simulating email dispatch.");
+    if (!smtpUser || !smtpPass) {
+      throw new Error("Missing SMTP credentials. Please set SMTP_USER and SMTP_PASS in Supabase Edge Function Secrets.");
     }
 
-    // Dequeue up to 10 emails at a time
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Initialize Nodemailer Transporter via SMTP
+    const transporter = nodemailer.createTransport({
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpPort === 465,
+      auth: {
+        user: smtpUser,
+        pass: smtpPass,
+      },
+    });
+
+    // Dequeue up to 10 pending emails at a time
     const batchSize = 10;
     const { data: dequeuedItems, error: dequeueError } = await supabase.rpc(
       "dequeue_emails",
@@ -45,82 +61,38 @@ serve(async (req) => {
     const results = [];
 
     if (dequeuedItems && dequeuedItems.length > 0) {
-      console.log(`Processing batch of ${dequeuedItems.length} queued emails.`);
+      console.log(`[SMTP Cloud Worker] Processing batch of ${dequeuedItems.length} queued emails...`);
 
       for (const item of dequeuedItems) {
         try {
-          if (isSimulation) {
-            // Update email queue status to sent (simulated)
-            const { error: updateError } = await supabase
-              .from("email_queue")
-              .update({
-                status: "sent",
-                processed_at: new Date().toISOString(),
-                error_message: null
-              })
-              .eq("id", item.id);
+          const mailOptions = {
+            from: smtpFrom,
+            to: item.recipient_email,
+            subject: item.subject,
+            html: item.html_body,
+          };
 
-            if (updateError) {
-              console.error(`Failed to update status for item ${item.id}:`, updateError.message);
-            }
+          const info = await transporter.sendMail(mailOptions);
+          console.log(`[SMTP Cloud Worker] Email sent via SMTP to ${item.recipient_email}. MessageId: ${info.messageId}`);
 
-            results.push({ id: item.id, status: "sent", simulated: true });
-          } else {
-            // Real email dispatch using Resend REST API
-            const fromEmail = "CCIS Student Council <onboarding@resend.dev>";
-            const response = await fetch("https://api.resend.com/emails", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${resendApiKey}`,
-              },
-              body: JSON.stringify({
-                from: fromEmail,
-                to: item.recipient_email,
-                subject: item.subject,
-                html: item.html_body,
-              }),
-            });
+          // Update status to sent
+          const { error: updateError } = await supabase
+            .from("email_queue")
+            .update({
+              status: "sent",
+              processed_at: new Date().toISOString(),
+              error_message: null
+            })
+            .eq("id", item.id);
 
-            const resData = await response.json();
-
-            if (response.ok) {
-              // Successfully sent
-              const { error: updateError } = await supabase
-                .from("email_queue")
-                .update({
-                  status: "sent",
-                  processed_at: new Date().toISOString(),
-                  error_message: null
-                })
-                .eq("id", item.id);
-
-              if (updateError) {
-                console.error(`Failed to update status for item ${item.id}:`, updateError.message);
-              }
-              results.push({ id: item.id, status: "sent", resendId: resData.id });
-            } else {
-              // Resend rejected the email
-              const errorMsg = resData.message || JSON.stringify(resData);
-              console.error(`Resend failed for item ${item.id}:`, errorMsg);
-
-              const { error: updateError } = await supabase
-                .from("email_queue")
-                .update({
-                  status: "failed",
-                  error_message: errorMsg
-                })
-                .eq("id", item.id);
-
-              if (updateError) {
-                console.error(`Failed to update status for item ${item.id}:`, updateError.message);
-              }
-              results.push({ id: item.id, status: "failed", error: errorMsg });
-            }
+          if (updateError) {
+            console.error(`Failed to update status for item ${item.id}:`, updateError.message);
           }
+
+          results.push({ id: item.id, status: "sent", messageId: info.messageId });
         } catch (itemErr: any) {
           const errMsg = itemErr.message || String(itemErr);
-          console.error(`Error processing email queue item ${item.id}:`, errMsg);
+          console.error(`SMTP sending error for item ${item.id}:`, errMsg);
 
           const { error: updateError } = await supabase
             .from("email_queue")
@@ -137,7 +109,7 @@ serve(async (req) => {
         }
       }
     } else {
-      console.log("No pending emails in queue.");
+      console.log("[SMTP Cloud Worker] No pending emails in queue.");
     }
 
     return new Response(
@@ -152,7 +124,7 @@ serve(async (req) => {
       }
     );
   } catch (err: any) {
-    console.error("Fatal queue processing error:", err);
+    console.error("Fatal SMTP queue processing error:", err);
     return new Response(
       JSON.stringify({ success: false, error: err.message || err }),
       { 

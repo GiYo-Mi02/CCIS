@@ -73,3 +73,19 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 });
 
+/**
+ * Triggers the cloud-hosted Supabase Edge Function 'process-email-queue'
+ * to automatically dispatch pending emails in production without requiring local node worker.
+ */
+export async function triggerEmailWorker(): Promise<void> {
+  try {
+    const { error } = await supabase.functions.invoke('process-email-queue');
+    if (error) {
+      console.warn('[Cloud Email Worker] Edge function invocation notice:', error.message);
+    }
+  } catch (err: any) {
+    console.warn('[Cloud Email Worker] Could not invoke edge function directly:', err.message || err);
+  }
+}
+
+

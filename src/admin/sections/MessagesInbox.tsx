@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, Send, Clock, User, MessageSquare, AlertCircle, Loader2, ArrowLeft } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { supabase, triggerEmailWorker } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { useAdmin } from '../AdminContext';
 import { Conversation, Message } from '../../types/database';
@@ -331,6 +331,7 @@ export default function MessagesInbox() {
         scrollToBottom();
         // Update list sorting locally or trigger list refetch
         fetchConversationsList(currentPage);
+        triggerEmailWorker();
       }
     } catch (err) {
       console.error(err);
