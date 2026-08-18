@@ -115,14 +115,14 @@ export default function SupportWidget({ onNavigate }: SupportWidgetProps) {
           // Mark all admin messages as read in the database
           const hasUnreadAdmin = data.some(m => m.sender_role === 'admin' && !m.read_by_student);
           if (hasUnreadAdmin) {
-            await supabase
-              .from('messages')
-              .update({ read_by_student: true })
-              .eq('conversation_id', conversation.id)
-              .eq('sender_role', 'admin')
-              .eq('read_by_student', false);
-            
-            setUnreadCount(0);
+            const { error: readError } = await supabase.rpc('mark_conversation_messages_read_by_student', {
+              p_conversation_id: conversation.id,
+            });
+            if (readError) {
+              console.error('Error marking widget messages as read:', readError.message);
+            } else {
+              setUnreadCount(0);
+            }
           }
         }
       } catch (err) {
@@ -156,11 +156,14 @@ export default function SupportWidget({ onNavigate }: SupportWidgetProps) {
           if (newMsg.sender_role === 'admin') {
             if (isOpen) {
               // Mark as read immediately in DB since the widget is open
-              await supabase
-                .from('messages')
-                .update({ read_by_student: true })
-                .eq('id', newMsg.id);
-              newMsg.read_by_student = true;
+              const { error: readError } = await supabase.rpc('mark_conversation_messages_read_by_student', {
+                p_conversation_id: conversation.id,
+              });
+              if (readError) {
+                console.error('Error marking widget message as read:', readError.message);
+              } else {
+                newMsg.read_by_student = true;
+              }
               
               setMessages((prev) => {
                 if (prev.some((m) => m.id === newMsg.id)) return prev;
@@ -245,7 +248,6 @@ export default function SupportWidget({ onNavigate }: SupportWidgetProps) {
       setIsOpen(false);
     } else {
       setIsOpen(true);
-      setUnreadCount(0);
     }
   };
 

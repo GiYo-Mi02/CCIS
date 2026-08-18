@@ -192,27 +192,25 @@ export default function MessagesInbox() {
 
         if (unreadStudentMsgIds.length > 0) {
           const currentUnread = unreadCounts[conversationId] || 0;
-          if (currentUnread > 0) {
-            window.dispatchEvent(new CustomEvent('admin-read-conversation', {
-              detail: { conversationId, count: currentUnread }
-            }));
-          }
-
-          // Clear counts locally optimistically
-          setUnreadCounts(prev => ({
-            ...prev,
-            [conversationId]: 0
-          }));
-
           // Perform DB update asynchronously in background
           supabase
-            .from('messages')
-            .update({ read_by_admin: true })
-            .in('id', unreadStudentMsgIds)
+            .rpc('mark_messages_read_by_admin', { p_message_ids: unreadStudentMsgIds })
             .then(({ error }) => {
               if (error) {
                 console.error('Error marking messages as read on Supabase:', error.message);
+                return;
               }
+
+              if (currentUnread > 0) {
+                window.dispatchEvent(new CustomEvent('admin-read-conversation', {
+                  detail: { conversationId, count: currentUnread }
+                }));
+              }
+
+              setUnreadCounts(prev => ({
+                ...prev,
+                [conversationId]: 0
+              }));
             });
         }
       }
@@ -254,11 +252,14 @@ export default function MessagesInbox() {
             if (activeConId && newMsg.conversation_id === activeConId) {
               if (newMsg.sender_role === 'student' && !newMsg.read_by_admin) {
                 // Mark as read immediately
-                await supabase
-                  .from('messages')
-                  .update({ read_by_admin: true })
-                  .eq('id', newMsg.id);
-                newMsg.read_by_admin = true;
+                const { error: readError } = await supabase.rpc('mark_messages_read_by_admin', {
+                  p_message_ids: [newMsg.id],
+                });
+                if (readError) {
+                  console.error('Error marking incoming message as read:', readError.message);
+                } else {
+                  newMsg.read_by_admin = true;
+                }
               }
               
               setMessages(prev => {
@@ -409,17 +410,7 @@ export default function MessagesInbox() {
                 <button
                   key={con.id}
                   onClick={() => {
-                    const unreadCount = unreadCounts[con.id] || 0;
-                    if (unreadCount > 0) {
-                      window.dispatchEvent(new CustomEvent('admin-read-conversation', {
-                        detail: { conversationId: con.id, count: unreadCount }
-                      }));
-                    }
                     setSelectedCon(con);
-                    setUnreadCounts(prev => ({
-                      ...prev,
-                      [con.id]: 0
-                    }));
                   }}
                   className={`w-full text-left p-4 transition-all flex items-start gap-3 border-l-4 ${
                     isSelected 

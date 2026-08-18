@@ -109,7 +109,6 @@ export default function NavBar({ activeTab, setActiveTab, isUmakTheme = false }:
 
   const handleNavClick = async (tabId: string) => {
     if (tabId === 'messages' && user) {
-      setHasUnread(false);
       try {
         const { data: con } = await supabase
           .from('conversations')
@@ -127,17 +126,20 @@ export default function NavBar({ activeTab, setActiveTab, isUmakTheme = false }:
             .limit(1)
             .maybeSingle();
 
-          if (latestMsg) {
-            localStorage.setItem(`dismissed_msg_${user.id}`, latestMsg.id);
-          }
-
           // Mark all admin messages as read in this conversation
-          await supabase
-            .from('messages')
-            .update({ read_by_student: true })
-            .eq('conversation_id', con.id)
-            .eq('sender_role', 'admin')
-            .eq('read_by_student', false);
+          const { error: readError } = await supabase.rpc('mark_conversation_messages_read_by_student', {
+            p_conversation_id: con.id,
+          });
+          if (readError) {
+            console.error('Failed to mark messages as read:', readError.message);
+          } else {
+            if (latestMsg) {
+              localStorage.setItem(`dismissed_msg_${user.id}`, latestMsg.id);
+            }
+            setHasUnread(false);
+          }
+        } else {
+          setHasUnread(false);
         }
       } catch (err) {
         console.error('Failed to dismiss unread notifications:', err);
@@ -260,7 +262,6 @@ export default function NavBar({ activeTab, setActiveTab, isUmakTheme = false }:
                       <button
                         onClick={() => {
                           setUserMenuOpen(false);
-                          setHasUnread(false);
                           handleNavClick('messages');
                         }}
                         className="w-full flex items-center justify-between px-4 py-2.5 text-xs text-white/70 hover:text-white hover:bg-white/5 transition-colors"
@@ -362,7 +363,6 @@ export default function NavBar({ activeTab, setActiveTab, isUmakTheme = false }:
                 </button>
                 <button
                   onClick={() => {
-                    setHasUnread(false);
                     handleNavClick('messages');
                   }}
                   className="w-full flex items-center justify-center gap-2 bg-white/10 text-white py-3 rounded-full font-sans font-bold text-xs uppercase tracking-wider transition-colors relative"
