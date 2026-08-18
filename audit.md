@@ -121,7 +121,7 @@ The numbered migrations create `gallery_items_user_insert` with `profile_id IS N
 
 **Fix:** Drop the legacy user insert/delete policies in the final migration and create one authenticated admin-only write policy. Add an integration check that verifies anonymous `INSERT`, `UPDATE`, and `DELETE` are denied after all migrations run.
 
-### 23. Students can rewrite message content and sender identity
+### 23. [RESOLVED] Students can rewrite message content and sender identity
 
 **Severity:** ERROR - Security
 **Standards:** 4, 20
