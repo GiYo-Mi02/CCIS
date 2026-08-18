@@ -131,7 +131,7 @@ The student update policy checks only `auth.uid() = student_id`. It does not res
 
 **Fix:** Remove broad client `UPDATE` access and expose a narrow RPC for read-state changes, or enforce column-level privileges so students can update only their own read flag. Keep sender identity, role, content, and conversation ownership server-controlled.
 
-### 24. Audience attendance writes use a nonexistent column and a revoked grant
+### 24. [RESOLVED] Audience attendance writes use a nonexistent column and a revoked grant
 
 **Severity:** ERROR - Data Integrity
 **Standards:** 12, 16, 20, 24
