@@ -297,7 +297,7 @@ The repository does not use Supabase CLI migrations under `supabase/migrations/`
 
 **Fix:** Add a small test command covering auth/profile authorization and event registration RPC behavior first, then add browser coverage for the critical registration and admin flows.
 
-### 20. Icon-only controls lack accessible names
+### 20. [RESOLVED] Icon-only controls lack accessible names
 
 **Severity:** WARNING - Accessibility
 **Standards:** 32
