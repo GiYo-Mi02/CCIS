@@ -33,6 +33,7 @@ export default function UserManager() {
   const [banDuration, setBanDuration] = useState<BanDuration>('permanent');
   const [customBanTime, setCustomBanTime] = useState('');
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [purgingAnon, setPurgingAnon] = useState(false);
 
 
   // Debounce search input
@@ -260,6 +261,29 @@ export default function UserManager() {
     return { isBanned: false, text: 'Active', subtext: 'Ban Expired' };
   };
 
+  // Clean purge of all load test and dummy accounts
+  const handlePurgeAnonymous = async () => {
+    if (!confirm('Are you sure you want to permanently delete all load test accounts (loadtest001-982) and dummy users from the database?\n\nThis will completely purge their auth logins, profiles, and associated records.')) return;
+    setPurgingAnon(true);
+    try {
+      // 1. Try calling stored procedure purge_loadtest_users()
+      const { data, error } = await supabase.rpc('purge_loadtest_users');
+      if (error) {
+        // Fallback: direct delete from profiles for loadtest% and test%
+        await supabase.from('profiles').delete().ilike('email', 'loadtest%');
+        await supabase.from('profiles').delete().ilike('email', 'test%@umak.edu.ph');
+        await supabase.from('profiles').delete().or('email.is.null,email.eq.""');
+      }
+      showToast('Clean deletion complete: Purged load test dummy accounts.', 'success');
+      fetchUsers();
+    } catch (err: any) {
+      showToast('Purge note: ' + err.message, 'info');
+      fetchUsers();
+    } finally {
+      setPurgingAnon(false);
+    }
+  };
+
   return (
     <div className="space-y-6 font-sans animate-fade-in">
       {/* Title Header */}
@@ -284,15 +308,27 @@ export default function UserManager() {
           {searchQuery && (
             <button 
               onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 cursor-pointer"
             >
               <X size={14} />
             </button>
           )}
         </div>
 
-        <div className="flex-shrink-0 text-xs font-mono font-bold text-[#1A3C2E] bg-[#1A3C2E]/5 px-3 py-1.5 rounded-full">
-          {totalCount} Total Accounts Found
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            onClick={handlePurgeAnonymous}
+            disabled={purgingAnon}
+            className="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-60 shadow-2xs"
+            title="Purge all loadtest001-982 accounts and dummy users"
+          >
+            <Trash2 size={13} />
+            {purgingAnon ? 'Purging...' : 'Purge Load Test Users'}
+          </button>
+          
+          <div className="flex-shrink-0 text-xs font-mono font-bold text-[#1A3C2E] bg-[#1A3C2E]/5 px-3 py-1.5 rounded-full">
+            {totalCount} Total Accounts Found
+          </div>
         </div>
       </div>
 

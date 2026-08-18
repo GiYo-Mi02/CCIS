@@ -28,11 +28,23 @@
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
-/* Marcellus is for print/formal documents only — NOT UI headings (per UMak CIC spec) */
-/* Web UI headings use Metropolis via font-sans utility class */
-.font-marcellus {
-  font-family: 'Marcellus', var(--font-serif), Georgia, serif;
+/* ============================================================
+   TYPOGRAPHY SYSTEM
+   Headings: Marcellus (Formal, Elegant, Scholastic)
+   Body / Descriptions / UI: Metropolis (Clean, Legible)
+   ============================================================ */
+h1, h2, h3, h4, h5, h6, .font-marcellus {
+  font-family: 'Marcellus', Georgia, serif !important;
 }
+
+p, span:not(.font-marcellus), label, input, button, select, textarea {
+  font-family: "Metropolis", ui-sans-serif, system-ui, sans-serif;
+}
+
+.font-metropolis {
+  font-family: "Metropolis", ui-sans-serif, system-ui, sans-serif !important;
+}
+
 
 @layer utilities {
   /* Existing fade-in */
@@ -213,4 +225,82 @@
 .text-\[\#ffc522\] { color: var(--color-accent-gold-hover) !important; }
 .hover\:text-\[\#ffc522\]:hover { color: var(--color-accent-gold-hover) !important; }
 .hover\:border-\[\#ffc522\]:hover { border-color: var(--color-accent-gold-hover) !important; }
+
+/* ============================================================
+   ADMIN DASHBOARD 1PX CRISP BORDER SYSTEM
+   Guarantees 1px visible council green/slate borders on large screens
+   ============================================================ */
+#admin-root {
+  --admin-border-color: rgba(26, 60, 46, 0.22);
+}
+
+#admin-root .border-gray-50,
+#admin-root .border-gray-100,
+#admin-root .border-gray-200,
+#admin-root .border-zinc-100,
+#admin-root .border-zinc-200,
+#admin-root .border-stone-100,
+#admin-root .border-stone-200 {
+  border-color: var(--admin-border-color) !important;
+}
+
+#admin-root .border-b-gray-50,
+#admin-root .border-b-gray-100,
+#admin-root .border-b-gray-200,
+#admin-root .border-b-zinc-100,
+#admin-root .border-b-stone-200 {
+  border-bottom-color: var(--admin-border-color) !important;
+}
+
+#admin-root .border-t-gray-50,
+#admin-root .border-t-gray-100,
+#admin-root .border-t-gray-200,
+#admin-root .border-t-zinc-100,
+#admin-root .border-t-stone-200 {
+  border-top-color: var(--admin-border-color) !important;
+}
+
+#admin-root .border-r-gray-50,
+#admin-root .border-r-gray-100,
+#admin-root .border-r-gray-200,
+#admin-root .border-r-zinc-100,
+#admin-root .border-r-stone-200 {
+  border-right-color: var(--admin-border-color) !important;
+}
+
+#admin-root .border-l-gray-50,
+#admin-root .border-l-gray-100,
+#admin-root .border-l-gray-200,
+#admin-root .border-l-zinc-100,
+#admin-root .border-l-stone-200 {
+  border-left-color: var(--admin-border-color) !important;
+}
+
+#admin-root .divide-gray-50 > :not([hidden]) ~ :not([hidden]),
+#admin-root .divide-gray-100 > :not([hidden]) ~ :not([hidden]),
+#admin-root .divide-gray-200 > :not([hidden]) ~ :not([hidden]),
+#admin-root .divide-zinc-100 > :not([hidden]) ~ :not([hidden]),
+#admin-root .divide-stone-200 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(26, 60, 46, 0.16) !important;
+}
+
+#admin-root table th,
+#admin-root table td {
+  border-color: rgba(26, 60, 46, 0.18) !important;
+}
+
+#admin-root input:not([type="checkbox"]):not([type="radio"]),
+#admin-root select,
+#admin-root textarea {
+  border-width: 1px !important;
+  border-color: rgba(26, 60, 46, 0.25) !important;
+}
+
+#admin-root .bg-white.shadow-sm,
+#admin-root .bg-white.rounded-xl,
+#admin-root .bg-white.rounded-2xl,
+#admin-root .bg-white.rounded-3xl {
+  border-width: 1px !important;
+  border-color: rgba(26, 60, 46, 0.22) !important;
+}
 

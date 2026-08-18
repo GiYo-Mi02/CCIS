@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Ticket, Calendar, MapPin, Clock, ArrowRight, Shield, X, Lock, CheckCircle2, Info, Trophy, QrCode, Sparkles } from 'lucide-react';
+import { Ticket, Calendar, MapPin, Clock, ArrowRight, Shield, X, Lock, CheckCircle2, Info, Trophy, QrCode, Sparkles, GraduationCap } from 'lucide-react';
 import { EventItem, Registration } from '../types';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
@@ -323,16 +323,16 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
         <div className="space-y-6">
             
             {/* Filter chips & Pagination controls */}
-            <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-zinc-100 shadow-xs">
+            <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-[#1A3C2E]/25 shadow-xs">
               <div className="flex gap-2">
                 {(['all', 'general', 'priority'] as const).map(type => (
                   <button
                     key={type}
                     onClick={() => { setFilter(type); setCurrentPage(1); }}
-                    className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all border ${
+                    className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all border cursor-pointer ${
                       filter === type
-                        ? 'bg-[#1A3C2E] text-white border-transparent'
-                        : 'bg-white text-[#5E6E64] border-zinc-200 hover:bg-zinc-50'
+                        ? 'bg-[#1A3C2E] text-white border-[#1A3C2E]'
+                        : 'bg-white text-[#5E6E64] border-[#1A3C2E]/20 hover:bg-zinc-50'
                     }`}
                   >
                     {type}
@@ -344,8 +344,8 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
 
             {/* Available Events 3-Column Grid */}
             {events.length === 0 ? (
-              <div className="bg-white rounded-3xl border border-zinc-150 p-12 text-center text-zinc-500 shadow-sm max-w-xl mx-auto">
-                <span className="block text-4xl mb-3">📅</span>
+              <div className="bg-white rounded-3xl border border-[#1A3C2E]/25 p-12 text-center text-zinc-500 shadow-sm max-w-xl mx-auto">
+                <Calendar size={40} className="text-stone-300 mx-auto mb-3" />
                 <p className="font-sans font-semibold text-base text-[#1A3C2E]">No upcoming events</p>
                 <p className="text-xs mt-0.5">Please check back later for newly scheduled Student Council activities.</p>
               </div>
@@ -359,8 +359,8 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
                   return (
                     <div
                       key={ev.id}
-                      className={`bg-white rounded-3xl border flex flex-col justify-between shadow-sm hover:shadow-md transition-all relative overflow-hidden ${
-                        isFull && !isRegistered ? 'opacity-65 border-zinc-200' : 'border-zinc-100'
+                      className={`bg-white rounded-3xl border flex flex-col justify-between shadow-xs hover:shadow-md transition-all relative overflow-hidden ${
+                        isFull && !isRegistered ? 'opacity-65 border-zinc-300' : 'border-[#1A3C2E]/25 hover:border-[#1A3C2E]/50'
                       }`}
                       id={`register-ev-card-${ev.id}`}
                     >
@@ -408,7 +408,7 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
                               </span>
                             ) : (
                               <span className="inline-flex items-center gap-1 text-[9.5px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-900 border border-emerald-300/80 px-2.5 py-0.5 rounded-full">
-                                <QrCode size={11} className="text-emerald-700 shrink-0" /> General Assembly / Seminar
+                                <GraduationCap size={11} className="text-emerald-700 shrink-0" /> General Assembly / Seminar
                               </span>
                             )}
                           </div>
@@ -455,7 +455,7 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
                                     setSelectedEventId(ev.id);
                                     setIsModalOpen(true);
                                   }}
-                                  className="w-full bg-[#1A3C2E] hover:bg-[#255541] text-white font-sans text-xs font-bold uppercase tracking-wider py-2.5 rounded-xl transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                                  className="w-full bg-[#1A3C2E] hover:bg-[#255541] active:bg-[#123524] text-white hover:text-white font-sans text-xs font-bold uppercase tracking-wider py-2.5 rounded-xl transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
                                 >
                                   <Trophy size={13} className="text-[#F5B400]" />
                                   <span>Register as Participant</span>
@@ -465,8 +465,9 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
                             </div>
                           ) : (
                             <div className="space-y-2">
-                              <p className="text-[10px] text-[#5E6E64] font-medium leading-tight">
-                                🎟️ Open to all students. No registration required — simply present your Universal Attendance QR Pass at entry!
+                              <p className="text-[10.5px] text-[#5E6E64] font-medium leading-tight flex items-start gap-1.5">
+                                <Sparkles size={13} className="text-[#F5B400] shrink-0 mt-0.5" />
+                                <span>Open to all students. No separate registration required — simply present your Universal Attendance QR Pass at entry!</span>
                               </p>
                               <button
                                 onClick={() => {
@@ -474,11 +475,11 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
                                     onNavigate('account');
                                   }
                                 }}
-                                className="w-full bg-stone-100 hover:bg-[#1A3C2E] text-[#1A3C2E] hover:text-white border border-stone-200 hover:border-[#1A3C2E] font-sans text-xs font-bold uppercase tracking-wider py-2.5 rounded-xl transition-all shadow-2xs flex items-center justify-center gap-1.5 cursor-pointer group"
+                                className="w-full bg-[#1A3C2E]/10 hover:bg-[#1A3C2E] text-[#1A3C2E] hover:text-white border border-[#1A3C2E]/30 hover:border-[#1A3C2E] font-sans text-xs font-black uppercase tracking-wider py-2.5 rounded-xl transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer group"
                               >
-                                <QrCode size={13} className="text-[#F5B400] group-hover:scale-110 transition-transform" />
-                                <span>Get Universal Attendance QR</span>
-                                <ArrowRight size={12} />
+                                <QrCode size={14} className="text-[#1A3C2E] group-hover:text-[#F5B400] transition-colors shrink-0" />
+                                <span className="text-[#1A3C2E] group-hover:text-white transition-colors font-bold">Get Universal Attendance QR</span>
+                                <ArrowRight size={13} className="text-[#1A3C2E] group-hover:text-[#F5B400] group-hover:translate-x-0.5 transition-all shrink-0" />
                               </button>
                             </div>
                           )}

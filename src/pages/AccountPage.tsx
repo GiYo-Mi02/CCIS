@@ -491,30 +491,32 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
         </div>
       )}
 
-      <div className="max-w-5xl mx-auto">
-
-        {/* Header */}
-        <div className="text-center mb-8">
-          <span className="font-mono text-xs uppercase tracking-[0.2em] text-[#5E6E64] font-bold font-semibold">Portal</span>
-          <h1 className="font-sans font-black text-3xl tracking-tight text-[var(--color-primary-green,#1A3C2E)] mt-1">
+      <div className="max-w-6xl mx-auto space-y-8">
+        
+        {/* Page Header */}
+        <div className="text-center space-y-1">
+          <span className="font-mono text-xs uppercase tracking-[0.2em] text-[#5E6E64] font-bold">
+            Portal Profile
+          </span>
+          <h1 className="font-marcellus text-3xl sm:text-5xl text-[#1A3C2E] tracking-tight">
             My Account
           </h1>
-          <div className="h-1.5 w-16 bg-[var(--color-accent-gold,#F5B400)] mx-auto mt-3 rounded-full" />
+          <div className="h-1.5 w-16 bg-[#F5B400] mx-auto mt-3 rounded-full" />
         </div>
 
         {/* Two-Column Grid Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
           {/* PROFILE SIDEBAR */}
-          <div className="lg:col-span-4 lg:sticky lg:top-6 space-y-5 bg-white p-6 rounded-3xl border border-zinc-100 shadow-md">
+          <div className="lg:col-span-4 lg:sticky lg:top-6 space-y-5 bg-white p-6 rounded-3xl border border-[#1A3C2E]/25 shadow-sm">
             
             {/* Avatar & Info */}
             <div className="flex flex-col items-center text-center space-y-3">
-              <div className="w-20 h-20 rounded-full border-2 border-[var(--color-accent-gold,#F5B400)] overflow-hidden bg-zinc-100 flex-shrink-0 flex items-center justify-center relative shadow-sm">
+              <div className="w-20 h-20 rounded-full border-2 border-[#F5B400] overflow-hidden bg-zinc-100 flex-shrink-0 flex items-center justify-center relative shadow-sm">
                 {profile.avatar_url ? (
                   <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                 ) : (
-                  <span className="text-[var(--color-primary-green,#1A3C2E)] font-black text-2xl">
+                  <span className="text-[#1A3C2E] font-black text-2xl">
                     {(profile.full_name || 'U')[0].toUpperCase()}
                   </span>
                 )}
@@ -789,20 +791,20 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
 
             {/* Account Verification Support / Status Card */}
             {(profile.status === 'pending' || profile.status === 'rejected') && (
-              <div className="bg-white border border-zinc-150 p-6 rounded-3xl shadow-md space-y-4">
+              <div className="bg-white border border-[#1A3C2E]/25 p-6 rounded-3xl shadow-sm space-y-4">
                 <div className="flex items-start gap-3">
                   <div className={`p-2.5 rounded-full shrink-0 ${profile.status === 'rejected' ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'}`}>
                     {profile.status === 'rejected' ? <X size={20} /> : <Clock size={20} />}
                   </div>
                   <div>
-                    <h3 className="font-sans font-black text-sm text-stone-950 uppercase tracking-wide">
+                    <h3 className="font-marcellus text-base text-stone-950 uppercase tracking-wide">
                       {profile.status === 'rejected' ? 'Verification Declined' : 'Account Verification Pending'}
                     </h3>
-                    <div className="text-stone-500 text-xs mt-0.5 leading-relaxed">
+                    <div className="text-stone-500 text-xs mt-0.5 leading-relaxed font-sans">
                       {profile.status === 'rejected' ? (
                         <>
                           Your student verification request was declined. 
-                          <span className="block font-bold text-rose-700 bg-rose-50 border border-rose-100 p-2.5 rounded-lg mt-2 mb-1">
+                          <span className="block font-bold text-rose-700 bg-rose-50 border border-rose-100 p-2.5 rounded-lg mt-2 mb-1 font-sans">
                             Reason: {profile.rejection_reason || 'Discrepancy in details'}
                           </span>
                           Please contact support or re-submit your details.
@@ -814,7 +816,7 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
                   </div>
                 </div>
 
-                <form onSubmit={handleConcernSubmit} className="pt-3 border-t border-zinc-100 space-y-3">
+                <form onSubmit={handleConcernSubmit} className="pt-3 border-t border-zinc-100 space-y-3 font-sans">
                   <label className="block text-[#5E6E64] font-mono text-[9px] uppercase tracking-wider font-bold">
                     Submit Verification Concern / Support Ticket
                   </label>
@@ -823,7 +825,7 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
                     onChange={(e) => setConcernMessage(e.target.value)}
                     rows={3}
                     placeholder="Describe your concern here (e.g. 'I submitted my profile but my COR verification email hasn't arrived' or 'Why was my profile rejected?')"
-                    className="w-full bg-zinc-50 border border-zinc-200 focus:border-[var(--color-accent-gold,#F5B400)] focus:ring-1 focus:ring-[var(--color-accent-gold,#F5B400)] rounded-xl px-4 py-3 text-xs text-stone-800 placeholder-stone-400 outline-none transition-all resize-none"
+                    className="w-full bg-zinc-50 border border-[#1A3C2E]/30 focus:border-[#1A3C2E] focus:ring-1 focus:ring-[#1A3C2E] rounded-xl px-4 py-3 text-xs text-stone-800 placeholder-stone-400 outline-none transition-all resize-none"
                     required
                   />
                   {concernStatus && (
@@ -850,17 +852,17 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
             )}
             
             {/* Pill Tabs Bar (1 Row Only) */}
-            <div className="flex flex-nowrap items-center gap-2 border-b border-zinc-200 pb-3 max-w-full overflow-x-auto">
+            <div className="flex flex-nowrap items-center gap-2 border-b border-[#1A3C2E]/20 pb-3 max-w-full overflow-x-auto">
               <button
                 onClick={() => setActiveTab('attendance-pass')}
                 className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-full text-xs uppercase tracking-wider font-bold transition-all border shrink-0 cursor-pointer select-none ${
                   activeTab === 'attendance-pass'
-                    ? 'bg-[var(--color-primary-green,#1A3C2E)] text-white shadow-md border-transparent ring-2 ring-[var(--color-accent-gold,#F5B400)]'
-                    : 'bg-white text-[#5E6E64] border-zinc-200 hover:bg-zinc-50'
+                    ? 'bg-[#1A3C2E] text-white shadow-md border-[#1A3C2E] ring-2 ring-[#F5B400]'
+                    : 'bg-white text-[#5E6E64] border-[#1A3C2E]/25 hover:bg-zinc-50'
                 }`}
                 id="tab-attendance-pass"
               >
-                <QrCode size={14} className={activeTab === 'attendance-pass' ? 'text-[var(--color-accent-gold,#F5B400)]' : ''} />
+                <QrCode size={14} className={activeTab === 'attendance-pass' ? 'text-[#F5B400]' : ''} />
                 <span>Attendance QR Pass</span>
               </button>
 
@@ -868,12 +870,12 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
                 onClick={() => setActiveTab('registrations')}
                 className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-full text-xs uppercase tracking-wider font-bold transition-all border shrink-0 cursor-pointer select-none ${
                   activeTab === 'registrations'
-                    ? 'bg-[var(--color-primary-green,#1A3C2E)] text-white shadow-md border-transparent ring-2 ring-[var(--color-accent-gold,#F5B400)]'
-                    : 'bg-white text-[#5E6E64] border-zinc-200 hover:bg-zinc-50'
+                    ? 'bg-[#1A3C2E] text-white shadow-md border-[#1A3C2E] ring-2 ring-[#F5B400]'
+                    : 'bg-white text-[#5E6E64] border-[#1A3C2E]/25 hover:bg-zinc-50'
                 }`}
                 id="tab-registrations"
               >
-                <Ticket size={14} className={activeTab === 'registrations' ? 'text-[var(--color-accent-gold,#F5B400)]' : ''} />
+                <Ticket size={14} className={activeTab === 'registrations' ? 'text-[#F5B400]' : ''} />
                 <span>Participant Registrations ({registrations.length})</span>
               </button>
             </div>
@@ -884,13 +886,13 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
               <div className="space-y-6 animate-fade-in">
                 
                 {/* Informational Role & Validation Guide Banner */}
-                <div className="p-4 sm:p-5 bg-white rounded-2xl border border-stone-200/80 shadow-xs flex items-start gap-3.5">
-                  <div className="w-9 h-9 rounded-xl bg-[#FAF7EA] border border-[#1A3C2E]/10 flex items-center justify-center text-[#1A3C2E] shrink-0 mt-0.5">
+                <div className="p-4 sm:p-5 bg-white rounded-2xl border border-[#1A3C2E]/25 shadow-xs flex items-start gap-3.5">
+                  <div className="w-9 h-9 rounded-xl bg-[#FAF7EA] border border-[#1A3C2E]/20 flex items-center justify-center text-[#1A3C2E] shrink-0 mt-0.5">
                     <QrCode size={18} className="text-[#1A3C2E]" />
                   </div>
-                  <div className="text-xs space-y-1.5 flex-1">
+                  <div className="text-xs space-y-1.5 flex-1 font-sans">
                     <div className="flex items-center justify-between flex-wrap gap-2">
-                      <h4 className="font-sans font-bold text-sm text-[#1A3C2E]">
+                      <h4 className="font-marcellus text-base text-[#1A3C2E]">
                         Universal Audience Attendance Pass
                       </h4>
                       <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
@@ -906,7 +908,7 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
                     <p className="text-stone-600 leading-relaxed">
                       Present this digital pass for entrance and attendance verification across all CCIS assemblies and events without pre-registering.
                     </p>
-                    <div className="p-2.5 bg-stone-50 rounded-xl border border-stone-200/60 text-[11px] text-stone-600 space-y-1">
+                    <div className="p-2.5 bg-stone-50 rounded-xl border border-[#1A3C2E]/15 text-[11px] text-stone-600 space-y-1">
                       <p><strong>• Activation:</strong> Your pass is permanently active once your student profile is approved by the council.</p>
                       <p><strong>• Database Check-In:</strong> Scanning this QR code at the door logs your attendance directly into the college database.</p>
                       <p><strong>• Participants vs Audiences:</strong> Event registration on the Our Events page is reserved for active event participants/competitors.</p>
@@ -916,7 +918,7 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
 
                 {/* Regenerate Toast Alert */}
                 {regenerateSuccess && (
-                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center gap-2 animate-fade-in">
+                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center gap-2 animate-fade-in font-sans">
                     <Check size={16} className="text-emerald-600 shrink-0" />
                     <span>Attendance QR Code refreshed and verified successfully!</span>
                   </div>
@@ -925,7 +927,7 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
                 {/* VISUAL DIGITAL ATTENDANCE PASS CARD */}
                 <div 
                   id="audience-attendance-pass-card"
-                  className="bg-white rounded-3xl border border-stone-200 shadow-md overflow-hidden flex flex-col md:flex-row relative"
+                  className="bg-white rounded-3xl border-2 border-[#1A3C2E]/30 shadow-md overflow-hidden flex flex-col md:flex-row relative"
                 >
                   {/* Left Main Boarding Card Body */}
                   <div className="p-6 md:p-8 flex-1 bg-[#1A3C2E] text-[#FAF7EA] flex flex-col justify-between relative overflow-hidden">
@@ -1121,14 +1123,14 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
                           <div 
                             key={reg.id} 
                             onClick={() => setActiveTicket(reg)}
-                            className="bg-white rounded-2xl border border-zinc-100 p-5 shadow-sm hover:shadow-md hover:border-[var(--color-accent-gold,#F5B400)]/40 cursor-pointer select-none transition-all duration-200"
+                            className="bg-white rounded-2xl border border-[#1A3C2E]/25 p-5 shadow-xs hover:shadow-md hover:border-[#1A3C2E]/60 cursor-pointer select-none transition-all duration-200"
                           >
                             <div className="flex items-center justify-between gap-2 flex-wrap mb-2">
-                              <h3 className="font-sans font-bold text-base text-[var(--color-primary-green,#1A3C2E)]">
+                              <h3 className="font-marcellus text-base text-[#1A3C2E]">
                                 {reg.events?.title || 'Event'}
                               </h3>
                               <div className="flex items-center gap-2">
-                                <span className="text-[9px] font-sans font-bold text-[#F5B400] bg-[var(--color-primary-green,#1A3C2E)]/5 border border-[var(--color-primary-green,#1A3C2E)]/10 px-2 py-0.5 rounded flex items-center gap-1">
+                                <span className="text-[9px] font-sans font-bold text-[#1A3C2E] bg-[#F5B400]/20 border border-[#F5B400]/40 px-2 py-0.5 rounded-full flex items-center gap-1">
                                   <Ticket size={11} className="shrink-0" /> View Pass
                                 </span>
                                 <span className={`text-[10px] font-mono uppercase tracking-wider px-2.5 py-0.5 rounded-full font-bold ${statusBadge(reg.status)}`}>

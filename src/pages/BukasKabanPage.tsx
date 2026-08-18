@@ -777,15 +777,15 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
 
         {/* Filter Navigation Pill-Tabs */}
         {semestersList.length > 2 && (
-          <div className="flex flex-wrap gap-2 mb-8 bg-stone-200/30 p-1.5 rounded-2xl border border-stone-200/50">
+          <div className="flex flex-wrap gap-2 mb-8 bg-white p-2 rounded-2xl border border-[#1A3C2E]/25 shadow-xs">
             {semestersList.map(sem => (
               <button
                 key={sem}
                 onClick={() => setSelectedSemester(sem)}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all focus:ring-2 focus:ring-[#1A3C2E] outline-none cursor-pointer ${
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all focus:ring-2 focus:ring-[#1A3C2E] outline-none cursor-pointer border ${
                   selectedSemester === sem
-                    ? 'bg-[#1A3C2E] text-white shadow-xs'
-                    : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/50'
+                    ? 'bg-[#1A3C2E] text-white border-[#1A3C2E] shadow-xs'
+                    : 'text-stone-600 border-transparent hover:text-[#1A3C2E] hover:bg-[#FAF7EA]'
                 }`}
               >
                 {sem === 'All' ? 'All Semesters' : sem}
@@ -800,7 +800,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
           <div className="relative pl-10 sm:pl-16 space-y-12">
             <div className="absolute left-4 sm:left-8 top-0 bottom-0 w-0.5 bg-stone-200" />
             {[1, 2, 3].map(i => (
-              <div key={i} className="relative animate-pulse flex flex-col sm:flex-row gap-6 bg-white p-6 sm:p-8 rounded-3xl border border-stone-200">
+              <div key={i} className="relative animate-pulse flex flex-col sm:flex-row gap-6 bg-white p-6 sm:p-8 rounded-3xl border border-[#1A3C2E]/25">
                 <div className="absolute -left-[28px] sm:-left-[36px] top-8 w-3 h-3 rounded-full bg-stone-200 border border-white" />
                 <div className="w-28 sm:w-36 h-36 sm:h-48 bg-stone-100 rounded-2xl shrink-0" />
                 <div className="flex-1 space-y-4">
@@ -814,10 +814,10 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
           </div>
         ) : filteredReports.length === 0 ? (
           /* Empty state */
-          <div className="text-center py-16 bg-white border border-stone-200 rounded-3xl p-8 max-w-md mx-auto">
+          <div className="text-center py-16 bg-white border border-[#1A3C2E]/25 rounded-3xl p-8 max-w-md mx-auto shadow-xs">
             <FileText className="mx-auto text-stone-300 mb-4" size={40} />
-            <h3 className="font-serif font-black text-stone-800 text-lg mb-1">Archive Empty</h3>
-            <p className="text-stone-500 text-xs leading-relaxed">
+            <h3 className="font-marcellus text-stone-800 text-lg mb-1">Archive Empty</h3>
+            <p className="text-stone-500 text-xs leading-relaxed font-sans">
               No reports published for this semester yet.
             </p>
           </div>
@@ -825,7 +825,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
           /* Timeline Feed */
           <div className="relative pl-4 sm:pl-10">
             {/* Timeline Spine rail */}
-            <div className="absolute left-4 sm:left-8 top-2 bottom-6 w-0.5 bg-stone-300" />
+            <div className="absolute left-4 sm:left-8 top-2 bottom-6 w-0.5 bg-[#1A3C2E]/30" />
 
             {/* Render items chronological newest first */}
             {filteredReports.map((report, idx) => {
@@ -842,7 +842,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
                   {showSemesterHeader && (
                     <div className="flex items-center gap-3 my-6 select-none">
                       <div className="absolute -left-[2px] sm:left-[28px] w-2 h-2 rounded-full bg-[#1A3C2E]" />
-                      <h3 className="font-serif font-black text-xs uppercase tracking-wider text-stone-900 bg-white border border-stone-200/80 px-4 py-1.5 rounded-full shadow-xs inline-block ml-6 sm:ml-12 font-mono">
+                      <h3 className="font-marcellus text-xs uppercase tracking-wider text-stone-900 bg-white border border-[#1A3C2E]/25 px-4 py-1.5 rounded-full shadow-xs inline-block ml-6 sm:ml-12 font-mono">
                         {report.semester}
                       </h3>
                     </div>
@@ -851,13 +851,13 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
                   {/* Document Card Entry */}
                   <div 
                     onClick={() => openDetailModal(report)}
-                    className="relative ml-6 sm:ml-12 mb-10 flex flex-col sm:flex-row gap-6 bg-white p-6 sm:p-8 rounded-3xl border border-stone-200 shadow-2xs hover:shadow-lg hover:-translate-y-1 hover:bg-[#1A3C2E] hover:border-[#1A3C2E] hover:text-white cursor-pointer transition-all duration-300 group"
+                    className="relative ml-6 sm:ml-12 mb-10 flex flex-col sm:flex-row gap-6 bg-white p-6 sm:p-8 rounded-3xl border border-[#1A3C2E]/25 shadow-xs hover:shadow-lg hover:-translate-y-1 hover:bg-[#1A3C2E] hover:border-[#1A3C2E] hover:text-white cursor-pointer transition-all duration-300 group"
                   >
                     {/* Spine anchor node */}
                     <div className="absolute -left-[30px] sm:-left-[42px] top-8 w-2.5 h-2.5 rounded-full bg-stone-300 border-2 border-[#FAF7EA] group-hover:bg-[#1A3C2E] group-hover:scale-110 transition-all shadow-xs" />
 
                     {/* Left side preview thumbnail */}
-                    <div className="w-28 sm:w-36 h-36 sm:h-48 bg-stone-100 rounded-2xl border border-stone-200 shadow-2xs shrink-0 flex items-center justify-center relative overflow-hidden transition-all duration-300 hover:scale-[1.02] group-hover:border-[#F5B400]/20">
+                    <div className="w-28 sm:w-36 h-36 sm:h-48 bg-stone-100 rounded-2xl border border-[#1A3C2E]/20 shadow-2xs shrink-0 flex items-center justify-center relative overflow-hidden transition-all duration-300 hover:scale-[1.02] group-hover:border-[#F5B400]/20">
                       {report.thumbnailUrl ? (
                         <img
                           src={report.thumbnailUrl}

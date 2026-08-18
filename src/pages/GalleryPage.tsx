@@ -472,7 +472,7 @@ export default function GalleryPage({ isAdmin = false }: GalleryPageProps) {
                         onDragOver={(e) => handleDragOver(e)}
                         onDrop={(e) => handleDrop(e, item.id)}
                         onDragEnd={handleDragEnd}
-                        className={`group relative overflow-hidden rounded-2xl bg-white border border-stone-200/50 shadow-sm transition-all duration-300 hover:shadow-xl hover:border-[#1A3C2E]/30 hover:-translate-y-2 focus-within:ring-2 focus-within:ring-[#1A3C2E] cursor-grab active:cursor-grabbing ${
+                        className={`group relative overflow-hidden rounded-2xl bg-white border border-[#1A3C2E]/25 shadow-xs transition-all duration-300 hover:shadow-xl hover:border-[#1A3C2E] hover:-translate-y-2 focus-within:ring-2 focus-within:ring-[#1A3C2E] cursor-grab active:cursor-grabbing ${
                           draggedItemId === item.id ? 'opacity-40 border-dashed border-2 border-[#1A3C2E]' : ''
                         }`}
                         onClick={() => setDetailItem(item)}

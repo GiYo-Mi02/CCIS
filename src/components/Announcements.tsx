@@ -220,7 +220,7 @@ export default function Announcements({ previewMode = false, onViewAllClick }: A
         </div>
 
         {/* Search & Category Filter Sector */}
-        <div className="bg-white rounded-2xl border border-zinc-100 p-5 md:p-6 shadow-sm mb-8 space-y-4">
+        <div className="bg-white rounded-2xl border border-[#1A3C2E]/25 p-5 md:p-6 shadow-xs mb-8 space-y-4">
           <div className="flex flex-col md:flex-row md:items-center gap-4">
             
             {/* Search inputs */}
@@ -231,12 +231,12 @@ export default function Announcements({ previewMode = false, onViewAllClick }: A
                 placeholder="Search announcements by keyword..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E]/20 focus:border-[#1A3C2E] text-stone-800 text-sm transition-all"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#1A3C2E]/30 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E]/20 focus:border-[#1A3C2E] text-stone-800 text-sm transition-all"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 focus:outline-none"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 focus:outline-none cursor-pointer"
                 >
                   <X size={16} />
                 </button>
@@ -249,10 +249,10 @@ export default function Announcements({ previewMode = false, onViewAllClick }: A
                 <button
                   key={cat.id}
                   onClick={() => setActiveCategory(cat.id)}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all focus:outline-none ${
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all focus:outline-none cursor-pointer border ${
                     activeCategory === cat.id
-                      ? 'bg-[#1A3C2E] text-[#FAF7EA] shadow-md shadow-[#1A3C2E]/10'
-                      : 'bg-zinc-50 border border-zinc-200 text-stone-600 hover:bg-zinc-100'
+                      ? 'bg-[#1A3C2E] text-[#FAF7EA] border-[#1A3C2E] shadow-sm'
+                      : 'bg-zinc-50 border-[#1A3C2E]/20 text-stone-600 hover:bg-zinc-100 hover:text-[#1A3C2E]'
                   }`}
                 >
                   {cat.label}
@@ -265,7 +265,7 @@ export default function Announcements({ previewMode = false, onViewAllClick }: A
 
         {/* Announcements list grid */}
         {filtered.length === 0 ? (
-          <div className="bg-white rounded-3xl border border-dashed border-stone-200 p-16 text-center shadow-sm">
+          <div className="bg-white rounded-3xl border border-[#1A3C2E]/25 p-16 text-center shadow-xs">
             <Megaphone size={48} className="mx-auto text-stone-300 animate-pulse mb-4" />
             <h3 className="font-bold text-lg text-[#1A3C2E]">No announcements found</h3>
             <p className="text-stone-500 text-sm mt-1 max-w-xs mx-auto">
@@ -278,7 +278,7 @@ export default function Announcements({ previewMode = false, onViewAllClick }: A
               <div
                 key={ann.id}
                 onClick={() => setSelectedAnn(ann)}
-                className={`cursor-pointer bg-white rounded-3xl border border-zinc-150 shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col md:flex-row overflow-hidden group min-h-[220px] ${
+                className={`cursor-pointer bg-white rounded-3xl border border-[#1A3C2E]/25 shadow-xs hover:shadow-lg hover:border-[#1A3C2E]/50 transition-all duration-300 flex flex-col md:flex-row overflow-hidden group min-h-[220px] ${
                   ann.pinned ? 'ring-2 ring-[#F5B400]/40' : ''
                 }`}
                 id={`ann-card-full-${ann.id}`}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Calendar, ChevronLeft, ChevronRight, Clock, MapPin, X, Loader2, Zap, CalendarDays, CalendarRange } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Clock, MapPin, X, Loader2, Zap, CalendarDays, CalendarRange, Trophy, GraduationCap, QrCode } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 const getTodayStr = (): string => {
@@ -103,10 +103,18 @@ export function UpcomingEventsList({ onNavigate }: UpcomingEventsListProps) {
                     <span className="text-[10.5px] font-black text-[#123524] bg-stone-100 px-2.5 py-0.5 rounded-md inline-flex items-center gap-1">
                       <Calendar size={11} className="text-[#FFBC00] shrink-0" /> {evt.event_date}
                     </span>
-                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider ${
+                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider inline-flex items-center gap-1 ${
                       isComp ? 'bg-amber-100 text-amber-900 border border-amber-200' : 'bg-emerald-100 text-emerald-900 border border-emerald-200'
                     }`}>
-                      {isComp ? '🏆 Competition' : '🎓 General'}
+                      {isComp ? (
+                        <>
+                          <Trophy size={10} className="text-amber-600" /> Competition
+                        </>
+                      ) : (
+                        <>
+                          <GraduationCap size={10} className="text-emerald-700" /> General Event
+                        </>
+                      )}
                     </span>
                   </div>
                   <h4 className="font-bold text-xs text-[#123524] truncate mt-1">{evt.title}</h4>
@@ -352,15 +360,15 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
   return (
     <div className="space-y-6">
       {/* Month Navigation Control Header */}
-      <div className="flex items-center justify-between pb-3 border-b border-zinc-100 font-sans">
+      <div className="flex items-center justify-between pb-3 border-b border-[#123524]/20 font-sans">
         <div className="flex items-center gap-3">
-          <h3 className="font-sans font-black text-[#123524] text-xl flex items-center gap-2">
+          <h3 className="font-marcellus text-[#123524] text-xl sm:text-2xl flex items-center gap-2">
             <CalendarRange size={22} className="text-[#FFBC00] shrink-0" />
             {monthLabels[month]} {year}
           </h3>
           <button
             onClick={handleJumpToToday}
-            className="text-[10px] font-bold text-[#123524] bg-zinc-100 hover:bg-zinc-200 px-3 py-1 rounded-full uppercase tracking-wider transition-colors"
+            className="text-[10px] font-bold text-[#123524] bg-stone-100 hover:bg-stone-200 border border-[#123524]/20 px-3 py-1 rounded-full uppercase tracking-wider transition-colors cursor-pointer"
           >
             Today
           </button>
@@ -369,13 +377,13 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
         <div className="flex items-center gap-1.5">
           <button
             onClick={handlePrevMonth}
-            className="p-1.5 rounded-full border border-zinc-200 text-stone-600 hover:bg-zinc-50 transition-colors"
+            className="p-1.5 rounded-full border border-[#123524]/20 text-stone-600 hover:bg-zinc-50 transition-colors cursor-pointer"
           >
             <ChevronLeft size={16} />
           </button>
           <button
             onClick={handleNextMonth}
-            className="p-1.5 rounded-full border border-zinc-200 text-stone-600 hover:bg-zinc-50 transition-colors"
+            className="p-1.5 rounded-full border border-[#123524]/20 text-stone-600 hover:bg-zinc-50 transition-colors cursor-pointer"
           >
             <ChevronRight size={16} />
           </button>
@@ -389,10 +397,10 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
           <button
             key={type}
             onClick={() => setFilter(type)}
-            className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all border ${
+            className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all border cursor-pointer ${
               filter === type
-                ? 'bg-[#123524] text-white border-transparent'
-                : 'bg-white text-[#5E6E64] border-zinc-200 hover:bg-zinc-50'
+                ? 'bg-[#123524] text-white border-[#123524]'
+                : 'bg-white text-[#5E6E64] border-[#123524]/20 hover:bg-zinc-50'
             }`}
           >
             {type}
@@ -400,12 +408,12 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
         ))}
       </div>
 
-      {/* Calendar Grid Container */}
-      <div className="border-2 border-[#123524]/20 rounded-2xl overflow-hidden shadow-sm bg-white transition-all duration-300 hover:shadow-md">
+      {/* Calendar Grid Container with Crisp Visible Lines */}
+      <div className="border-2 border-[#123524]/30 rounded-2xl overflow-hidden shadow-sm bg-white transition-all duration-300 hover:shadow-md">
         {/* Days of Week Header */}
-        <div className="grid grid-cols-7 border-b-2 border-[#123524]/15 bg-stone-50/70 text-center py-2.5">
+        <div className="grid grid-cols-7 border-b-2 border-[#123524]/20 bg-stone-100/90 text-center py-2.5 divide-x divide-[#123524]/15">
           {daysOfWeek.map(day => (
-            <span key={day} className="font-mono font-black text-[10px] text-[#5E6E64] uppercase tracking-wider">
+            <span key={day} className="font-mono font-black text-[10px] text-[#123524]/80 uppercase tracking-wider">
               {day}
             </span>
           ))}
@@ -418,7 +426,7 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
             <p className="text-[10px] font-mono uppercase tracking-wider">Loading Schedules...</p>
           </div>
         ) : (
-          <div className="grid grid-cols-7 grid-rows-5 divide-x-2 divide-y-2 divide-[#123524]/10 border-t border-stone-200">
+          <div className="grid grid-cols-7 grid-rows-5 divide-x-2 divide-y-2 divide-[#123524]/15 border-t border-[#123524]/20">
             {cells.map((cell, idx) => {
               const { dateStr, day, isCurrentMonth } = cell;
               const isSelected = selectedDateStr === dateStr;

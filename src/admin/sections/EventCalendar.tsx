@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Plus, List, Grid3X3, Trash } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, List, Grid3X3, Trash, Trophy, GraduationCap, Image as ImageIcon, Calendar as CalendarIcon, Clock, MapPin } from 'lucide-react';
 import { useAdmin } from '../AdminContext';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';
@@ -105,56 +105,68 @@ export default function EventCalendar() {
   }
 
   return (
-    <div className="space-y-5 animate-fade-in">
-      {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-        <div className="flex items-center gap-2">
-          <button onClick={prevMonth} className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors text-gray-500"><ChevronLeft size={16} /></button>
-          <h2 className="font-sans font-bold text-lg text-[#1A3C2E] min-w-[180px] text-center">{monthName}</h2>
-          <button onClick={nextMonth} className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors text-gray-500"><ChevronRight size={16} /></button>
+    <div className="space-y-6">
+      {/* Header Controls */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <button onClick={prevMonth} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors"><ChevronLeft size={18} /></button>
+          <h2 className="font-sans font-black text-xl text-[#1A3C2E] min-w-[180px] text-center">{monthName}</h2>
+          <button onClick={nextMonth} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors"><ChevronRight size={18} /></button>
         </div>
-        <div className="flex-1" />
         <div className="flex items-center gap-2">
           {events.length > 0 && (
-            <button onClick={handleDeleteAll} className="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 px-3 py-2 rounded-lg font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 transition-colors">
-              <Trash size={13} /> Delete All
+            <button onClick={() => { if (window.confirm('Delete all scheduled events?')) handleDeleteAll(); }} className="bg-rose-50 border border-rose-200 hover:bg-rose-100 text-[#C0392B] px-3 py-2 rounded-lg font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer" title="Delete All Events">
+              <Trash size={14} /> Delete All
             </button>
           )}
-          <div className="flex items-center gap-0.5 bg-white rounded-lg border border-gray-200 p-0.5">
+          <div className="flex items-center gap-0.5 bg-white rounded-lg border border-[#1A3C2E]/20 p-0.5 shadow-2xs">
             <button onClick={() => setViewMode('calendar')} className={`p-1.5 rounded transition-colors ${viewMode === 'calendar' ? 'bg-[#F5B400] text-[#1A3C2E]' : 'text-gray-400 hover:text-gray-600'}`}><Grid3X3 size={16} /></button>
             <button onClick={() => setViewMode('list')} className={`p-1.5 rounded transition-colors ${viewMode === 'list' ? 'bg-[#F5B400] text-[#1A3C2E]' : 'text-gray-400 hover:text-gray-600'}`}><List size={16} /></button>
           </div>
-          <button onClick={() => openCreateForDate(new Date().getDate())} className="bg-[#F5B400] hover:bg-[#ffc522] text-[#1A3C2E] px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-sm transition-colors">
+          <button onClick={() => openCreateForDate(new Date().getDate())} className="bg-[#F5B400] hover:bg-[#ffc522] text-[#1A3C2E] px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-sm transition-colors cursor-pointer">
             <Plus size={15} /> Add Event
           </button>
         </div>
       </div>
 
-      {/* Calendar Grid */}
+      {/* Calendar Grid with Crisp Visible Borders */}
       {viewMode === 'calendar' ? (
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="grid grid-cols-7 border-b border-gray-100">
+        <div className="bg-white rounded-2xl border border-[#1A3C2E]/25 shadow-sm overflow-hidden">
+          <div className="grid grid-cols-7 border-b border-[#1A3C2E]/20 bg-stone-50 divide-x divide-[#1A3C2E]/15">
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-              <div key={d} className="px-2 py-2.5 text-center text-[10px] font-bold uppercase tracking-wider text-gray-400 bg-gray-50">{d}</div>
+              <div key={d} className="px-2 py-2.5 text-center text-[10px] font-black uppercase tracking-wider text-[#1A3C2E]/70">{d}</div>
             ))}
           </div>
-          <div className="grid grid-cols-7">
+          <div className="grid grid-cols-7 border-b border-[#1A3C2E]/20">
             {days.map((day, i) => {
-              if (day === null) return <div key={`empty-${i}`} className="min-h-[100px] border-b border-r border-gray-50 bg-gray-50/50" />;
+              if (day === null) return <div key={`empty-${i}`} className="min-h-[110px] border-b border-r border-[#1A3C2E]/15 bg-stone-50/60" />;
               const dayEvents = getEventsForDay(day);
               const isToday = day === new Date().getDate() && month === new Date().getMonth() && year === new Date().getFullYear();
               return (
-                <div key={day} className={`min-h-[100px] border-b border-r border-gray-50 p-1.5 hover:bg-[#F5B400]/[0.03] transition-colors cursor-pointer ${isToday ? 'bg-[#F5B400]/5' : ''}`}
+                <div key={day} className={`min-h-[110px] border-b border-r border-[#1A3C2E]/20 p-2 hover:bg-[#F5B400]/[0.05] transition-colors cursor-pointer ${isToday ? 'bg-[#F5B400]/10' : 'bg-white'}`}
                   onClick={() => openCreateForDate(day)}>
-                  <span className={`text-xs font-semibold inline-flex items-center justify-center w-6 h-6 rounded-full ${isToday ? 'bg-[#F5B400] text-[#1A3C2E]' : 'text-gray-500'}`}>{day}</span>
-                  <div className="mt-1 space-y-0.5">
-                    {dayEvents.slice(0, 3).map(ev => (
-                      <div key={ev.id} onClick={(e) => { e.stopPropagation(); setIsCreating(false); setEditingEvent(ev); }}
-                        className={`text-[9px] font-semibold px-1.5 py-0.5 rounded truncate cursor-pointer transition-colors ${ev.category === 'priority' ? 'bg-[#F5B400]/15 text-[#B38600] hover:bg-[#F5B400]/25' : 'bg-[#2E7D32]/10 text-[#2E7D32] hover:bg-[#2E7D32]/20'}`}>
-                        {ev.title}
-                      </div>
-                    ))}
-                    {dayEvents.length > 3 && <span className="text-[9px] text-gray-400 font-mono pl-1">+{dayEvents.length - 3} more</span>}
+                  <div className="flex items-center justify-between">
+                    <span className={`text-xs font-bold inline-flex items-center justify-center w-6 h-6 rounded-full ${isToday ? 'bg-[#1A3C2E] text-[#F5B400]' : 'text-stone-700'}`}>{day}</span>
+                    {dayEvents.length > 0 && (
+                      <span className="text-[9px] font-mono text-[#5E6E64] font-semibold">{dayEvents.length} event{dayEvents.length > 1 ? 's' : ''}</span>
+                    )}
+                  </div>
+                  <div className="mt-1.5 space-y-1">
+                    {dayEvents.slice(0, 3).map(ev => {
+                      const isComp = ev.event_type === 'competition';
+                      return (
+                        <div key={ev.id} onClick={(e) => { e.stopPropagation(); setIsCreating(false); setEditingEvent(ev); }}
+                          className={`text-[9.5px] font-bold px-2 py-1 rounded-md truncate cursor-pointer transition-all border flex items-center gap-1 ${
+                            isComp
+                              ? 'bg-amber-50 text-amber-900 border-amber-200 hover:bg-amber-100'
+                              : 'bg-emerald-50 text-emerald-900 border-emerald-200 hover:bg-emerald-100'
+                          }`}>
+                          {isComp ? <Trophy size={10} className="text-amber-600 shrink-0" /> : <GraduationCap size={10} className="text-emerald-600 shrink-0" />}
+                          <span className="truncate">{ev.title}</span>
+                        </div>
+                      );
+                    })}
+                    {dayEvents.length > 3 && <span className="text-[9px] text-gray-500 font-mono pl-1 block font-semibold">+{dayEvents.length - 3} more</span>}
                   </div>
                 </div>
               );
@@ -162,29 +174,37 @@ export default function EventCalendar() {
           </div>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="divide-y divide-gray-50">
+        <div className="bg-white rounded-2xl border border-[#1A3C2E]/25 shadow-sm overflow-hidden">
+          <div className="divide-y divide-[#1A3C2E]/15">
             {events.length === 0 ? (
               <p className="p-8 text-center text-gray-400 text-sm">No events scheduled</p>
             ) : events.map(ev => (
-              <div key={ev.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => { setIsCreating(false); setEditingEvent(ev); }}>
-                <div className={`w-2 h-10 rounded-full shrink-0 ${ev.category === 'priority' ? 'bg-[#F5B400]' : 'bg-[#2E7D32]'}`} />
+              <div key={ev.id} className="flex items-center gap-4 px-5 py-4 hover:bg-stone-50 transition-colors cursor-pointer" onClick={() => { setIsCreating(false); setEditingEvent(ev); }}>
+                <div className={`w-2.5 h-12 rounded-full shrink-0 ${ev.category === 'priority' ? 'bg-[#F5B400]' : 'bg-[#1A3C2E]'}`} />
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold text-[#222B26] truncate">{ev.title}</p>
-                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-bold text-[#1A3C2E] truncate">{ev.title}</p>
+                    <span className={`text-[9.5px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider inline-flex items-center gap-1 ${
                       ev.event_type === 'competition'
-                        ? 'bg-amber-100 text-amber-800 border border-amber-200'
-                        : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                        ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                        : 'bg-emerald-100 text-emerald-900 border border-emerald-300'
                     }`}>
-                      {ev.event_type === 'competition' ? '🏆 Competition' : '🎓 General'}
+                      {ev.event_type === 'competition' ? (
+                        <>
+                          <Trophy size={10} className="text-amber-600" /> Competition
+                        </>
+                      ) : (
+                        <>
+                          <GraduationCap size={10} className="text-emerald-700" /> General Assembly
+                        </>
+                      )}
                     </span>
                   </div>
-                  <p className="text-[11px] text-gray-400 font-mono">{ev.description}</p>
+                  <p className="text-[11px] text-gray-500 font-sans mt-0.5 line-clamp-1">{ev.description}</p>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-xs font-semibold text-[#222B26]">{new Date(ev.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
-                  {ev.event_time && <p className="text-[10px] text-gray-400 font-mono">{ev.event_time}</p>}
+                  <p className="text-xs font-bold text-[#1A3C2E]">{new Date(ev.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
+                  {ev.event_time && <p className="text-[10px] text-gray-500 font-mono">{ev.event_time}</p>}
                 </div>
               </div>
             ))}
@@ -260,7 +280,7 @@ function EventForm({ event, isCreating, onSave, onDelete, onClose }: {
             {form.banner_url ? (
               <img src={form.banner_url} alt="Banner Preview" className="w-full h-full object-cover" />
             ) : (
-              <span className="text-gray-300 text-lg">🖼️</span>
+              <ImageIcon size={22} className="text-stone-300" />
             )}
             {uploading && (
               <div className="absolute inset-0 bg-black/45 flex items-center justify-center">
@@ -330,7 +350,7 @@ function EventForm({ event, isCreating, onSave, onDelete, onClose }: {
             }`}
           >
             <span className="text-xs font-black flex items-center gap-1.5 text-[#1A3C2E]">
-              🏆 Competition / Tournament
+              <Trophy size={14} className="text-amber-600" /> Competition / Tournament
             </span>
             <span className="text-[10px] text-gray-500 leading-snug">
               Hackathons, coding contests, esports. Prompts participant registrations.
@@ -347,7 +367,7 @@ function EventForm({ event, isCreating, onSave, onDelete, onClose }: {
             }`}
           >
             <span className="text-xs font-black flex items-center gap-1.5 text-[#1A3C2E]">
-              🎓 General Assembly / Seminar
+              <GraduationCap size={14} className="text-emerald-700" /> General Assembly / Seminar
             </span>
             <span className="text-[10px] text-gray-500 leading-snug">
               Seminars, webinars, GAs. Audiences use their Universal Attendance QR pass.

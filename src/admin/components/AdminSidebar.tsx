@@ -105,7 +105,7 @@ export default function AdminSidebar({ collapsed, onToggle, onExitAdmin }: Admin
 
   return (
     <aside
-      className={`fixed left-0 top-0 bottom-0 z-40 bg-[#1A3C2E] text-[#FAF7EA] flex flex-col transition-all duration-300 ease-in-out ${
+      className={`fixed left-0 top-0 bottom-0 z-40 bg-[#1A3C2E] text-[#FAF7EA] border-r border-[#F5B400]/20 flex flex-col transition-all duration-300 ease-in-out shadow-md ${
         collapsed ? 'admin-sidebar-collapsed' : 'admin-sidebar-width'
       }`}
       id="admin-sidebar"

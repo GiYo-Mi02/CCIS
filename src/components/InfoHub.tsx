@@ -624,14 +624,14 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
           {activeInfoTab === 'college' && (
             <div className="space-y-6 animate-fade-in text-left">
               {/* Welcome box */}
-              <div className="bg-white p-6 sm:p-8 rounded-lg border border-stone-200 shadow-xs space-y-4">
-                <h4 className="font-sans font-bold text-base md:text-xl text-[#1A3C2E] uppercase tracking-wider">
+              <div className="bg-white p-6 sm:p-8 rounded-2xl border border-[#1A3C2E]/25 shadow-xs space-y-4">
+                <h4 className="font-marcellus text-lg md:text-2xl text-[#1A3C2E] uppercase tracking-wide">
                   Welcome to College of Computing and Information Sciences!
                 </h4>
-                <p className="text-sm md:text-base text-stone-700 leading-relaxed">
+                <p className="text-sm md:text-base text-stone-700 leading-relaxed font-sans">
                   The College of Computing and Information Sciences (CCIS) is the leading college in ICT education programs of the university by providing competitive, relevant and functional IT Curriculum responsive to the needs of the industrial and business organizations. The college has the following functions:
                 </p>
-                <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-stone-700 list-disc list-inside">
+                <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-stone-700 list-disc list-inside font-sans">
                   <li>Develop, implement and revise IT Education Programs.</li>
                   <li>Subject IT Programs to recognition and accreditation.</li>
                   <li>Provide creativity and development programs.</li>
@@ -645,15 +645,15 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
 
               {/* Vision & Mission Row */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-white p-6 rounded-lg border border-stone-200 shadow-xs space-y-2">
-                  <span className="block text-xs font-bold text-[#1A3C2E] uppercase tracking-wider">Vision</span>
-                  <p className="text-sm md:text-base text-stone-700 leading-relaxed">
+                <div className="bg-white p-6 rounded-2xl border border-[#1A3C2E]/25 shadow-xs space-y-2">
+                  <span className="block text-xs font-bold text-[#1A3C2E] uppercase tracking-wider font-sans">Vision</span>
+                  <p className="text-sm md:text-base text-stone-700 leading-relaxed font-sans">
                     The college envisions to lead in the development of excellent professionals and champions of social equity in the global field of computing and information sciences.
                   </p>
                 </div>
-                <div className="bg-white p-6 rounded-lg border border-stone-200 shadow-xs space-y-2">
-                  <span className="block text-xs font-bold text-[#1A3C2E] uppercase tracking-wider">Mission</span>
-                  <p className="text-sm md:text-base text-stone-700 leading-relaxed">
+                <div className="bg-white p-6 rounded-2xl border border-[#1A3C2E]/25 shadow-xs space-y-2">
+                  <span className="block text-xs font-bold text-[#1A3C2E] uppercase tracking-wider font-sans">Mission</span>
+                  <p className="text-sm md:text-base text-stone-700 leading-relaxed font-sans">
                     Guided by its vision, the college produces practitioners and leaders in computing and information sciences who are resilient, industry-ready, and socially responsible through innovative curriculum design and dynamic delivery systems.
                   </p>
                 </div>
@@ -662,36 +662,36 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
               {/* Core Values & Program Offerings Grid */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 {/* Core Values */}
-                <div className="lg:col-span-7 bg-white p-6 rounded-lg border border-stone-200 shadow-xs space-y-4">
-                  <span className="block text-xs font-bold text-[#1A3C2E] uppercase tracking-wider border-b border-stone-100 pb-2">Core Values</span>
+                <div className="lg:col-span-7 bg-white p-6 rounded-2xl border border-[#1A3C2E]/25 shadow-xs space-y-4">
+                  <span className="block text-xs font-bold text-[#1A3C2E] uppercase tracking-wider border-b border-[#1A3C2E]/15 pb-2 font-sans">Core Values</span>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="p-3 rounded bg-[#FAF7EA] border border-stone-200/60">
-                      <strong className="text-[#1A3C2E] block text-sm font-bold">God Fearing</strong>
-                      <span className="text-stone-600 text-xs leading-snug block mt-0.5">Reverence and moral uprightness.</span>
+                    <div className="p-3 rounded-xl bg-[#FAF7EA] border border-[#1A3C2E]/20">
+                      <strong className="text-[#1A3C2E] block text-sm font-bold font-sans">God Fearing</strong>
+                      <span className="text-stone-600 text-xs leading-snug block mt-0.5 font-sans">Reverence and moral uprightness.</span>
                     </div>
-                    <div className="p-3 rounded bg-[#FAF7EA] border border-stone-200/60">
-                      <strong className="text-[#1A3C2E] block text-sm font-bold">Industry</strong>
-                      <span className="text-stone-600 text-xs leading-snug block mt-0.5">Diligence in pursuing tasks.</span>
+                    <div className="p-3 rounded-xl bg-[#FAF7EA] border border-[#1A3C2E]/20">
+                      <strong className="text-[#1A3C2E] block text-sm font-bold font-sans">Industry</strong>
+                      <span className="text-stone-600 text-xs leading-snug block mt-0.5 font-sans">Diligence in pursuing tasks.</span>
                     </div>
-                    <div className="p-3 rounded bg-[#FAF7EA] border border-stone-200/60">
-                      <strong className="text-[#1A3C2E] block text-sm font-bold">Fortitude</strong>
-                      <span className="text-stone-600 text-xs leading-snug block mt-0.5">Courage and strength in character.</span>
+                    <div className="p-3 rounded-xl bg-[#FAF7EA] border border-[#1A3C2E]/20">
+                      <strong className="text-[#1A3C2E] block text-sm font-bold font-sans">Fortitude</strong>
+                      <span className="text-stone-600 text-xs leading-snug block mt-0.5 font-sans">Courage and strength in character.</span>
                     </div>
-                    <div className="p-3 rounded bg-[#FAF7EA] border border-stone-200/60">
-                      <strong className="text-[#1A3C2E] block text-sm font-bold">Trustworthy</strong>
-                      <span className="text-stone-600 text-xs leading-snug block mt-0.5">Deserving of confidence.</span>
+                    <div className="p-3 rounded-xl bg-[#FAF7EA] border border-[#1A3C2E]/20">
+                      <strong className="text-[#1A3C2E] block text-sm font-bold font-sans">Trustworthy</strong>
+                      <span className="text-stone-600 text-xs leading-snug block mt-0.5 font-sans">Deserving of confidence.</span>
                     </div>
-                    <div className="p-3 rounded bg-[#FAF7EA] border border-stone-200/60 sm:col-span-2">
-                      <strong className="text-[#1A3C2E] block text-sm font-bold">Creativity</strong>
-                      <span className="text-stone-600 text-xs leading-snug block mt-0.5">Ability to make new ideas and innovative solutions.</span>
+                    <div className="p-3 rounded-xl bg-[#FAF7EA] border border-[#1A3C2E]/20 sm:col-span-2">
+                      <strong className="text-[#1A3C2E] block text-sm font-bold font-sans">Creativity</strong>
+                      <span className="text-stone-600 text-xs leading-snug block mt-0.5 font-sans">Ability to make new ideas and innovative solutions.</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Offerings */}
-                <div className="lg:col-span-5 bg-white p-6 rounded-lg border border-stone-200 shadow-xs space-y-4">
-                  <span className="block text-xs font-bold text-[#1A3C2E] uppercase tracking-wider border-b border-stone-100 pb-2">Program Offerings</span>
-                  <div className="space-y-4">
+                <div className="lg:col-span-5 bg-white p-6 rounded-2xl border border-[#1A3C2E]/25 shadow-xs space-y-4">
+                  <span className="block text-xs font-bold text-[#1A3C2E] uppercase tracking-wider border-b border-[#1A3C2E]/15 pb-2 font-sans">Program Offerings</span>
+                  <div className="space-y-4 font-sans">
                     <div className="text-sm">
                       <span className="font-bold text-[#1A3C2E] block mb-1">Baccalaureate Programs</span>
                       <ul className="list-disc list-inside text-stone-600 text-xs space-y-1">
@@ -700,7 +700,7 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
                         <li>B.S. in Computer Science (AppDev Track)</li>
                       </ul>
                     </div>
-                    <div className="text-sm border-t border-stone-100 pt-2">
+                    <div className="text-sm border-t border-[#1A3C2E]/15 pt-2">
                       <span className="font-bold text-[#1A3C2E] block mb-1">Non-Baccalaureate Programs</span>
                       <ul className="list-disc list-inside text-stone-600 text-xs space-y-1">
                         <li>Diploma in Application Development</li>
@@ -718,26 +718,26 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
           {/* ========================================================================= */}
           {activeInfoTab === 'org' && (
             <div className="space-y-6 animate-fade-in text-left">
-              <p className="text-stone-800 text-base md:text-lg leading-relaxed">
+              <p className="text-stone-800 text-base md:text-lg leading-relaxed font-sans">
                 {selectedOrg.overview}
               </p>
               
-              <div className="bg-[#1A3C2E] text-white p-5 rounded-lg border border-stone-200">
+              <div className="bg-[#1A3C2E] text-white p-5 rounded-2xl border border-[#1A3C2E]/30">
                 <blockquote className="font-sans text-sm sm:text-base italic text-[#FAF7EA] leading-relaxed">
                   {selectedOrg.missionQuote}
                 </blockquote>
               </div>
 
-              <div className="bg-white p-6 rounded-lg border border-stone-200 shadow-xs space-y-4">
-                <h4 className="font-sans font-bold text-sm md:text-base text-[#1A3C2E] uppercase tracking-wider border-b border-stone-100 pb-2">
+              <div className="bg-white p-6 rounded-2xl border border-[#1A3C2E]/25 shadow-xs space-y-4">
+                <h4 className="font-marcellus text-base md:text-lg text-[#1A3C2E] uppercase tracking-wide border-b border-[#1A3C2E]/15 pb-2">
                   Key Functions &amp; Objectives
                 </h4>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {selectedOrg.functions.map((fn, idx) => (
-                    <div key={idx} className="bg-[#FAF7EA] p-4 rounded border border-stone-200/60 flex gap-3">
+                    <div key={idx} className="bg-[#FAF7EA] p-4 rounded-xl border border-[#1A3C2E]/20 flex gap-3">
                       <CheckCircle2 size={20} className="text-[#1A3C2E] shrink-0 mt-0.5" />
-                      <div>
+                      <div className="font-sans">
                         <strong className="text-[#1A3C2E] block text-sm font-bold mb-0.5">{fn.title}</strong>
                         <span className="text-stone-600 text-xs leading-relaxed">{fn.desc}</span>
                       </div>
@@ -878,11 +878,11 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
       {/* 4.4.3 Committee Directory Tabs (Shown for Student Council)        */}
       {/* ================================================================= */}
       {activeInfoTab === 'org' && selectedOrgId === 'council' && (
-        <section className="py-16 px-4 max-w-7xl mx-auto sm:px-6 lg:px-8 border-b border-stone-200 animate-fade-in" id="committees-directory">
+        <section className="py-16 px-4 max-w-7xl mx-auto sm:px-6 lg:px-8 border-b border-[#1A3C2E]/20 animate-fade-in" id="committees-directory">
           <div className="text-center mb-10">
-            <span className="font-sans font-semibold text-xs uppercase tracking-wider text-stone-500">Divisions</span>
-            <h2 className="font-sans font-bold text-3xl md:text-4xl text-[#1A3C2E] mt-1">Our Working Committees</h2>
-            <p className="text-stone-500 text-xs md:text-sm mt-1 uppercase tracking-wider">Driven by dedication, shaped by technology</p>
+            <span className="font-mono font-semibold text-xs uppercase tracking-wider text-stone-500">Divisions</span>
+            <h2 className="font-marcellus text-3xl md:text-4xl text-[#1A3C2E] mt-1">Our Working Committees</h2>
+            <p className="text-stone-500 text-xs md:text-sm mt-1 uppercase tracking-wider font-mono">Driven by dedication, shaped by technology</p>
             <div className="h-1 w-16 bg-[#F5B400] mx-auto mt-3 rounded-full" />
           </div>
 
@@ -894,10 +894,10 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
                 <button
                   key={com.id}
                   onClick={() => setActiveCommitteeTab(com.id)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-left border font-sans font-semibold text-xs tracking-wide transition-all cursor-pointer ${
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl text-left border font-sans font-bold text-xs tracking-wide transition-all cursor-pointer ${
                     activeCommitteeTab === com.id
-                      ? 'bg-white border-stone-300 text-[#1A3C2E] shadow-xs'
-                      : 'bg-stone-50 border-stone-200 text-stone-600 hover:bg-white hover:text-[#1A3C2E]'
+                      ? 'bg-white border-[#1A3C2E]/40 text-[#1A3C2E] shadow-sm'
+                      : 'bg-stone-50 border-[#1A3C2E]/20 text-stone-600 hover:bg-white hover:text-[#1A3C2E]'
                   }`}
                 >
                   {getCommitteeIcon(com.slug || '')}
@@ -907,15 +907,15 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
             </div>
 
             {/* Details Content Box */}
-            <div className="lg:col-span-8 bg-white p-6 md:p-8 rounded-lg border border-stone-200 shadow-xs min-h-[300px]">
+            <div className="lg:col-span-8 bg-white p-6 md:p-8 rounded-2xl border border-[#1A3C2E]/25 shadow-xs min-h-[300px]">
               {committees.filter(c => c.id === activeCommitteeTab).map((com) => (
                 <div key={com.id} className="space-y-6 animate-fade-in">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-[#FAF7EA] rounded border border-stone-200 flex items-center justify-center">
+                    <div className="p-2.5 bg-[#FAF7EA] rounded-xl border border-[#1A3C2E]/20 flex items-center justify-center">
                       {getCommitteeIcon(com.slug || '')}
                     </div>
                     <div>
-                      <h3 className="font-sans font-bold text-lg md:text-xl text-[#1A3C2E]">
+                      <h3 className="font-marcellus text-lg md:text-2xl text-[#1A3C2E]">
                         {com.name}
                       </h3>
                       <span className="text-xs text-stone-500 uppercase tracking-wider flex flex-wrap items-center gap-2 mt-0.5">
