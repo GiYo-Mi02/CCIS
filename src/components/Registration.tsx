@@ -478,7 +478,7 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
                                 className="w-full bg-[#1A3C2E]/10 hover:bg-[#1A3C2E] text-[#1A3C2E] hover:text-white border border-[#1A3C2E]/30 hover:border-[#1A3C2E] font-sans text-xs font-black uppercase tracking-wider py-2.5 rounded-xl transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer group"
                               >
                                 <QrCode size={14} className="text-[#1A3C2E] group-hover:text-[#F5B400] transition-colors shrink-0" />
-                                <span className="text-[#1A3C2E] group-hover:text-white transition-colors font-bold">Get Universal Attendance QR</span>
+                                <span className="text-[#1A3C2E] group-hover:text-[#F5B400] transition-colors font-bold">Get Universal Attendance QR</span>
                                 <ArrowRight size={13} className="text-[#1A3C2E] group-hover:text-[#F5B400] group-hover:translate-x-0.5 transition-all shrink-0" />
                               </button>
                             </div>
