@@ -111,7 +111,7 @@ The cleanup script and its `purge_anonymous_users()` function reference `convers
 
 **Fix:** Align the cleanup predicates with the current schema, run them in a transaction with a dry-run/count step, and test them against a disposable database snapshot before deployment.
 
-### 22. Legacy gallery policy leaves unauthenticated inserts enabled
+### 22. [RESOLVED] Legacy gallery policy leaves unauthenticated inserts enabled
 
 **Severity:** ERROR - Security
 **Standards:** 4, 20
