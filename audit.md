@@ -319,7 +319,7 @@ The current page is styled differently but is not exposed with `aria-current="pa
 
 ## SECOND ROUND ADDITIONS - WARNING
 
-### 26. Supabase client and worker are wired to legacy key names
+### 26. [RESOLVED] Supabase client and worker are wired to legacy key names
 
 **Severity:** WARNING - DevOps
 **Standards:** 30, 36
