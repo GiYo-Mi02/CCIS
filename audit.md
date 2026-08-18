@@ -329,7 +329,7 @@ The browser still expects `VITE_SUPABASE_ANON_KEY`, and the worker still expects
 
 **Fix:** Migrate the browser configuration to the project's publishable key and the worker/Edge Functions to a secret key, rename the environment variables, remove the anonymous fallback, and update deployment secrets and documentation. Check the ignored environment and Supabase project settings before deciding whether key rotation is required.
 
-### 27. Dashboard has a proven N+1 query for unread counts
+### 27. [RESOLVED] Dashboard has a proven N+1 query for unread counts
 
 **Severity:** WARNING - Performance
 **Standards:** 23
