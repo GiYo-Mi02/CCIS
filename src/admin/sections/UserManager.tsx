@@ -214,6 +214,11 @@ export default function UserManager() {
 
   // Permanently delete user data (cascades to event registrations, messages, concerns)
   const handleDeleteUser = async (user: Profile) => {
+    if (currentAdmin?.role !== 'devcom_head') {
+      showToast('Only the DevCom Head can permanently delete accounts.', 'warning');
+      return;
+    }
+
     if (user.id === currentAdmin?.id) {
       showToast('Safety guard: You cannot delete your own profile.', 'warning');
       return;
@@ -226,18 +231,18 @@ export default function UserManager() {
 
     setActionLoadingId(user.id);
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', user.id);
+      const { data, error } = await supabase.functions.invoke('delete-user', {
+        body: { userId: user.id },
+      });
 
-      if (error) throw error;
+      if (error || !data?.deleted) throw error || new Error('Account deletion was not confirmed.');
 
       showToast(`Permanently deleted student profile for ${user.full_name || user.email}`, 'info');
       setUsers(prev => prev.filter(u => u.id !== user.id));
       setTotalCount(prev => prev - 1);
     } catch (err: any) {
-      showToast('Deletion failed: ' + err.message, 'error');
+      console.error('Account deletion failed:', err);
+      showToast('Account deletion failed. Please retry or contact a system administrator.', 'error');
     } finally {
       setActionLoadingId(null);
     }
@@ -265,21 +270,30 @@ export default function UserManager() {
 
   // Clean purge of all load test and dummy accounts
   const handlePurgeAnonymous = async () => {
+    if (currentAdmin?.role !== 'devcom_head') {
+      showToast('Only the DevCom Head can purge accounts.', 'warning');
+      return;
+    }
+
     if (!confirm('Are you sure you want to permanently delete all load test accounts (loadtest001-982) and dummy users from the database?\n\nThis will completely purge their auth logins, profiles, and associated records.')) return;
     setPurgingAnon(true);
     try {
-      // 1. Try calling stored procedure purge_loadtest_users()
-      const { data, error } = await supabase.rpc('purge_loadtest_users');
-      if (error) {
-        // Fallback: direct delete from profiles for loadtest% and test%
-        await supabase.from('profiles').delete().ilike('email', 'loadtest%');
-        await supabase.from('profiles').delete().ilike('email', 'test%@umak.edu.ph');
-        await supabase.from('profiles').delete().or('email.is.null,email.eq.""');
+      const { data: targets, error: targetError } = await supabase.rpc('list_loadtest_account_ids');
+      if (targetError) throw targetError;
+      const targetIds = new Set((targets || []).map((target: { user_id: string }) => target.user_id));
+
+      for (const userId of targetIds) {
+        const { data, error } = await supabase.functions.invoke('delete-user', {
+          body: { userId },
+        });
+        if (error || !data?.deleted) throw error || new Error(`Account purge failed for ${userId}.`);
       }
-      showToast('Clean deletion complete: Purged load test dummy accounts.', 'success');
+
+      showToast(`Clean deletion complete: Purged ${targetIds.size} accounts.`, 'success');
       fetchUsers();
     } catch (err: any) {
-      showToast('Purge note: ' + err.message, 'info');
+      console.error('Account purge failed:', err);
+      showToast('Account purge failed. Please retry or contact a system administrator.', 'error');
       fetchUsers();
     } finally {
       setPurgingAnon(false);
