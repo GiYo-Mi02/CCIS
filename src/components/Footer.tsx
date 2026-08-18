@@ -6,9 +6,10 @@ import { useAuth } from '../context/AuthContext';
 interface FooterProps {
   onNavClick: (tabId: string) => void;
   onAdminSwitch?: () => void;
+  isUmakTheme?: boolean;
 }
 
-export default function Footer({ onNavClick, onAdminSwitch }: FooterProps) {
+export default function Footer({ onNavClick, onAdminSwitch, isUmakTheme = false }: FooterProps) {
   const { isAdmin } = useAuth();
   const links = [
     { id: 'info', label: 'Council Information' },
@@ -18,37 +19,60 @@ export default function Footer({ onNavClick, onAdminSwitch }: FooterProps) {
   ];
 
   return (
-    <footer className="bg-[#1A3C2E] text-[#FAF7EA] py-12 border-t-2 border-[#F5B400] font-sans" id="app-footer">
+    <footer 
+      className={`text-[#FAF7EA] py-12 border-t-2 font-sans transition-colors duration-500 ${
+        isUmakTheme ? 'bg-[#111c4e] border-[#f5ec3a]' : 'bg-[#1A3C2E] border-[#F5B400]'
+      }`} 
+      id="app-footer"
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-12 items-start pb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-10 items-start pb-8">
           
-          {/* Column 1: Organization brand info */}
-          <div className="space-y-4">
-            {/* Circular logo + title side by side */}
-            <div className="flex flex-row items-center gap-4">
-              <div className="relative w-20 h-20 shrink-0">
-                {/* Outer decorative ring */}
-                <div className="absolute inset-0 rounded-full border-2 border-[#F5B400]/30 scale-110" />
-                {/* Inner ring */}
-                <div className="absolute inset-0 rounded-full border border-[#F5B400]/50" />
-                {/* Logo circle */}
-                <div className="w-full h-full rounded-full bg-[#FAF7EA] overflow-hidden shadow-xl flex items-center justify-center">
-                  <CouncilSeal size={76} interactive={false} src="/images/CCIS-Logo.png" />
-                </div>
+          {/* Column 1: Organization brand info (4 cols on desktop) */}
+          <div className="lg:col-span-4 md:col-span-2 space-y-4">
+            {/* Institutional Brand Logo Block (Identical to Navbar) */}
+            <div 
+              className="flex items-center gap-3 cursor-pointer select-none group inline-flex" 
+              onClick={() => {
+                onNavClick('home');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              id="footer-brand-logo"
+            >
+              {/* Logos: UMak Seal then CCIS Seal */}
+              <div className="flex items-center gap-2 shrink-0">
+                <img
+                  src="/images/UMak_Logo.png"
+                  alt="University of Makati Seal"
+                  className="w-10 h-10 md:w-11 md:h-11 object-contain drop-shadow"
+                />
+                <CouncilSeal 
+                  size={42} 
+                  interactive={false} 
+                  src="/images/CCIS-Logo.png" 
+                  className="w-10 h-10 md:w-11 md:h-11 drop-shadow"
+                />
               </div>
-              <h3 className="font-sans font-black text-white text-sm tracking-tight uppercase leading-snug">
-                College of Computing<br />Information Sciences
-              </h3>
+
+              {/* Institutional Brand Text Lockup */}
+              <div className="flex flex-col justify-center">
+                <span className="font-marcellus uppercase text-[15px] sm:text-base md:text-[17px] font-normal tracking-[0.04em] text-[#FAF7EA] leading-none mb-1 group-hover:text-[#F5B400] transition-colors whitespace-nowrap">
+                  UNIVERSITY OF MAKATI
+                </span>
+                <span className="font-sans text-[8.5px] sm:text-[9.5px] md:text-[10px] font-medium text-[#FAF7EA]/80 leading-tight group-hover:text-white transition-colors whitespace-nowrap">
+                  College of Computing and Information Sciences
+                </span>
+              </div>
             </div>
             
-            <p className="text-stone-300 text-xs leading-relaxed max-w-xs">
+            <p className="text-stone-300 text-xs leading-relaxed max-w-sm">
               Serving our herons with modern technical foundations, devoted administrative governance, and creative college spirits.
             </p>
           </div>
 
-          {/* Column 2: Quick Links */}
-          <div className="space-y-3.5">
+          {/* Column 2: Quick Links (2 cols on desktop) */}
+          <div className="lg:col-span-2 md:col-span-1 space-y-3.5">
             <h4 className="font-sans font-bold text-[#F5B400] text-xs uppercase tracking-widest">
               Quick Links
             </h4>
@@ -69,8 +93,8 @@ export default function Footer({ onNavClick, onAdminSwitch }: FooterProps) {
             </ul>
           </div>
 
-          {/* Column 3: Contact information */}
-          <div className="space-y-3.5">
+          {/* Column 3: Contact information (3 cols on desktop) */}
+          <div className="lg:col-span-3 md:col-span-1 space-y-3.5">
             <h4 className="font-sans font-bold text-[#F5B400] text-xs uppercase tracking-widest">
               Officer Helpdesk
             </h4>
@@ -92,8 +116,8 @@ export default function Footer({ onNavClick, onAdminSwitch }: FooterProps) {
             </ul>
           </div>
 
-          {/* Column 4: Social Accounts */}
-          <div className="space-y-3.5">
+          {/* Column 4: Social Accounts (3 cols on desktop) */}
+          <div className="lg:col-span-3 md:col-span-1 space-y-3.5">
             <h4 className="font-sans font-bold text-[#F5B400] text-xs uppercase tracking-widest">
               Connect Online
             </h4>

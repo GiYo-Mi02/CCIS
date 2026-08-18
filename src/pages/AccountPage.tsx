@@ -9,12 +9,34 @@ import { QRCodeCanvas } from 'qrcode.react';
 import {
   User, Mail, GraduationCap, Hash, Calendar, LogOut,
   Ticket, AlertCircle, CheckCircle2, Clock, ChevronDown, Shield, Layers,
-  Download, Printer, X, Lock, MapPin, AlertTriangle
+  Download, Printer, X, Lock, MapPin, AlertTriangle, QrCode, RefreshCw, Sparkles, Check
 } from 'lucide-react';
+import CouncilSeal from '../components/CouncilSeal';
 
 interface AccountPageProps {
   onNavigate?: (tab: string) => void;
 }
+
+const getDummyBarcode = (idStr: string) => {
+  const hash = idStr.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const bars = [];
+  for (let i = 0; i < 28; i++) {
+    const width = ((hash * (i + 1)) % 3) + 1;
+    const isGap = ((hash + i) % 4) === 0;
+    bars.push(
+      <div 
+        key={i} 
+        className={`${isGap ? 'w-[1px] bg-transparent' : 'bg-stone-800'}`} 
+        style={{ width: `${width}px`, height: '18px' }}
+      />
+    );
+  }
+  return (
+    <div className="flex items-center justify-center gap-[2px] opacity-75 overflow-hidden py-1">
+      {bars}
+    </div>
+  );
+};
 
 export default function AccountPage({ onNavigate }: AccountPageProps) {
   const { user, profile, signOut, updateProfile, isAdmin } = useAuth();
@@ -31,6 +53,17 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
   const [studentIdError, setStudentIdError] = useState('');
   const [activeTicket, setActiveTicket] = useState<EventRegistration | null>(null);
 
+  // Audience Attendance Pass states
+  const [passToken, setPassToken] = useState<string>(() => {
+    return localStorage.getItem(`ccis_audience_token_${user?.id}`) || Math.random().toString(36).substring(2, 10).toUpperCase();
+  });
+  const [passGeneratedAt, setPassGeneratedAt] = useState<string>(() => {
+    return localStorage.getItem(`ccis_audience_gen_${user?.id}`) || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  });
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [passDownloadLoading, setPassDownloadLoading] = useState(false);
+  const [regenerateSuccess, setRegenerateSuccess] = useState(false);
+
   // Data sections
   const [registrations, setRegistrations] = useState<EventRegistration[]>([]);
   const [loadingData, setLoadingData] = useState(true);
@@ -39,8 +72,8 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
   const [resending, setResending] = useState(false);
   const [resendStatus, setResendStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  // Navigation & Message preview states
-  const [activeTab, setActiveTab] = useState<'registrations' | 'messages'>('registrations');
+  // Navigation states
+  const [activeTab, setActiveTab] = useState<'attendance-pass' | 'registrations'>('attendance-pass');
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [lastMessages, setLastMessages] = useState<Message[]>([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
@@ -317,8 +350,63 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
     return map[status] || 'bg-zinc-100 text-zinc-600';
   };
 
+  // Handler to regenerate audience attendance QR pass
+  const handleRegeneratePass = () => {
+    if (!user) return;
+    setIsRegenerating(true);
+    setTimeout(() => {
+      const newToken = Math.random().toString(36).substring(2, 8).toUpperCase() + '-' + Date.now().toString(36).toUpperCase();
+      const newDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+      setPassToken(newToken);
+      setPassGeneratedAt(newDate);
+      localStorage.setItem(`ccis_audience_token_${user.id}`, newToken);
+      localStorage.setItem(`ccis_audience_gen_${user.id}`, newDate);
+      setIsRegenerating(false);
+      setRegenerateSuccess(true);
+      setTimeout(() => setRegenerateSuccess(false), 3500);
+    }, 500);
+  };
+
+  // Handler to download audience pass as PNG
+  const downloadAudiencePass = async () => {
+    const element = document.getElementById('audience-attendance-pass-card');
+    if (!element) return;
+    setPassDownloadLoading(true);
+    try {
+      const canvas = await html2canvas(element, {
+        scale: 2.5,
+        useCORS: true,
+        backgroundColor: null
+      });
+      const link = document.createElement('a');
+      link.download = `CCIS_Attendance_Pass_${(profile?.student_number || profile?.full_name || 'Student').replace(/\s+/g, '_')}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch (err) {
+      console.error('Failed to download pass:', err);
+    } finally {
+      setPassDownloadLoading(false);
+    }
+  };
+
+  const handlePrintAudiencePass = () => {
+    window.print();
+  };
+
+  // QR Code Payload structure
+  const audienceQrPayload = JSON.stringify({
+    type: 'CCIS_AUDIENCE_PASS',
+    profile_id: profile?.id || user?.id,
+    student_id: profile?.student_number || 'UNASSIGNED',
+    name: profile?.full_name || 'Student',
+    program: profile?.program || 'CCIS',
+    section: profile?.section || '—',
+    token: passToken,
+    issued_at: passGeneratedAt
+  });
+
   return (
-    <div className="min-h-screen bg-[var(--color-bg-cream,#FAF7EA)] py-12 px-4 sm:px-6 lg:px-8 font-sans">
+    <div className="min-h-screen bg-[#FAF7EA] py-12 px-4 sm:px-6 lg:px-8 text-left font-sans">
       {/* Confirmation Lock Modal */}
       {showConfirmModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-scale-up font-sans">
@@ -708,38 +796,223 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
               </div>
             )}
             
-            {/* Pill Tabs Bar */}
-            <div className="flex gap-2 border-b border-zinc-200 pb-3">
+            {/* Pill Tabs Bar (1 Row Only) */}
+            <div className="flex flex-nowrap items-center gap-2 border-b border-zinc-200 pb-3 max-w-full overflow-x-auto">
               <button
-                onClick={() => setActiveTab('registrations')}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs uppercase tracking-wider font-bold transition-all border ${
-                  activeTab === 'registrations'
-                    ? 'bg-[var(--color-primary-green,#1A3C2E)] text-white shadow-md border-transparent'
+                onClick={() => setActiveTab('attendance-pass')}
+                className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-full text-xs uppercase tracking-wider font-bold transition-all border shrink-0 cursor-pointer select-none ${
+                  activeTab === 'attendance-pass'
+                    ? 'bg-[var(--color-primary-green,#1A3C2E)] text-white shadow-md border-transparent ring-2 ring-[var(--color-accent-gold,#F5B400)]'
                     : 'bg-white text-[#5E6E64] border-zinc-200 hover:bg-zinc-50'
                 }`}
+                id="tab-attendance-pass"
               >
-                <Ticket size={14} />My Registrations ({registrations.length})
+                <QrCode size={14} className={activeTab === 'attendance-pass' ? 'text-[var(--color-accent-gold,#F5B400)]' : ''} />
+                <span>Attendance QR Pass</span>
               </button>
-              {onNavigate && (
-                <button
-                  onClick={() => setActiveTab('messages')}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs uppercase tracking-wider font-bold transition-all border relative ${
-                    activeTab === 'messages'
-                      ? 'bg-[var(--color-primary-green,#1A3C2E)] text-white shadow-md border-transparent'
-                      : 'bg-white text-[#5E6E64] border-zinc-200 hover:bg-zinc-50'
-                  }`}
-                >
-                  <Mail size={14} />Direct Messages
-                  {lastMessages.some(m => m.sender_role === 'admin' && !m.read_by_student) && (
-                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse border-2 border-white" />
-                  )}
-                </button>
-              )}
+
+              <button
+                onClick={() => setActiveTab('registrations')}
+                className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-full text-xs uppercase tracking-wider font-bold transition-all border shrink-0 cursor-pointer select-none ${
+                  activeTab === 'registrations'
+                    ? 'bg-[var(--color-primary-green,#1A3C2E)] text-white shadow-md border-transparent ring-2 ring-[var(--color-accent-gold,#F5B400)]'
+                    : 'bg-white text-[#5E6E64] border-zinc-200 hover:bg-zinc-50'
+                }`}
+                id="tab-registrations"
+              >
+                <Ticket size={14} className={activeTab === 'registrations' ? 'text-[var(--color-accent-gold,#F5B400)]' : ''} />
+                <span>Participant Registrations ({registrations.length})</span>
+              </button>
             </div>
 
             {/* Active Tab Panel Content */}
-            {activeTab === 'registrations' ? (
-              <div className="space-y-6">
+            {/* 1. ATTENDANCE QR PASS TAB */}
+            {activeTab === 'attendance-pass' && (
+              <div className="space-y-6 animate-fade-in">
+                
+                {/* Informational Role Banner */}
+                <div className="p-4 bg-white rounded-2xl border border-stone-200/80 shadow-xs flex items-start gap-3.5">
+                  <div className="w-9 h-9 rounded-xl bg-[#FAF7EA] border border-[#1A3C2E]/10 flex items-center justify-center text-[#1A3C2E] shrink-0 mt-0.5">
+                    <QrCode size={18} className="text-[#1A3C2E]" />
+                  </div>
+                  <div className="text-xs space-y-1">
+                    <h4 className="font-sans font-bold text-sm text-[#1A3C2E]">
+                      Universal Audience Attendance Pass
+                    </h4>
+                    <p className="text-stone-600 leading-relaxed">
+                      Present this digital pass for quick entrance and attendance verification across all CCIS assemblies, seminars, and events without pre-registering.
+                    </p>
+                    <p className="text-[11px] text-stone-500 font-mono">
+                      *Note: Event registration on the Our Events page is reserved for active event participants/competitors.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Regenerate Toast Alert */}
+                {regenerateSuccess && (
+                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center gap-2 animate-fade-in">
+                    <Check size={16} className="text-emerald-600 shrink-0" />
+                    <span>Attendance QR Code refreshed and verified successfully!</span>
+                  </div>
+                )}
+
+                {/* VISUAL DIGITAL ATTENDANCE PASS CARD */}
+                <div 
+                  id="audience-attendance-pass-card"
+                  className="bg-white rounded-3xl border border-stone-200 shadow-md overflow-hidden flex flex-col md:flex-row relative"
+                >
+                  {/* Left Main Boarding Card Body */}
+                  <div className="p-6 md:p-8 flex-1 bg-[#1A3C2E] text-[#FAF7EA] flex flex-col justify-between relative overflow-hidden">
+                    <div className="relative z-10 space-y-6">
+                      
+                      {/* Card Header: Logos and Identity */}
+                      <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                        <div className="flex items-center gap-3">
+                          <img src="/images/UMak_Logo.png" alt="UMak" className="w-10 h-10 object-contain drop-shadow" />
+                          <CouncilSeal size={40} interactive={false} src="/images/CCIS-Logo.png" className="w-10 h-10 drop-shadow" />
+                          <div>
+                            <span className="block font-marcellus text-xs uppercase tracking-wider text-white">
+                              University of Makati
+                            </span>
+                            <span className="block text-[10px] font-sans text-stone-300">
+                              College of Computing and Information Sciences
+                            </span>
+                          </div>
+                        </div>
+
+                        <span className="bg-[#F5B400] text-[#1A3C2E] text-[9px] font-bold font-mono px-2.5 py-1 rounded-full uppercase tracking-wider shadow-xs shrink-0">
+                          AUDIENCE PASS
+                        </span>
+                      </div>
+
+                      {/* Student Information Grid */}
+                      <div className="space-y-4">
+                        <div>
+                          <span className="text-[9px] font-mono text-[#F5B400] uppercase tracking-wider block font-bold">
+                            Student Name
+                          </span>
+                          <h3 className="font-sans font-black text-xl sm:text-2xl text-white tracking-tight">
+                            {profile.full_name || 'Student Attendee'}
+                          </h3>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-1 border-t border-white/10">
+                          <div>
+                            <span className="text-[9px] font-mono text-stone-400 uppercase tracking-wider block">
+                              Student ID
+                            </span>
+                            <span className="font-mono text-sm font-bold text-white">
+                              {profile.student_number || 'UNASSIGNED'}
+                            </span>
+                          </div>
+
+                          <div>
+                            <span className="text-[9px] font-mono text-stone-400 uppercase tracking-wider block">
+                              Program &amp; Section
+                            </span>
+                            <span className="font-sans text-sm font-bold text-white">
+                              {profile.program || 'CCIS'} {profile.section ? `(${profile.section})` : ''}
+                            </span>
+                          </div>
+
+                          <div>
+                            <span className="text-[9px] font-mono text-stone-400 uppercase tracking-wider block">
+                              Year Level
+                            </span>
+                            <span className="font-sans text-sm font-bold text-white">
+                              {profile.year_level ? `${profile.year_level}${profile.year_level === 1 ? 'st' : profile.year_level === 2 ? 'nd' : profile.year_level === 3 ? 'rd' : 'th'} Year` : '1st Year'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Footer Badge Row */}
+                      <div className="pt-3 border-t border-white/10 flex flex-wrap items-center justify-between text-[10px] text-stone-300 font-mono">
+                        <span>SECURITY TOKEN: {passToken.substring(0, 12)}</span>
+                        <span>ISSUED: {passGeneratedAt}</span>
+                        <span>STATUS: {profile.status === 'approved' ? '✓ VERIFIED' : 'PENDING'}</span>
+                      </div>
+
+                    </div>
+                  </div>
+
+                  {/* Right QR Stub */}
+                  <div className="bg-[#FAF7EA] p-6 md:p-8 flex flex-col justify-between items-center text-center md:w-[260px] shrink-0 border-t md:border-t-0 md:border-l border-stone-200/80 relative">
+                    <div className="space-y-3 flex flex-col items-center">
+                      <span className="font-mono text-[9px] uppercase tracking-wider text-[#5E6E64] font-bold">
+                        SCAN FOR AUDIENCE ENTRY
+                      </span>
+                      
+                      <div className="bg-white p-3 rounded-2xl shadow-xs border border-stone-200 flex items-center justify-center">
+                        <QRCodeCanvas 
+                          value={audienceQrPayload} 
+                          size={140} 
+                          bgColor="#ffffff" 
+                          fgColor="#1A3C2E" 
+                          level="H"
+                          includeMargin={false}
+                        />
+                      </div>
+
+                      <span className="font-mono text-[9px] bg-[#1A3C2E] text-[#F5B400] px-3 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                        AY 2026-2027 ACTIVE
+                      </span>
+                    </div>
+
+                    <div className="w-full mt-4 space-y-1.5 font-mono text-[9px] text-stone-400">
+                      {getDummyBarcode(passToken)}
+                      <p className="text-[8px] text-stone-400">CCIS-STU-PASS-{passToken.substring(0, 8)}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Control Action Buttons */}
+                <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
+                  <button
+                    onClick={handleRegeneratePass}
+                    disabled={isRegenerating}
+                    className="bg-white hover:bg-stone-50 text-[#1A3C2E] border border-stone-300 px-4 py-2.5 rounded-xl font-sans font-bold text-xs uppercase tracking-wider transition-all shadow-xs flex items-center gap-2 cursor-pointer disabled:opacity-60"
+                    id="btn-regenerate-qr"
+                  >
+                    <RefreshCw size={14} className={isRegenerating ? 'animate-spin' : ''} />
+                    <span>{isRegenerating ? 'Regenerating...' : 'Regenerate QR'}</span>
+                  </button>
+
+                  <button
+                    onClick={downloadAudiencePass}
+                    disabled={passDownloadLoading}
+                    className="bg-[#F5B400] hover:bg-[#ffc522] text-[#1A3C2E] px-5 py-2.5 rounded-xl font-sans font-bold text-xs uppercase tracking-wider transition-all shadow-xs flex items-center gap-2 cursor-pointer disabled:opacity-60"
+                    id="btn-download-pass"
+                  >
+                    {passDownloadLoading ? (
+                      <>
+                        <span className="w-3.5 h-3.5 border-2 border-[#1A3C2E] border-t-transparent rounded-full animate-spin" />
+                        <span>Saving...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Download size={14} />
+                        <span>Save Pass (PNG)</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    onClick={handlePrintAudiencePass}
+                    className="bg-[#1A3C2E] hover:bg-[#255541] text-[#FAF7EA] px-4 py-2.5 rounded-xl font-sans font-bold text-xs uppercase tracking-wider transition-all shadow-xs flex items-center gap-2 cursor-pointer"
+                    id="btn-print-pass"
+                  >
+                    <Printer size={14} />
+                    <span>Print Pass</span>
+                  </button>
+                </div>
+
+              </div>
+            )}
+
+            {/* 2. PARTICIPANT REGISTRATIONS TAB */}
+            {activeTab === 'registrations' && (
+              <div className="space-y-6 animate-fade-in">
                 
                 {/* Registration History list header */}
                 <div className="space-y-4">
@@ -761,7 +1034,7 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
                             <Ticket size={32} className="mx-auto mb-2 opacity-30 text-[var(--color-primary-green,#1A3C2E)]" />
                             <p className="font-bold text-sm text-zinc-500">No event registrations yet</p>
                             <p className="text-xs leading-relaxed max-w-sm mx-auto">
-                              You haven't registered for any events yet — check Announcements or Registration for upcoming events.
+                              You haven't registered for any participant events yet — check Announcements or Registration for upcoming events.
                             </p>
                           </div>
                           <button
@@ -802,72 +1075,6 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
                     </div>
                   )}
                 </div>
-              </div>
-            ) : (
-              <div className="animate-fade-in space-y-4">
-                {messagesLoading ? (
-                  <div className="text-center py-16">
-                    <div className="w-8 h-8 border-3 border-[var(--color-accent-gold,#F5B400)] border-t-transparent rounded-full animate-spin mx-auto" />
-                  </div>
-                ) : !conversation ? (
-                  <div className="bg-white rounded-3xl border border-zinc-100 p-12 text-center text-zinc-400 space-y-4 shadow-sm">
-                    <div className="space-y-2">
-                      <Mail size={32} className="mx-auto mb-2 opacity-30 text-[var(--color-primary-green,#1A3C2E)]" />
-                      <p className="font-bold text-sm text-zinc-500">Have a question or concern?</p>
-                      <p className="text-xs leading-relaxed max-w-sm mx-auto">
-                        Message the student council directly to get live assistance.
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => onNavigate && onNavigate('messages')}
-                      className="bg-[var(--color-primary-green,#1A3C2E)] hover:bg-[#255541] text-white px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-xs"
-                    >
-                      Open Messages
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {lastMessages.length === 0 ? (
-                      <div className="bg-white rounded-3xl border border-zinc-150 p-12 text-center text-zinc-400 shadow-sm">
-                        <p className="text-xs">No messages yet. Have a question or concern?</p>
-                      </div>
-                    ) : (
-                      <div className="bg-white rounded-2xl border border-zinc-100 divide-y divide-zinc-100 overflow-hidden shadow-xs">
-                        {lastMessages.map((msg) => {
-                          const isAdminRole = msg.sender_role === 'admin';
-                          return (
-                            <div key={msg.id} className="p-4 flex items-start justify-between gap-3 hover:bg-zinc-50/50 transition-colors">
-                              <div className="min-w-0 flex-1 space-y-1">
-                                <div className="flex items-center gap-2">
-                                  <span className={`text-[9px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-full font-bold ${
-                                    isAdminRole 
-                                      ? 'bg-[var(--color-primary-green,#1A3C2E)] text-[var(--color-accent-gold,#F5B400)]' 
-                                      : 'bg-zinc-100 text-zinc-600'
-                                  }`}>
-                                    {isAdminRole ? 'Admin' : 'You'}
-                                  </span>
-                                  <span className="text-[10px] text-zinc-400 font-mono">
-                                    {new Date(msg.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                  </span>
-                                  {isAdminRole && !msg.read_by_student && (
-                                    <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" title="Unread message" />
-                                  )}
-                                </div>
-                                <p className="text-xs text-stone-600 truncate">{msg.content}</p>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                    <button
-                      onClick={() => onNavigate && onNavigate('messages')}
-                      className="bg-[var(--color-primary-green,#1A3C2E)] hover:bg-[#255541] text-white px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-xs"
-                    >
-                      Open Messages
-                    </button>
-                  </div>
-                )}
               </div>
             )}
           </div>

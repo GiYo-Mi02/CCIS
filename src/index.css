@@ -31,7 +31,7 @@
 /* Marcellus is for print/formal documents only — NOT UI headings (per UMak CIC spec) */
 /* Web UI headings use Metropolis via font-sans utility class */
 .font-marcellus {
-  font-family: var(--font-serif);
+  font-family: 'Marcellus', var(--font-serif), Georgia, serif;
 }
 
 @layer utilities {

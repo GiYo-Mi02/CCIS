@@ -7,9 +7,10 @@ import { supabase } from '../lib/supabase';
 interface NavBarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  isUmakTheme?: boolean;
 }
 
-export default function NavBar({ activeTab, setActiveTab }: NavBarProps) {
+export default function NavBar({ activeTab, setActiveTab, isUmakTheme = false }: NavBarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -98,7 +99,7 @@ export default function NavBar({ activeTab, setActiveTab }: NavBarProps) {
 
   const navItems = [
     { id: 'home', label: 'Home' },
-    { id: 'info', label: 'About CCIS' },
+    { id: 'info', label: 'About' },
     { id: 'announcements', label: 'Announcements' },
     { id: 'registration', label: 'Our Events' },
     { id: 'gallery', label: 'Gallery' },
@@ -153,19 +154,46 @@ export default function NavBar({ activeTab, setActiveTab }: NavBarProps) {
     handleNavClick('home');
   };
 
+  const isPatch = activeTab === 'patch';
+
   return (
-    <nav className="sticky top-0 z-50 w-full bg-[#1A3C2E] text-[#FAF7EA] border-b-2 border-[#F5B400] shrink-0" id="nav-bar">
+    <nav 
+      className={`z-50 w-full text-[#FAF7EA] shrink-0 transition-all duration-500 ${
+        isPatch
+          ? 'absolute top-0 left-0 right-0 bg-gradient-to-b from-black/80 via-black/35 to-transparent border-b border-white/10 backdrop-blur-[2px]'
+          : isUmakTheme 
+            ? 'sticky top-0 bg-[#111c4e] border-b-2 border-[#f5ec3a]' 
+            : 'sticky top-0 bg-[#1A3C2E] border-b-2 border-[#F5B400]'
+      }`} 
+      id="nav-bar"
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           
           {/* Left: Brand Logo Block */}
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => handleNavClick('home')}>
-            <div className="w-11 h-11 bg-[#FAF7EA] rounded-full flex items-center justify-center shadow-md border border-[#F5B400] overflow-hidden">
-              <CouncilSeal size={38} interactive={false} src="/images/CCIS-Logo.png" />
+          <div className="flex items-center gap-3 cursor-pointer select-none group" onClick={() => handleNavClick('home')} id="nav-brand-logo">
+            {/* Logos: UMak Seal then CCIS Seal */}
+            <div className="flex items-center gap-2 shrink-0">
+              <img
+                src="/images/UMak_Logo.png"
+                alt="University of Makati Seal"
+                className="w-10 h-10 md:w-11 md:h-11 object-contain drop-shadow"
+              />
+              <CouncilSeal 
+                size={42} 
+                interactive={false} 
+                src="/images/CCIS-Logo.png" 
+                className="w-10 h-10 md:w-11 md:h-11 drop-shadow"
+              />
             </div>
-            <div className="flex flex-col">
-              <span className="font-sans font-black uppercase text-sm tracking-tight text-[#FAF7EA]">
-                College of Computing<br></br>Information Sciences
+
+            {/* Institutional Brand Text Lockup */}
+            <div className="flex flex-col justify-center min-w-0">
+              <span className="font-marcellus uppercase text-base sm:text-[17px] md:text-lg lg:text-[19px] font-normal tracking-[0.04em] text-[#FAF7EA] leading-none mb-0.5 group-hover:text-[#F5B400] transition-colors truncate">
+                UNIVERSITY OF MAKATI
+              </span>
+              <span className="font-sans text-[7.5px] sm:text-[8.5px] md:text-[9.5px] lg:text-[10px] font-medium text-[#FAF7EA]/80 leading-tight group-hover:text-white transition-colors truncate">
+                College of Computing and Information Sciences
               </span>
             </div>
           </div>
@@ -297,7 +325,15 @@ export default function NavBar({ activeTab, setActiveTab }: NavBarProps) {
       {/* Mobile Drawer */}
       <div
         className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out border-t border-[#F5B400]/10 ${
-          mobileMenuOpen ? 'max-h-[500px] opacity-100 py-3 bg-[#132d22]' : 'max-h-0 opacity-0'
+          mobileMenuOpen 
+            ? `max-h-[500px] opacity-100 py-3 ${
+                isPatch 
+                  ? 'bg-[#0a1510]/95 backdrop-blur-md border-b border-white/10' 
+                  : isUmakTheme 
+                    ? 'bg-[#060e33]' 
+                    : 'bg-[#132d22]'
+              }` 
+            : 'max-h-0 opacity-0'
         }`}
         id="mobile-nav-panel"
       >

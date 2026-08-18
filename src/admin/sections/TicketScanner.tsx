@@ -197,6 +197,66 @@ export default function TicketScanner() {
     setResult({ status: 'processing', message: 'Validating ticket credentials against database...' });
 
     try {
+      // 1. Check if Audience Attendance QR Pass (JSON or prefix)
+      let audienceData: any = null;
+      if (trimmedId.startsWith('{') && trimmedId.endsWith('}')) {
+        try {
+          const parsed = JSON.parse(trimmedId);
+          if (parsed.type === 'CCIS_AUDIENCE_PASS') {
+            audienceData = parsed;
+          }
+        } catch {
+          // not JSON, proceed to event registration query
+        }
+      } else if (trimmedId.startsWith('CCIS-AUDIENCE:')) {
+        const parts = trimmedId.split(':');
+        audienceData = {
+          student_id: parts[1],
+          profile_id: parts[2]
+        };
+      }
+
+      if (audienceData) {
+        let profQuery = supabase.from('profiles').select('*');
+        if (audienceData.profile_id) {
+          profQuery = profQuery.eq('id', audienceData.profile_id);
+        } else if (audienceData.student_id) {
+          profQuery = profQuery.eq('student_number', audienceData.student_id);
+        }
+
+        const { data: stProfile, error: profErr } = await profQuery.maybeSingle();
+        if (profErr || !stProfile) {
+          playSound('error');
+          const errorResult: ScanResult = {
+            status: 'error',
+            message: 'Audience Pass Not Recognized! No matching student profile found in database.'
+          };
+          setResult(errorResult);
+          addToLog(trimmedId, errorResult);
+          scheduleAutoDismiss(AUTO_DISMISS_ERROR_MS);
+          return;
+        }
+
+        playSound('success');
+        setScanCount(prev => prev + 1);
+        const successResult: ScanResult = {
+          status: 'success',
+          message: 'Audience Attendance Verified! Student authorized for assembly entry.',
+          student: {
+            name: stProfile.full_name || audienceData.name || 'Student',
+            studentNumber: stProfile.student_number || audienceData.student_id || '—',
+            section: stProfile.section || audienceData.section || '—',
+            program: stProfile.program || audienceData.program || 'CCIS',
+            eventTitle: 'General Audience Attendance'
+          }
+        };
+        setResult(successResult);
+        addToLog(trimmedId, successResult);
+        scheduleAutoDismiss(AUTO_DISMISS_SUCCESS_MS);
+        return;
+      }
+
+      // 2. Otherwise check specific Event Registration
       const { data: reg, error } = await supabase
         .from('event_registrations')
         .select('*, events(title), profiles(full_name, student_number, program, section)')

@@ -74,8 +74,11 @@ export default function App({ onAdminSwitch }: AppProps) {
   };
 
   const [activeTab, setActiveTab] = useState<string>(getInitialTab);
+  const [infoSubTab, setInfoSubTab] = useState<'umak' | 'college' | 'org'>('umak');
   const [preselectedEventId, setPreselectedEventId] = useState<string | null>(null);
   const { user, profile, updateProfile, isPending, isUnverified, isAdmin, loading } = useAuth();
+
+  const isUmakTheme = activeTab === 'info' && infoSubTab === 'umak';
 
   // Strict Admin Route Guard: If a non-admin attempts to access /admin URLs, sanitize the URL back to '/'
   useEffect(() => {
@@ -161,7 +164,7 @@ export default function App({ onAdminSwitch }: AppProps) {
       <LoadingScreen />
 
       {/* 1. Header Navigation Bar */}
-      <NavBar activeTab={activeTab} setActiveTab={handleNavigate} />
+      <NavBar activeTab={activeTab} setActiveTab={handleNavigate} isUmakTheme={isUmakTheme} />
 
       {/* 2. Primary Layout Render */}
       <main className="flex-1">
@@ -227,7 +230,11 @@ export default function App({ onAdminSwitch }: AppProps) {
         {/* 3. Dedicated Inner Section Views */}
         {activeTab === 'info' && (
           <div className="animate-fade-in border-b border-[#1A3C2E]/10">
-            <InfoHub onNavigate={handleNavigate} />
+            <InfoHub 
+              onNavigate={handleNavigate} 
+              activeSubTab={infoSubTab}
+              onSubTabChange={setInfoSubTab}
+            />
           </div>
         )}
 
@@ -310,7 +317,7 @@ export default function App({ onAdminSwitch }: AppProps) {
       )}
 
       {/* 4. Foot banner site footer */}
-      <Footer onNavClick={handleNavigate} onAdminSwitch={onAdminSwitch} />
+      <Footer onNavClick={handleNavigate} onAdminSwitch={onAdminSwitch} isUmakTheme={isUmakTheme} />
 
       {/* Floating Support Chat Widget */}
       <SupportWidget onNavigate={handleNavigate} />

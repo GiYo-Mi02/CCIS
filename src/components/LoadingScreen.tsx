@@ -11,9 +11,10 @@ export default function LoadingScreen() {
 
   const overlayRef    = useRef<HTMLDivElement>(null);
   const logoRef       = useRef<HTMLDivElement>(null);
-  const word1Ref      = useRef<HTMLDivElement>(null); // CODE.
-  const word2Ref      = useRef<HTMLDivElement>(null); // CREATE.
-  const word3Ref      = useRef<HTMLDivElement>(null); // CONNECT.
+  const wordsGroupRef = useRef<HTMLDivElement>(null);
+  const word1Ref      = useRef<HTMLSpanElement>(null); // CODE.
+  const word2Ref      = useRef<HTMLSpanElement>(null); // CREATE.
+  const word3Ref      = useRef<HTMLSpanElement>(null); // CONNECT.
   const barTrackRef   = useRef<HTMLDivElement>(null);
   const barFillRef    = useRef<HTMLDivElement>(null);
   const barPercentRef = useRef<HTMLSpanElement>(null);
@@ -37,69 +38,56 @@ export default function LoadingScreen() {
       });
 
       // ── Initial states ──────────────────────────────────────
-      gsap.set(logoRef.current,   { opacity: 0, scale: 0.88, y: 8 });
-      gsap.set(word1Ref.current,  { opacity: 0, y: 20 });
-      gsap.set(word2Ref.current,  { opacity: 0, y: 20 });
-      gsap.set(word3Ref.current,  { opacity: 0, y: 20 });
-      gsap.set(barTrackRef.current, { opacity: 0, scaleX: 0, transformOrigin: 'left center' });
-      gsap.set(barFillRef.current,  { width: '0%' });
+      gsap.set(logoRef.current,       { opacity: 0, scale: 0.88, y: 8 });
+      gsap.set(wordsGroupRef.current, { opacity: 0, y: 14 });
+      gsap.set([word1Ref.current, word2Ref.current, word3Ref.current], { opacity: 0, y: 10 });
+      gsap.set(barTrackRef.current,   { opacity: 0, scaleX: 0, transformOrigin: 'left center' });
+      gsap.set(barFillRef.current,    { width: '0%' });
 
       // ── 1) Logo fades in ────────────────────────────────────
       tl.to(logoRef.current, {
         opacity: 1, scale: 1, y: 0,
-        duration: 0.7, ease: 'power3.out',
+        duration: 0.6, ease: 'power3.out',
       })
 
       // ── 2) Bar track reveals ────────────────────────────────
       .to(barTrackRef.current, {
         opacity: 1, scaleX: 1,
-        duration: 0.4, ease: 'power2.out',
+        duration: 0.35, ease: 'power2.out',
       }, '-=0.1')
 
       // ── 3) Bar starts filling (runs in parallel with words) ─
       .to(barFillRef.current, {
         width: '100%',
-        duration: 3.0,           // covers the 3 words × ~1s each
-        ease: 'linear',
+        duration: 2.8,
+        ease: 'power1.inOut',
         onUpdate: function () {
           if (barPercentRef.current) {
             barPercentRef.current.textContent = `${Math.round(this.progress() * 100)}%`;
           }
         },
-      }, '+=0.05')
+      }, '<')
 
-      // ── 4) CODE. — in then out ──────────────────────────────
-      .to(word1Ref.current, {
+      // ── 4) "Code. Create. Connect." words animate in SIMULTANEOUSLY ─
+      .to(wordsGroupRef.current, {
         opacity: 1, y: 0,
-        duration: 0.45, ease: 'power3.out',
-      }, '<')                    // start same time as bar fill
-      .to(word1Ref.current, {
-        opacity: 0, y: -14,
-        duration: 0.35, ease: 'power2.in',
-      }, '+=0.65')               // hold ~0.65s then fade out
-
-      // ── 5) CREATE. — in then out ────────────────────────────
-      .to(word2Ref.current, {
+        duration: 0.3, ease: 'power2.out',
+      }, '<')
+      .to([word1Ref.current, word2Ref.current, word3Ref.current], {
         opacity: 1, y: 0,
-        duration: 0.45, ease: 'power3.out',
-      }, '+=0.1')
-      .to(word2Ref.current, {
-        opacity: 0, y: -14,
-        duration: 0.35, ease: 'power2.in',
-      }, '+=0.65')
+        duration: 0.45,
+        stagger: 0.08,
+        ease: 'power3.out',
+      }, '<+=0.05')
 
-      // ── 6) CONNECT. — in then out ───────────────────────────
-      .to(word3Ref.current, {
-        opacity: 1, y: 0,
-        duration: 0.45, ease: 'power3.out',
-      }, '+=0.1')
-      .to(word3Ref.current, {
-        opacity: 0, y: -14,
-        duration: 0.35, ease: 'power2.in',
-      }, '+=0.65')
+      // ── 5) Words hold then fade out simultaneously ─────────
+      .to(wordsGroupRef.current, {
+        opacity: 0, y: -10,
+        duration: 0.4, ease: 'power2.in',
+      }, '+=0.85')
 
-      // ── 7) Brief hold before exit ────────────────────────────
-      .to({}, { duration: 0.25 });
+      // ── 6) Loading remains with ONLY CCIS Logo visible until 100% complete ─
+      .to({}, { duration: 0.5 });
     });
 
     return () => ctx.revert();
@@ -130,49 +118,42 @@ export default function LoadingScreen() {
       </div>
 
       {/* ── Main content ── */}
-      <div className="relative z-10 flex flex-col items-center gap-8 w-full max-w-[300px] px-6">
+      <div className="relative z-10 flex flex-col items-center gap-6 sm:gap-8 w-full max-w-[360px] sm:max-w-[480px] px-6">
 
         {/* Logo */}
         <div ref={logoRef} className="opacity-0">
           <img
             src="/images/ccis_logo.jpg"
             alt="CCIS Logo"
-            className="w-28 h-28 rounded-full object-cover shadow-2xl ring-2 ring-[#F5B400]/40"
+            className="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover shadow-2xl ring-2 ring-[#F5B400]/40"
             referrerPolicy="no-referrer"
           />
         </div>
 
-        {/* Cycling word area — fixed height so layout doesn't jump */}
-        <div className="relative h-[clamp(3rem,9vw,5.5rem)] w-full flex items-center justify-center">
-
-          {/* CODE. */}
+        {/* Simultaneous Words Container */}
+        <div className="h-12 flex items-center justify-center w-full">
           <div
-            ref={word1Ref}
-            className="absolute inset-0 flex items-center justify-center opacity-0
-                       text-[#FAF7EA] font-extrabold italic uppercase tracking-tight
-                       text-[clamp(2.8rem,8.5vw,5rem)] leading-none"
+            ref={wordsGroupRef}
+            className="opacity-0 flex items-center justify-center gap-2 sm:gap-3 text-center flex-wrap"
           >
-            Code.
-          </div>
-
-          {/* CREATE. */}
-          <div
-            ref={word2Ref}
-            className="absolute inset-0 flex items-center justify-center opacity-0
-                       text-[#F5B400] font-extrabold italic uppercase tracking-tight
-                       text-[clamp(2.8rem,8.5vw,5rem)] leading-none"
-          >
-            Create.
-          </div>
-
-          {/* CONNECT. */}
-          <div
-            ref={word3Ref}
-            className="absolute inset-0 flex items-center justify-center opacity-0
-                       text-[#FAF7EA] font-extrabold italic uppercase tracking-tight
-                       text-[clamp(2.8rem,8.5vw,5rem)] leading-none"
-          >
-            Connect.
+            <span
+              ref={word1Ref}
+              className="text-[#FAF7EA] font-extrabold italic uppercase tracking-tight text-xl sm:text-3xl leading-none"
+            >
+              Code.
+            </span>
+            <span
+              ref={word2Ref}
+              className="text-[#F5B400] font-extrabold italic uppercase tracking-tight text-xl sm:text-3xl leading-none"
+            >
+              Create.
+            </span>
+            <span
+              ref={word3Ref}
+              className="text-[#FAF7EA] font-extrabold italic uppercase tracking-tight text-xl sm:text-3xl leading-none"
+            >
+              Connect.
+            </span>
           </div>
         </div>
 
@@ -208,3 +189,4 @@ export default function LoadingScreen() {
     </div>
   );
 }
+
