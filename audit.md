@@ -141,7 +141,7 @@ The scanner looks up registrations with `event_registrations.user_id` and insert
 
 **Fix:** Use a server-side attendance RPC that accepts a validated profile token and event ID, derives `profile_id`, performs an atomic already-attended check plus write, and returns a stable result. Remove the direct client insert path and check every RPC result before reporting success.
 
-### 25. Deleting a profile does not revoke the Auth account
+### 25. [RESOLVED] Deleting a profile does not revoke the Auth account
 
 **Severity:** ERROR - Security
 **Standards:** 4, 16, 20, 24
