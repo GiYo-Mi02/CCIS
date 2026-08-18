@@ -19,7 +19,7 @@ try {
 }
 
 const supabaseUrl = env['VITE_SUPABASE_URL'] || process.env.VITE_SUPABASE_URL;
-const supabaseKey = env['SUPABASE_SERVICE_ROLE_KEY'] || process.env.SUPABASE_SERVICE_ROLE_KEY || env['VITE_SUPABASE_ANON_KEY'] || process.env.VITE_SUPABASE_ANON_KEY;
+const supabaseKey = env['SUPABASE_SERVICE_ROLE_KEY'] || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 // SMTP configuration
 const smtpHost = env['SMTP_HOST'] || process.env.SMTP_HOST || 'smtp.gmail.com';
@@ -29,7 +29,7 @@ const smtpPass = env['SMTP_PASS'] || process.env.SMTP_PASS;
 const smtpFrom = env['SMTP_FROM'] || process.env.SMTP_FROM || `"CCIS Student Council" <${smtpUser || ''}>`;
 
 if (!supabaseUrl || !supabaseKey) {
-  console.error('[Email Worker] Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY credentials.');
+  console.error('[Email Worker] Missing VITE_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY credentials.');
   process.exit(1);
 }
 
@@ -51,20 +51,20 @@ const transporter = nodemailer.createTransport({
 console.log(`[Email Worker] SMTP transporter configured for ${smtpUser} via ${smtpHost}:${smtpPort}`);
 
 let permissionDeniedLogged = false;
+const workerId = `local-${process.pid}-${crypto.randomUUID()}`;
 
 async function processQueue() {
   try {
     const { data: dequeuedItems, error: dequeueError } = await supabase.rpc(
       'dequeue_emails',
-      { p_limit: 5 }
+      { p_limit: 5, p_worker_id: workerId }
     );
 
     if (dequeueError) {
       if (dequeueError.message && dequeueError.message.toLowerCase().includes('permission denied')) {
         if (!permissionDeniedLogged) {
-          console.warn('\n⚠️  [Email Worker] Permission denied for function public.dequeue_emails(integer).');
-          console.warn('👉 FIX: Run 28_grant_dequeue_emails.sql in your Supabase SQL Editor:');
-          console.warn('   GRANT EXECUTE ON FUNCTION public.dequeue_emails(INTEGER) TO anon, authenticated, service_role;\n');
+          console.warn('\n⚠️  [Email Worker] Permission denied for function public.dequeue_emails(integer, text).');
+          console.warn('👉 FIX: Apply the email queue lease migration and grant EXECUTE to service_role only.\n');
           permissionDeniedLogged = true;
         }
       } else {
@@ -98,9 +98,13 @@ async function processQueue() {
             .update({
               status: 'sent',
               processed_at: new Date().toISOString(),
-              error_message: null
+              error_message: null,
+              lease_expires_at: null,
+              lease_worker_id: null
             })
-            .eq('id', item.id);
+            .eq('id', item.id)
+            .eq('status', 'processing')
+            .eq('lease_worker_id', workerId);
 
           if (updateError) {
             console.error(`[Email Worker] Failed to update status for ${item.id}:`, updateError.message);
@@ -109,13 +113,24 @@ async function processQueue() {
           const errMsg = itemErr.message || String(itemErr);
           console.error(`[Email Worker] Error processing item ${item.id}:`, errMsg);
 
+          const exhausted = item.attempts >= 3;
+          const failureUpdate = {
+            status: exhausted ? 'dead_letter' : 'failed',
+            error_message: errMsg,
+            lease_expires_at: null,
+            lease_worker_id: null,
+            dead_lettered_at: exhausted ? new Date().toISOString() : null
+          };
+          if (!exhausted) {
+            failureUpdate.scheduled_for = new Date(Date.now() + 60_000 * item.attempts).toISOString();
+          }
+
           const { error: updateError } = await supabase
             .from('email_queue')
-            .update({
-              status: 'failed',
-              error_message: errMsg
-            })
-            .eq('id', item.id);
+            .update(failureUpdate)
+            .eq('id', item.id)
+            .eq('status', 'processing')
+            .eq('lease_worker_id', workerId);
             
           if (updateError) {
             console.error(`[Email Worker] Failed to mark item ${item.id} as failed:`, updateError.message);
