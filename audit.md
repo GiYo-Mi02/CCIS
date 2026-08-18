@@ -399,7 +399,7 @@ User-controlled search text is interpolated directly into `.or(...)` filter expr
 
 **Fix:** Escape PostgREST filter metacharacters or use separate parameterized filters supported by the client library. Add tests for commas, parentheses, quotes, percent signs, and very long search values.
 
-### 34. Registration CSV export is vulnerable to formula injection and malformed quoting
+### 34. Registration CSV export is vulnerable to formula injection and malformed quoting [RESOLVED]
 
 **Severity:** WARNING - Security
 **Standards:** 18
@@ -409,7 +409,7 @@ Profile-controlled values are placed in CSV cells without escaping embedded quot
 
 **Fix:** Apply RFC 4180 quoting to every cell and prefix dangerous formula-leading values with a single quote or tab before generating the download.
 
-### 35. The CSP blocks the app's external PDF and IP integrations
+### 35. The CSP blocks the app's external PDF and IP integrations [RESOLVED]
 
 **Severity:** WARNING - DevOps
 **Standards:** 30
