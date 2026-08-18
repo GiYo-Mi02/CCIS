@@ -81,9 +81,9 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
     const today = new Date().toISOString().split('T')[0];
 
     try {
-      // 1. Query events table directly with manual registration count
+      // The view uses the same non-cancelled capacity rule as register_for_event.
       let eventsQuery = supabase
-        .from('events')
+        .from('events_with_slots')
         .select('*', { count: 'exact' })
         .gte('event_date', today);
 
@@ -108,21 +108,6 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
         setTotalPages(Math.max(1, Math.ceil(count / 9)));
       }
 
-      // Fetch registration counts for the loaded events
-      const eventIds = (eventsData || []).map((e: any) => e.id);
-      let counts: Record<string, number> = {};
-
-      if (eventIds.length > 0) {
-        const { data: regCounts } = await supabase
-          .from('event_registrations')
-          .select('event_id')
-          .in('event_id', eventIds);
-
-        regCounts?.forEach(r => {
-          counts[r.event_id] = (counts[r.event_id] || 0) + 1;
-        });
-      }
-
       const mappedEvents = (eventsData || []).map((e: any) => ({
         id: e.id,
         title: e.title,
@@ -130,7 +115,8 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
         time: e.event_time || 'TBA',
         location: e.location || 'TBA',
         slots: e.registration_cap || 100,
-        registeredCount: counts[e.id] || 0,
+        slotsLeft: e.slots_left === null ? null : Number(e.slots_left),
+        registeredCount: Number(e.registered_count) || 0,
         description: e.description || '',
         event_type: (e.event_type as 'competition' | 'general') || (
           (e.title && (e.title.toLowerCase().includes('competition') || e.title.toLowerCase().includes('hackathon') || e.title.toLowerCase().includes('contest') || e.title.toLowerCase().includes('tournament'))) || e.registration_required ? 'competition' : 'general'
@@ -148,7 +134,10 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
           .eq('profile_id', user.id)
           .order('registered_at', { ascending: false });
 
-        if (!myRegsError && myRegsData) {
+        if (myRegsError) {
+          setMyRegistrations([]);
+          setRegistrationError('Failed to load your registrations.');
+        } else if (myRegsData) {
           const mappedRegs = myRegsData.map((r: any) => ({
             id: r.id,
             name: r.profiles?.full_name || profile?.full_name || 'Student',
@@ -195,13 +184,13 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
 
     setRegistrationError(null);
 
-    const slotsLeft = matchedEvent.slots - matchedEvent.registeredCount;
-    if (slotsLeft <= 0) {
+    const slotsLeft = getEventSlotsLeft(matchedEvent);
+    if (slotsLeft !== null && slotsLeft <= 0) {
       setRegistrationError('Sorry, registration slots for this event are fully filled.');
       return;
     }
 
-    const exists = myRegistrations.some(reg => reg.eventId === selectedEventId);
+    const exists = myRegistrations.some(reg => reg.eventId === selectedEventId && reg.status !== 'cancelled');
     if (exists) {
       setRegistrationError('You are already registered for this computing event!');
       return;
@@ -236,6 +225,7 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
         .single();
 
       if (fetchError || !regData) {
+        await fetchData();
         setRegistrationError('Failed to retrieve registration details. Please try again.');
         setRegistering(false);
         return;
@@ -273,10 +263,14 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
       };
 
       // Update locally
-      setMyRegistrations(prev => [ticket, ...prev]);
+      setMyRegistrations(prev => [ticket, ...prev.filter(reg => reg.eventId !== selectedEventId)]);
       setEvents(prev => prev.map(ev => {
         if (ev.id === selectedEventId) {
-          return { ...ev, registeredCount: ev.registeredCount + 1 };
+          return {
+            ...ev,
+            registeredCount: ev.registeredCount + 1,
+            slotsLeft: ev.slotsLeft === null ? null : (ev.slotsLeft ?? ev.slots - ev.registeredCount) - 1,
+          };
         }
         return ev;
       }));
@@ -293,7 +287,7 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
   };
 
   const getEventSlotsLeft = (ev: EventItem) => {
-    return ev.slots - ev.registeredCount;
+    return ev.slotsLeft === null ? null : ev.slotsLeft ?? ev.slots - ev.registeredCount;
   };
 
   if (loading) {
@@ -353,8 +347,8 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {events.map((ev) => {
                   const slotsLeft = getEventSlotsLeft(ev);
-                  const isFull = slotsLeft <= 0;
-                  const isRegistered = myRegistrations.some(reg => reg.eventId === ev.id);
+                  const isFull = slotsLeft !== null && slotsLeft <= 0;
+                  const isRegistered = myRegistrations.some(reg => reg.eventId === ev.id && reg.status !== 'cancelled');
                   
                   return (
                     <div
@@ -383,7 +377,7 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
                                   ? 'bg-emerald-100 text-emerald-800'
                                   : isFull 
                                     ? 'bg-rose-100 text-rose-800'
-                                    : slotsLeft < 15
+                                    : slotsLeft !== null && slotsLeft < 15
                                       ? 'bg-amber-100 text-[#1A3C2E]'
                                       : 'bg-zinc-100 text-zinc-600'
                               }`}>
@@ -391,7 +385,7 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
                                   ? '✓ Registered' 
                                   : isFull 
                                     ? 'Slots Full' 
-                                    : `${slotsLeft} of ${ev.slots} competitor slots`}
+                                    : slotsLeft === null ? 'Open registration' : `${slotsLeft} of ${ev.slots} competitor slots`}
                               </span>
                             ) : (
                               <span className="text-[9px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-full font-black bg-emerald-100 text-emerald-800 border border-emerald-200">
@@ -587,8 +581,8 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
                             {(() => {
                               const ev = events.find(e => e.id === selectedEventId);
                               if (!ev) return '—';
-                              const remaining = Math.max(0, ev.slots - ev.registeredCount);
-                              return `${remaining} / ${ev.slots} seats remaining`;
+                              if (ev.slotsLeft === null) return 'Open registration';
+                              return `${Math.max(0, ev.slotsLeft)} / ${ev.slots} seats remaining`;
                             })()}
                           </span>
                         </div>

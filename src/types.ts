@@ -56,6 +56,7 @@ export interface EventItem {
   time: string;
   location: string;
   slots: number;
+  slotsLeft?: number | null;
   registeredCount: number;
   description: string;
   event_type?: 'competition' | 'general';
