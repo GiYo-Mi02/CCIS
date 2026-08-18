@@ -55,14 +55,34 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
 
   // Audience Attendance Pass states
   const [passToken, setPassToken] = useState<string>(() => {
-    return localStorage.getItem(`ccis_audience_token_${user?.id}`) || Math.random().toString(36).substring(2, 10).toUpperCase();
+    return profile?.attendance_qr_code || localStorage.getItem(`ccis_audience_token_${user?.id}`) || '';
   });
   const [passGeneratedAt, setPassGeneratedAt] = useState<string>(() => {
+    if (profile?.attendance_qr_generated_at) {
+      return new Date(profile.attendance_qr_generated_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    }
     return localStorage.getItem(`ccis_audience_gen_${user?.id}`) || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
   });
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [passDownloadLoading, setPassDownloadLoading] = useState(false);
   const [regenerateSuccess, setRegenerateSuccess] = useState(false);
+
+  // Sync / Auto-generate database token if not yet saved in Supabase
+  useEffect(() => {
+    if (!user) return;
+    if (profile?.attendance_qr_code) {
+      setPassToken(profile.attendance_qr_code);
+      if (profile.attendance_qr_generated_at) {
+        setPassGeneratedAt(new Date(profile.attendance_qr_generated_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }));
+      }
+    } else {
+      const initialToken = 'CCIS-' + (profile?.student_number || 'STU') + '-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+      const nowIso = new Date().toISOString();
+      setPassToken(initialToken);
+      supabase.from('profiles').update({ attendance_qr_code: initialToken, attendance_qr_generated_at: nowIso }).eq('id', user.id).then();
+      updateProfile({ attendance_qr_code: initialToken, attendance_qr_generated_at: nowIso }).catch(console.warn);
+    }
+  }, [profile?.attendance_qr_code, profile?.student_number, user?.id]);
 
   // Data sections
   const [registrations, setRegistrations] = useState<EventRegistration[]>([]);
@@ -350,21 +370,47 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
     return map[status] || 'bg-zinc-100 text-zinc-600';
   };
 
-  // Handler to regenerate audience attendance QR pass
-  const handleRegeneratePass = () => {
+  // Handler to regenerate audience attendance QR pass and SAVE to Supabase database
+  const handleRegeneratePass = async () => {
     if (!user) return;
     setIsRegenerating(true);
-    setTimeout(() => {
-      const newToken = Math.random().toString(36).substring(2, 8).toUpperCase() + '-' + Date.now().toString(36).toUpperCase();
+    try {
+      const newToken = 'CCIS-' + (profile?.student_number || 'STU') + '-' + Math.random().toString(36).substring(2, 7).toUpperCase() + '-' + Date.now().toString(36).toUpperCase();
+      const nowIso = new Date().toISOString();
       const newDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+
+      // 1. Direct update to Supabase database
+      const { error: dbErr } = await supabase
+        .from('profiles')
+        .update({
+          attendance_qr_code: newToken,
+          attendance_qr_generated_at: nowIso
+        })
+        .eq('id', user.id);
+
+      if (dbErr) {
+        console.warn('Database pass update note:', dbErr);
+      }
+
+      // 2. Update context state
+      await updateProfile({
+        attendance_qr_code: newToken,
+        attendance_qr_generated_at: nowIso
+      });
+
       setPassToken(newToken);
       setPassGeneratedAt(newDate);
       localStorage.setItem(`ccis_audience_token_${user.id}`, newToken);
       localStorage.setItem(`ccis_audience_gen_${user.id}`, newDate);
-      setIsRegenerating(false);
+
       setRegenerateSuccess(true);
       setTimeout(() => setRegenerateSuccess(false), 3500);
-    }, 500);
+    } catch (err: any) {
+      console.error('Failed to regenerate pass:', err);
+      alert('Could not update pass in database: ' + (err.message || err));
+    } finally {
+      setIsRegenerating(false);
+    }
   };
 
   // Handler to download audience pass as PNG

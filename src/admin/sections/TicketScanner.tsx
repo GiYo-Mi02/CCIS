@@ -312,7 +312,7 @@ export default function TicketScanner() {
     setResult({ status: 'processing', message: 'Validating ticket credentials against database...' });
 
     try {
-      // 1. Check if Audience Attendance QR Pass (JSON or prefix)
+      // 1. Check if Audience Attendance QR Pass (JSON, prefix, token, or student ID)
       let audienceData: any = null;
       if (trimmedId.startsWith('{') && trimmedId.endsWith('}')) {
         try {
@@ -329,6 +329,24 @@ export default function TicketScanner() {
           student_id: parts[1],
           profile_id: parts[2]
         };
+      } else if (trimmedId.startsWith('CCIS-') || /^[A-Za-z0-9-]{8,40}$/.test(trimmedId)) {
+        // Match by token or student ID directly in database
+        const { data: matchedProf } = await supabase
+          .from('profiles')
+          .select('*')
+          .or(`attendance_qr_code.eq.${trimmedId},student_number.eq.${trimmedId.toUpperCase()}`)
+          .maybeSingle();
+
+        if (matchedProf) {
+          audienceData = {
+            profile_id: matchedProf.id,
+            student_id: matchedProf.student_number,
+            name: matchedProf.full_name,
+            program: matchedProf.program,
+            section: matchedProf.section,
+            token: matchedProf.attendance_qr_code
+          };
+        }
       }
 
       if (audienceData) {
@@ -337,6 +355,8 @@ export default function TicketScanner() {
           profQuery = profQuery.eq('id', audienceData.profile_id);
         } else if (audienceData.student_id) {
           profQuery = profQuery.eq('student_number', audienceData.student_id);
+        } else if (audienceData.token) {
+          profQuery = profQuery.eq('attendance_qr_code', audienceData.token);
         }
 
         const { data: stProfile, error: profErr } = await profQuery.maybeSingle();

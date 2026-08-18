@@ -26,6 +26,8 @@ export interface Profile {
   approved_by: string | null;
   rejection_reason: string | null;
   contact_number: string | null;
+  attendance_qr_code?: string | null;
+  attendance_qr_generated_at?: string | null;
   last_ip: string | null;
   created_at: string;
   updated_at: string;
