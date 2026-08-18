@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FileText, Plus, X, Edit, Trash2, Loader2, Download, AlertTriangle, CheckCircle2, Info, Eye } from 'lucide-react';
+import * as pdfjsLib from 'pdfjs-dist';
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.js?url';
 import { supabase } from '../lib/supabase';
 
 // ============================================================
@@ -153,6 +155,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
   const [selectedSemester, setSelectedSemester] = useState<string>('All');
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [isUsingMockData, setIsUsingMockData] = useState<boolean>(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Admin form modal state
   const [showFormModal, setShowFormModal] = useState<boolean>(false);
@@ -196,6 +199,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
   // Fetch reports from Supabase
   const fetchReports = async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const { data, error } = await supabase
         .from('transparency_reports')
@@ -203,10 +207,15 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
         .order('created_at', { ascending: false });
 
       if (error) {
-        // Table doesn't exist or other query error
-        console.warn('Supabase transparency table access error, falling back to mock data:', error.message);
-        setReports(MOCK_REPORTS);
-        setIsUsingMockData(true);
+        console.warn('Supabase transparency table access error:', error.message);
+        if (import.meta.env.DEV) {
+          setReports(MOCK_REPORTS);
+          setIsUsingMockData(true);
+        } else {
+          setReports([]);
+          setIsUsingMockData(false);
+          setLoadError('Financial reports are temporarily unavailable. Please try again later.');
+        }
       } else if (data && data.length > 0) {
         const mapped: TransparencyReport[] = data.map((r) => ({
           id: r.id,
@@ -222,15 +231,23 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
         }));
         setReports(mapped);
         setIsUsingMockData(false);
+        setLoadError(null);
       } else {
         // Table exists but is empty
         setReports([]);
         setIsUsingMockData(false);
+        setLoadError(null);
       }
     } catch (err) {
-      console.error('Failed to load transparency reports, falling back to mock:', err);
-      setReports(MOCK_REPORTS);
-      setIsUsingMockData(true);
+      console.error('Failed to load transparency reports:', err);
+      if (import.meta.env.DEV) {
+        setReports(MOCK_REPORTS);
+        setIsUsingMockData(true);
+      } else {
+        setReports([]);
+        setIsUsingMockData(false);
+        setLoadError('Financial reports are temporarily unavailable. Please try again later.');
+      }
     } finally {
       setLoading(false);
     }
@@ -251,40 +268,6 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Load PDFJS library helper dynamically
-  const loadPdfJs = (): Promise<any> => {
-    return new Promise((resolve, reject) => {
-      const pdfjsLib = (window as any).pdfjsLib;
-      if (pdfjsLib) {
-        resolve(pdfjsLib);
-        return;
-      }
-      
-      const scriptId = 'pdfjs-lib-cdn-loader';
-      let script = document.getElementById(scriptId) as HTMLScriptElement;
-      if (!script) {
-        script = document.createElement('script');
-        script.id = scriptId;
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.js';
-        document.body.appendChild(script);
-      }
-      
-      const handleLoad = () => {
-        const loadedLib = (window as any).pdfjsLib;
-        if (loadedLib) {
-          resolve(loadedLib);
-        } else {
-          reject(new Error('pdfjsLib loaded but not found on window object.'));
-        }
-      };
-      
-      script.addEventListener('load', handleLoad);
-      script.addEventListener('error', () => {
-        reject(new Error('Failed to load PDF.js from CDN.'));
-      });
-    });
-  };
-
   // Render inline PDF to canvas inside detail modal
   useEffect(() => {
     if (!selectedModalReport || !modalOpen) return;
@@ -303,8 +286,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
       }
       
       try {
-        const pdfjsLib = await loadPdfJs();
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
         
         loadingTask = pdfjsLib.getDocument(selectedModalReport.pdfUrl);
         const pdf = await loadingTask.promise;
@@ -407,9 +389,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
   const renderPdfThumbnail = async (file: File): Promise<Blob> => {
     return new Promise(async (resolve, reject) => {
       try {
-        const pdfjsLib = await loadPdfJs();
-        // Set cloud worker
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
         const fileReader = new FileReader();
         fileReader.onload = async function() {
@@ -811,6 +791,21 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
                 </div>
               </div>
             ))}
+          </div>
+        ) : loadError ? (
+          <div role="alert" className="text-center py-16 bg-white border border-rose-200 rounded-3xl p-8 max-w-md mx-auto shadow-xs">
+            <AlertTriangle className="mx-auto text-rose-500 mb-4" size={40} />
+            <h3 className="font-marcellus text-stone-800 text-lg mb-1">Ledger Unavailable</h3>
+            <p className="text-stone-500 text-xs leading-relaxed font-sans mb-5">
+              {loadError}
+            </p>
+            <button
+              type="button"
+              onClick={fetchReports}
+              className="px-4 py-2 rounded-full bg-[#1A3C2E] text-white text-xs font-bold hover:bg-[#123524] focus:ring-2 focus:ring-[#F5B400] outline-none cursor-pointer"
+            >
+              Try Again
+            </button>
           </div>
         ) : filteredReports.length === 0 ? (
           /* Empty state */

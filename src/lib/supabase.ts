@@ -64,6 +64,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
+    flowType: 'pkce',
     // Store tokens in sessionStorage — cleared when the tab closes, reducing XSS theft window
     storage: window.sessionStorage,
     autoRefreshToken: true,
@@ -87,5 +88,4 @@ export async function triggerEmailWorker(): Promise<void> {
     console.warn('[Cloud Email Worker] Could not invoke edge function directly:', err.message || err);
   }
 }
-
 

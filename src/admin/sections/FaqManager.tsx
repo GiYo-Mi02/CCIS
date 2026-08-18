@@ -48,33 +48,18 @@ export default function FaqManager() {
     const sorted = [...faqs].sort((a, b) => a.display_order - b.display_order);
     const idx = sorted.findIndex(f => f.id === id);
     if ((direction === 'up' && idx === 0) || (direction === 'down' && idx === sorted.length - 1)) return;
-    
-    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
-    const orderA = sorted[idx].display_order;
-    const orderB = sorted[swapIdx].display_order;
 
     try {
-      // Swap order numbers in database
-      const updateA = supabase.from('faqs').update({ display_order: orderB }).eq('id', sorted[idx].id);
-      const updateB = supabase.from('faqs').update({ display_order: orderA }).eq('id', sorted[swapIdx].id);
-      
-      const [resA, resB] = await Promise.all([updateA, updateB]);
-      
-      if (resA.error) throw resA.error;
-      if (resB.error) throw resB.error;
-
-      // Update local state smoothly
-      setFaqs(prev => {
-        const next = [...prev];
-        next[idx] = { ...next[idx], display_order: orderB };
-        next[swapIdx] = { ...next[swapIdx], display_order: orderA };
-        return next.sort((a, b) => a.display_order - b.display_order);
+      const { error } = await supabase.rpc('swap_faq_order', {
+        p_faq_id: id,
+        p_direction: direction,
       });
-      
+      if (error) throw error;
+
+      await fetchFaqs();
       showToast('FAQ display order updated', 'success');
-    } catch (err: any) {
-      showToast('Failed to shift order: ' + err.message, 'error');
-      fetchFaqs();
+    } catch {
+      showToast('Failed to update FAQ order', 'error');
     }
   };
 
