@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Camera, AlertTriangle, CheckCircle, XCircle, RefreshCw, Send, ShieldAlert, History, Volume2, VolumeX, Calendar, SwitchCamera, FileImage } from 'lucide-react';
 import { Html5Qrcode, CameraDevice } from 'html5-qrcode';
 import { supabase } from '../../lib/supabase';
+import { postgrestEquals } from '../../lib/postgrest';
 import { useAdmin } from '../AdminContext';
 
 interface ScanResult {
@@ -322,7 +323,7 @@ export default function TicketScanner() {
         const { data: matchedProf } = await supabase
           .from('profiles')
           .select('*')
-          .or(`attendance_qr_code.eq.${trimmedId},student_number.eq.${trimmedId.toUpperCase()}`)
+          .or(`attendance_qr_code.eq.${postgrestEquals(trimmedId)},student_number.eq.${postgrestEquals(trimmedId.toUpperCase())}`)
           .maybeSingle();
 
         if (matchedProf) {

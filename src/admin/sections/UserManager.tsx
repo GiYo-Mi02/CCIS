@@ -9,6 +9,7 @@ import { supabase } from '../../lib/supabase';
 import { Profile, ROLE_LABELS, ROLE_COLORS } from '../../types/database';
 import Pagination from '../components/Pagination';
 import EmptyState from '../components/EmptyState';
+import { postgrestIlike } from '../../lib/postgrest';
 
 type BanDuration = 'permanent' | '1h' | '1d' | '1w' | '30d' | 'custom';
 
@@ -58,8 +59,9 @@ export default function UserManager() {
 
       // Apply search term filtering across name, email, or student number
       if (debouncedSearch.trim()) {
+        const searchFilter = postgrestIlike(debouncedSearch);
         query = query.or(
-          `full_name.ilike.%${debouncedSearch}%,email.ilike.%${debouncedSearch}%,student_number.ilike.%${debouncedSearch}%`
+          `full_name.ilike.${searchFilter},email.ilike.${searchFilter},student_number.ilike.${searchFilter}`
         );
       }
 

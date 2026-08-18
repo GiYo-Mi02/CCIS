@@ -6,6 +6,7 @@ import { useAdmin } from '../AdminContext';
 import { Conversation, Message } from '../../types/database';
 import Pagination from '../components/Pagination';
 import { checkIsProfane } from '../../lib/profanity';
+import { postgrestIlike } from '../../lib/postgrest';
 
 const formatMessageTimeHeader = (dateStr: string): string => {
   const date = new Date(dateStr);
@@ -95,10 +96,11 @@ export default function MessagesInbox() {
       // 1. Get total counts
       let countQuery;
       if (searchQuery.trim()) {
+        const searchFilter = postgrestIlike(searchQuery);
         countQuery = supabase
           .from('conversations')
           .select('id, profiles!inner(full_name, email)', { count: 'exact', head: true })
-          .or(`full_name.ilike.%${searchQuery.trim()}%,email.ilike.%${searchQuery.trim()}%`, { referencedTable: 'profiles' });
+          .or(`full_name.ilike.${searchFilter},email.ilike.${searchFilter}`, { referencedTable: 'profiles' });
       } else {
         countQuery = supabase
           .from('conversations')
@@ -120,10 +122,11 @@ export default function MessagesInbox() {
       // 2. Fetch paginated list
       let listQuery;
       if (searchQuery.trim()) {
+        const searchFilter = postgrestIlike(searchQuery);
         listQuery = supabase
           .from('conversations')
           .select('*, profiles!inner(full_name, email, avatar_url)')
-          .or(`full_name.ilike.%${searchQuery.trim()}%,email.ilike.%${searchQuery.trim()}%`, { referencedTable: 'profiles' });
+          .or(`full_name.ilike.${searchFilter},email.ilike.${searchFilter}`, { referencedTable: 'profiles' });
       } else {
         listQuery = supabase
           .from('conversations')
