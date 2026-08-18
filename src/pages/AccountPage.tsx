@@ -93,7 +93,7 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
   const [resendStatus, setResendStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // Navigation states
-  const [activeTab, setActiveTab] = useState<'attendance-pass' | 'registrations'>('attendance-pass');
+  const [activeTab, setActiveTab] = useState<'attendance-pass' | 'registrations' | 'messages'>('attendance-pass');
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [lastMessages, setLastMessages] = useState<Message[]>([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
