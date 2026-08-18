@@ -24,94 +24,20 @@ interface AppProps {
   onAdminSwitch?: () => void;
 }
 
-const tabToPathMap: Record<string, string> = {
-  home: '/',
-  info: '/about',
-  announcements: '/announcements',
-  registration: '/events',
-  gallery: '/gallery',
-  transparency: '/transparency',
-  patch: '/patch',
-  messages: '/helpdesk',
-  account: '/account',
-  login: '/login',
-  admin: '/admin/dashboard',
-};
-
-const pathToTabMap: Record<string, string> = {
-  '/': 'home',
-  '/home': 'home',
-  '/about': 'info',
-  '/info': 'info',
-  '/announcements': 'announcements',
-  '/events': 'registration',
-  '/registration': 'registration',
-  '/gallery': 'gallery',
-  '/transparency': 'transparency',
-  '/bukas-kaban': 'transparency',
-  '/patch': 'patch',
-  '/devlog': 'patch',
-  '/helpdesk': 'messages',
-  '/messages': 'messages',
-  '/account': 'account',
-  '/profile': 'account',
-  '/login': 'login',
-};
-
 export default function App({ onAdminSwitch }: AppProps) {
-  const getInitialTab = () => {
-    const path = window.location.pathname.toLowerCase();
-    if (path.startsWith('/admin')) {
-      return 'admin';
-    }
-    if (pathToTabMap[path]) {
-      return pathToTabMap[path];
-    }
-    if (path !== '/' && path !== '') {
-      return '404';
-    }
-    return 'home';
-  };
-
-  const [activeTab, setActiveTab] = useState<string>(getInitialTab);
+  const [activeTab, setActiveTab] = useState<string>('home');
   const [infoSubTab, setInfoSubTab] = useState<'umak' | 'college' | 'org'>('umak');
   const [preselectedEventId, setPreselectedEventId] = useState<string | null>(null);
   const { user, profile, updateProfile, isPending, isUnverified, isAdmin, loading } = useAuth();
 
   const isUmakTheme = activeTab === 'info' && infoSubTab === 'umak';
 
-  // Strict Admin Route Guard: If a non-admin attempts to access /admin URLs, sanitize the URL back to '/'
+  // Sanitize URL back to root clean URL (no subpath slashes)
   useEffect(() => {
-    if (!loading && !isAdmin && (activeTab === 'admin' || window.location.pathname.startsWith('/admin'))) {
-      if (window.location.pathname.startsWith('/admin')) {
-        window.history.replaceState({}, '', '/');
-      }
-      setActiveTab('home');
+    if (window.location.pathname !== '/' && window.location.pathname !== '') {
+      window.history.replaceState(null, '', '/');
     }
-  }, [loading, isAdmin, activeTab]);
-
-  // Listen to browser Back/Forward navigation
-  useEffect(() => {
-    const handlePopState = () => {
-      const path = window.location.pathname.toLowerCase();
-      if (path.startsWith('/admin')) {
-        if (!isAdmin) {
-          window.history.replaceState({}, '', '/');
-          setActiveTab('home');
-        } else {
-          setActiveTab('admin');
-        }
-      } else if (pathToTabMap[path]) {
-        setActiveTab(pathToTabMap[path]);
-      } else if (path !== '/' && path !== '') {
-        setActiveTab('404');
-      } else {
-        setActiveTab('home');
-      }
-    };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, [isAdmin]);
+  }, []);
 
   // Multi-route smooth scroll coordinator (e.g. for scrolling to contact desks)
   useEffect(() => {
@@ -134,10 +60,6 @@ export default function App({ onAdminSwitch }: AppProps) {
       return;
     }
     setActiveTab(tab);
-    const targetPath = tabToPathMap[tab] || '/';
-    if (window.location.pathname !== targetPath) {
-      window.history.pushState({ tab }, '', targetPath);
-    }
     if (tab === 'registration' && eventId) {
       setPreselectedEventId(eventId);
     } else if (tab !== 'registration') {
