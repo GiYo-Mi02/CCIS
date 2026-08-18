@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Camera, AlertTriangle, CheckCircle, XCircle, RefreshCw, Send, ShieldAlert, History, Volume2, VolumeX, Calendar, SwitchCamera, FileImage } from 'lucide-react';
-import { Html5Qrcode } from 'html5-qrcode';
+import { Html5Qrcode, CameraDevice } from 'html5-qrcode';
 import { supabase } from '../../lib/supabase';
 import { useAdmin } from '../AdminContext';
 
@@ -35,7 +35,7 @@ const AUTO_DISMISS_ERROR_MS = 5000; // auto-dismiss error after 5s
 
 export default function TicketScanner() {
   const { showToast } = useAdmin();
-  const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
+  const [cameras, setCameras] = useState<CameraDevice[]>([]);
   const [selectedCameraId, setSelectedCameraId] = useState<string>('');
   const [isScanning, setIsScanning] = useState(false);
   const [manualId, setManualId] = useState('');

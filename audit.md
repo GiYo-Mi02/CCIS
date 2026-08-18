@@ -419,17 +419,17 @@ The CSP permits Supabase and Google Fonts but not `cdnjs.cloudflare.com` for the
 
 **Fix:** Prefer bundling PDF.js and remove the IP collection if it is not essential. If the external calls remain, add narrowly scoped CSP directives and test the deployed policy rather than relying on the meta fallback.
 
-### 36. Edge Functions are excluded from type checking
+### 36. Edge Functions are excluded from type checking [RESOLVED]
 
 **Severity:** WARNING - Testing
 **Standards:** 28, 30
-**Files:** `tsconfig.json:28`, `supabase/functions/process-email-queue/index.ts:1`, `supabase/functions/send-ticket-email/index.ts:1`
+**Files:** `tsconfig.json:29`, `package.json:12`, `supabase/deno.json:1-3`, `supabase/functions/process-email-queue/index.ts:1,5`, `supabase/functions/send-ticket-email/index.ts:1`, `.github/workflows/typecheck.yml:1-22`
 
-The project compiler explicitly excludes `supabase`, and both Edge Functions start with `@ts-nocheck`. The normal lint command therefore cannot catch the `user_id`/`profile_id` drift, untyped request payloads, or response-shape mistakes in the server-side execution path.
+The project compiler explicitly excludes `supabase`, so the normal lint command does not cover the server-side execution path. Both Edge Functions previously also started with `@ts-nocheck`, hiding request payload and response-shape mistakes.
 
-**Fix:** Add a Deno/Supabase Function type-check command to CI, remove `@ts-nocheck`, and include at least contract tests for authentication, queue processing, and attendance writes.
+**Resolution:** Added `npm run lint:edge` using Deno, enabled Deno's npm dependency resolution, removed `@ts-nocheck`, and added a GitHub Actions type-check workflow. Authentication, queue-processing, and attendance contract tests remain a follow-up because those contracts are implemented outside these two Edge Functions.
 
-### 37. Financial transparency falls back to fabricated mock records on read errors
+### 37. Financial transparency falls back to fabricated mock records on read errors [RESOLVED]
 
 **Severity:** WARNING - Data Integrity
 **Standards:** 24
