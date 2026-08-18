@@ -359,7 +359,7 @@ Applying a theme first deactivates the current theme and then activates the sele
 
 **Fix:** Use one transactional RPC or a database constraint-backed mutation that always leaves exactly one active theme. Check the final row returned by the mutation before showing success.
 
-### 30. Several destructive admin actions have no confirmation
+### 30. [RESOLVED] Several destructive admin actions have no confirmation
 
 **Severity:** WARNING - Code Quality
 **Standards:** 37
@@ -369,7 +369,7 @@ Announcement deletion, officer deletion, committee deletion, and the two bulk-de
 
 **Fix:** Require a confirmation step for every destructive action, especially bulk deletion. Keep the selected record in the confirmation state and disable duplicate submissions while the delete is pending.
 
-### 31. Dequeued email rows can remain stuck in `processing` forever
+### 31. [RESOLVED] Dequeued email rows can remain stuck in `processing` forever
 
 **Severity:** WARNING - Error Handling
 **Standards:** 29, 38
@@ -379,7 +379,7 @@ Announcement deletion, officer deletion, committee deletion, and the two bulk-de
 
 **Fix:** Store a lease timestamp/worker ID, reclaim expired processing rows, cap retries, and move exhausted rows to a dead-letter state with an operator-visible diagnostic.
 
-### 32. Email triggers perform one queue insert per subscriber inside the source transaction
+### 32. [RESOLVED] Email triggers perform one queue insert per subscriber inside the source transaction
 
 **Severity:** WARNING - Performance
 **Standards:** 23
@@ -389,7 +389,7 @@ Publishing an announcement or creating an event loops through every subscribed p
 
 **Fix:** Use a set-based `INSERT ... SELECT` for queue rows, move fan-out to an asynchronous job, and add a batch-level retry/dead-letter policy.
 
-### 33. Admin search values are concatenated into raw PostgREST filters
+### 33. [RESOLVED] Admin search values are concatenated into raw PostgREST filters
 
 **Severity:** WARNING - API Design
 **Standards:** 3
