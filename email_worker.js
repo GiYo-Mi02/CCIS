@@ -19,7 +19,7 @@ try {
 }
 
 const supabaseUrl = env['VITE_SUPABASE_URL'] || process.env.VITE_SUPABASE_URL;
-const supabaseKey = env['SUPABASE_SERVICE_ROLE_KEY'] || process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseKey = env['SUPABASE_SECRET_KEY'] || process.env.SUPABASE_SECRET_KEY;
 
 // SMTP configuration
 const smtpHost = env['SMTP_HOST'] || process.env.SMTP_HOST || 'smtp.gmail.com';
@@ -29,7 +29,7 @@ const smtpPass = env['SMTP_PASS'] || process.env.SMTP_PASS;
 const smtpFrom = env['SMTP_FROM'] || process.env.SMTP_FROM || `"CCIS Student Council" <${smtpUser || ''}>`;
 
 if (!supabaseUrl || !supabaseKey) {
-  console.error('[Email Worker] Missing VITE_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY credentials.');
+  console.error('[Email Worker] Missing VITE_SUPABASE_URL or SUPABASE_SECRET_KEY credentials.');
   process.exit(1);
 }
 

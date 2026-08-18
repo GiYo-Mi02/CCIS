@@ -23,10 +23,10 @@ Create a file named [`.env.local`](file:///c:/Users/gio%20joshua%20gonzales/OneD
 * **Schema Template**:
   ```env
   VITE_SUPABASE_URL=https://your-supabase-project-id.supabase.co
-  VITE_SUPABASE_ANON_KEY=your-supabase-anon-public-key
+  VITE_SUPABASE_PUBLISHABLE_KEY=your-supabase-publishable-key
   
   # Credentials below are required for the background Email Worker (if run locally)
-  SUPABASE_SERVICE_ROLE_KEY=your-supabase-secret-service-role-key
+  SUPABASE_SECRET_KEY=your-supabase-secret-key
   RESEND_API_KEY=re_your_secret_resend_api_key
   SENDER_EMAIL=umakccissc@umak.edu.ph
   ```
@@ -36,6 +36,8 @@ Create a file named [`.env.local`](file:///c:/Users/gio%20joshua%20gonzales/OneD
 npm run dev
 ```
 This boots up the Vite development server (usually on `http://localhost:3000`) and concurrently starts the background email processing worker.
+
+The browser uses only the publishable key. Never put `SUPABASE_SECRET_KEY` in a `VITE_*` variable or expose it to browser code. Before deploying, set `SUPABASE_SECRET_KEY` for the local worker and Edge Function, remove the old service-role variable from those environments, and set `VITE_SUPABASE_PUBLISHABLE_KEY` in the browser deployment. Existing Supabase secrets are not rotated by this repository change.
 
 ---
 

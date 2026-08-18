@@ -16,7 +16,7 @@ serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const supabaseSecretKey = Deno.env.get("SUPABASE_SECRET_KEY");
 
     // Read SMTP Credentials strictly from secure Supabase Secrets / Environment Variables
     const smtpHost = Deno.env.get("SMTP_HOST") || "smtp.gmail.com";
@@ -25,7 +25,7 @@ serve(async (req) => {
     const smtpPass = Deno.env.get("SMTP_PASS");
     const smtpFrom = Deno.env.get("SMTP_FROM") || `"CCIS Student Council" <${smtpUser}>`;
 
-    if (!supabaseUrl || !supabaseServiceKey) {
+    if (!supabaseUrl || !supabaseSecretKey) {
       throw new Error("Missing database environment credentials.");
     }
 
@@ -33,7 +33,7 @@ serve(async (req) => {
       throw new Error("Missing SMTP credentials. Please set SMTP_USER and SMTP_PASS in Supabase Edge Function Secrets.");
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createClient(supabaseUrl, supabaseSecretKey);
     const workerId = `edge-${crypto.randomUUID()}`;
 
     // Initialize Nodemailer Transporter via SMTP
