@@ -138,14 +138,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const updateProfile = useCallback(async (updates: Partial<Profile>) => {
     if (!user) return;
+
+    // Security whitelist: Only permit student-editable attributes in self-update
+    const allowedKeys: (keyof Profile)[] = [
+      'full_name',
+      'avatar_url',
+      'student_number',
+      'year_level',
+      'program',
+      'section',
+      'contact_number',
+      'privacy_agreed_at',
+      'submitted_at',
+      'subscribe_announcements_events',
+      'email_subscription_decided',
+      'attendance_qr_code',
+      'attendance_qr_generated_at',
+      'last_ip',
+      'profile_complete',
+    ];
+
+    const sanitizedUpdates: Record<string, any> = {
+      updated_at: new Date().toISOString()
+    };
+
+    for (const key of allowedKeys) {
+      if (key in updates && updates[key] !== undefined) {
+        sanitizedUpdates[key] = updates[key];
+      }
+    }
+
     const { error } = await supabase
       .from('profiles')
-      .upsert({
-        id: user.id,
-        email: user.email || '',
-        ...updates,
-        updated_at: new Date().toISOString()
-      });
+      .update(sanitizedUpdates)
+      .eq('id', user.id);
 
     if (error) {
       console.error('Error updating profile:', error.message);
