@@ -78,6 +78,7 @@ export default function Pagination({ currentPage, totalPages, onPageChange }: Pa
               <>
                 <button
                   onClick={() => onPageChange(1)}
+                  aria-current={currentPage === 1 ? 'page' : undefined}
                   className={`relative inline-flex items-center px-3 py-1.5 text-xs font-semibold ring-1 ring-inset ring-gray-200 focus:z-20 ${
                     currentPage === 1
                       ? 'z-10 bg-[#1A3C2E] text-white'
@@ -98,6 +99,7 @@ export default function Pagination({ currentPage, totalPages, onPageChange }: Pa
               <button
                 key={p}
                 onClick={() => onPageChange(p)}
+                aria-current={currentPage === p ? 'page' : undefined}
                 className={`relative inline-flex items-center px-3 py-1.5 text-xs font-semibold ring-1 ring-inset ring-gray-200 focus:z-20 ${
                   currentPage === p
                     ? 'z-10 bg-[#1A3C2E] text-white'
@@ -117,6 +119,7 @@ export default function Pagination({ currentPage, totalPages, onPageChange }: Pa
                 )}
                 <button
                   onClick={() => onPageChange(totalPages)}
+                  aria-current={currentPage === totalPages ? 'page' : undefined}
                   className={`relative inline-flex items-center px-3 py-1.5 text-xs font-semibold ring-1 ring-inset ring-gray-200 focus:z-20 ${
                     currentPage === totalPages
                       ? 'z-10 bg-[#1A3C2E] text-white'
