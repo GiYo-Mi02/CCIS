@@ -139,39 +139,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const updateProfile = useCallback(async (updates: Partial<Profile>) => {
     if (!user) return;
 
-    // Security whitelist: Only permit student-editable attributes in self-update
-    const allowedKeys: (keyof Profile)[] = [
-      'full_name',
-      'avatar_url',
-      'student_number',
-      'year_level',
-      'program',
-      'section',
-      'contact_number',
-      'privacy_agreed_at',
-      'submitted_at',
-      'subscribe_announcements_events',
-      'email_subscription_decided',
-      'attendance_qr_code',
-      'attendance_qr_generated_at',
-      'last_ip',
-      'profile_complete',
-    ];
-
-    const sanitizedUpdates: Record<string, any> = {
-      updated_at: new Date().toISOString()
-    };
-
-    for (const key of allowedKeys) {
-      if (key in updates && updates[key] !== undefined) {
-        sanitizedUpdates[key] = updates[key];
-      }
-    }
-
-    const { error } = await supabase
-      .from('profiles')
-      .update(sanitizedUpdates)
-      .eq('id', user.id);
+    // All student self-updates are routed through the update_student_profile()
+    // SECURITY DEFINER RPC. This enforces a strict column allowlist at the
+    // database boundary — no privileged field (role, status, banned, committee_id,
+    // etc.) can be written regardless of what the client sends.
+    const { error } = await supabase.rpc('update_student_profile', {
+      p_full_name:                      updates.full_name                      ?? null,
+      p_avatar_url:                     updates.avatar_url                     ?? null,
+      p_student_number:                 updates.student_number                 ?? null,
+      p_year_level:                     updates.year_level                     ?? null,
+      p_program:                        updates.program                        ?? null,
+      p_section:                        updates.section                        ?? null,
+      p_contact_number:                 updates.contact_number                 ?? null,
+      p_privacy_agreed_at:              updates.privacy_agreed_at              ?? null,
+      p_submitted_at:                   updates.submitted_at                   ?? null,
+      p_subscribe_announcements_events: updates.subscribe_announcements_events ?? null,
+      p_email_subscription_decided:     updates.email_subscription_decided     ?? null,
+      p_attendance_qr_code:             updates.attendance_qr_code             ?? null,
+      p_attendance_qr_generated_at:     updates.attendance_qr_generated_at     ?? null,
+      p_last_ip:                        updates.last_ip                        ?? null,
+      p_profile_complete:               updates.profile_complete               ?? null,
+    });
 
     if (error) {
       console.error('Error updating profile:', error.message);
