@@ -69,6 +69,7 @@ export default function Pagination({ currentPage, totalPages, onPageChange }: Pa
             <button
               onClick={() => onPageChange(currentPage - 1)}
               disabled={currentPage === 1}
+              aria-label="Previous page"
               className="relative inline-flex items-center rounded-l-md p-1.5 text-gray-400 ring-1 ring-inset ring-gray-200 hover:bg-gray-50 focus:z-20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronLeft size={16} />
@@ -130,6 +131,7 @@ export default function Pagination({ currentPage, totalPages, onPageChange }: Pa
             <button
               onClick={() => onPageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
+              aria-label="Next page"
               className="relative inline-flex items-center rounded-r-md p-1.5 text-gray-400 ring-1 ring-inset ring-gray-200 hover:bg-gray-50 focus:z-20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronRight size={16} />

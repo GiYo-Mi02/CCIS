@@ -48,6 +48,8 @@ export default function AdminTopbar({ sidebarCollapsed, onMobileMenuToggle, mobi
       {/* Mobile menu toggle */}
       <button
         onClick={onMobileMenuToggle}
+        aria-label={mobileMenuOpen ? 'Close admin menu' : 'Open admin menu'}
+        aria-expanded={mobileMenuOpen}
         className="md:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
         id="admin-mobile-menu-toggle"
       >
@@ -79,6 +81,8 @@ export default function AdminTopbar({ sidebarCollapsed, onMobileMenuToggle, mobi
       <div className="relative" ref={notifRef}>
         <button
           onClick={() => setShowNotifs(!showNotifs)}
+          aria-label="Notifications"
+          aria-expanded={showNotifs}
           className="relative p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
           id="admin-notifications-btn"
         >
@@ -114,6 +118,7 @@ export default function AdminTopbar({ sidebarCollapsed, onMobileMenuToggle, mobi
         </div>
         <button
           onClick={() => signOut()}
+          aria-label="Log out"
           className="p-2 rounded-lg text-gray-400 hover:text-[#C0392B] hover:bg-red-50 transition-colors"
           title="Logout"
           id="admin-logout-btn"
