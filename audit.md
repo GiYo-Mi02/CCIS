@@ -349,7 +349,7 @@ The registration card counts every row returned from `event_registrations`, incl
 
 **Fix:** Use one shared server-side capacity result, such as `events_with_slots` or the registration RPC, for display, re-registration, and enforcement. Define exactly which statuses consume capacity and apply that definition in every path.
 
-### 29. Theme activation is a non-transactional two-write invariant
+### 29. [RESOLVED] Theme activation is a non-transactional two-write invariant
 
 **Severity:** WARNING - Concurrency
 **Standards:** 16, 24
