@@ -413,16 +413,32 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
     }
   };
 
-  // Handler to download audience pass as PNG
+  // Handler to download audience pass as crisp high-resolution PNG
   const downloadAudiencePass = async () => {
     const element = document.getElementById('audience-attendance-pass-card');
     if (!element) return;
     setPassDownloadLoading(true);
     try {
+      // Ensure canvas elements are converted to high-DPI images before html2canvas capture
       const canvas = await html2canvas(element, {
-        scale: 2.5,
+        scale: 3,
         useCORS: true,
-        backgroundColor: null
+        backgroundColor: '#FAF7EA',
+        logging: false,
+        onclone: (clonedDoc, clonedElement) => {
+          const qrCanvases = clonedElement.querySelectorAll('canvas');
+          qrCanvases.forEach((qrCanvas) => {
+            const originalCanvas = element.querySelector('canvas');
+            if (originalCanvas) {
+              const img = clonedDoc.createElement('img');
+              img.src = originalCanvas.toDataURL('image/png');
+              img.style.width = `${originalCanvas.offsetWidth || 150}px`;
+              img.style.height = `${originalCanvas.offsetHeight || 150}px`;
+              img.style.display = 'block';
+              qrCanvas.parentNode?.replaceChild(img, qrCanvas);
+            }
+          });
+        }
       });
       const link = document.createElement('a');
       link.download = `CCIS_Attendance_Pass_${(profile?.student_number || profile?.full_name || 'Student').replace(/\s+/g, '_')}.png`;
@@ -439,17 +455,8 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
     window.print();
   };
 
-  // QR Code Payload structure
-  const audienceQrPayload = JSON.stringify({
-    type: 'CCIS_AUDIENCE_PASS',
-    profile_id: profile?.id || user?.id,
-    student_id: profile?.student_number || 'UNASSIGNED',
-    name: profile?.full_name || 'Student',
-    program: profile?.program || 'CCIS',
-    section: profile?.section || '—',
-    token: passToken,
-    issued_at: passGeneratedAt
-  });
+  // Compact, high-contrast QR Code Payload structure (Easy & instant to scan)
+  const audienceQrPayload = passToken || ('CCIS-AUDIENCE:' + (profile?.student_number || profile?.id));
 
   return (
     <div className="min-h-screen bg-[#FAF7EA] py-12 px-4 sm:px-6 lg:px-8 text-left font-sans">
@@ -1008,14 +1015,14 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
                         SCAN FOR AUDIENCE ENTRY
                       </span>
                       
-                      <div className="bg-white p-3 rounded-2xl shadow-xs border border-stone-200 flex items-center justify-center">
+                      <div className="bg-white p-2.5 rounded-2xl shadow-xs border border-stone-200 flex items-center justify-center">
                         <QRCodeCanvas 
                           value={audienceQrPayload} 
-                          size={140} 
+                          size={150} 
                           bgColor="#ffffff" 
                           fgColor="#1A3C2E" 
-                          level="H"
-                          includeMargin={false}
+                          level="M"
+                          includeMargin={true}
                         />
                       </div>
 

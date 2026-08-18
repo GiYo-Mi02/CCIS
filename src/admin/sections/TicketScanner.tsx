@@ -38,7 +38,6 @@ export default function TicketScanner() {
   const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
   const [selectedCameraId, setSelectedCameraId] = useState<string>('');
   const [isScanning, setIsScanning] = useState(false);
-  const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
   const [manualId, setManualId] = useState('');
   const [result, setResult] = useState<ScanResult>({ status: 'idle', message: 'Ready to scan.' });
   const [scanLog, setScanLog] = useState<ScanLogEntry[]>([]);
@@ -75,21 +74,29 @@ export default function TicketScanner() {
     fetchEvents();
   }, []);
 
-  // Discover cameras safely
+  // Discover back cameras strictly
   const refreshCameras = useCallback(async () => {
     try {
       const devices = await Html5Qrcode.getCameras();
       if (devices && devices.length > 0) {
-        setCameras(devices);
-        const backCam = devices.find(d => 
-          d.label.toLowerCase().includes('back') || 
-          d.label.toLowerCase().includes('environment') ||
-          d.label.toLowerCase().includes('rear')
+        // Filter out front/selfie/user cameras
+        const backOnly = devices.filter(d => 
+          !d.label.toLowerCase().includes('front') && 
+          !d.label.toLowerCase().includes('user') && 
+          !d.label.toLowerCase().includes('selfie')
         );
-        if (backCam && !selectedCameraId) {
-          setSelectedCameraId(backCam.id);
-        } else if (!selectedCameraId) {
-          setSelectedCameraId(devices[0].id);
+        const activeList = backOnly.length > 0 ? backOnly : devices;
+        setCameras(activeList);
+
+        const preferredBack = activeList.find(d => 
+          d.label.toLowerCase().includes('back') || 
+          d.label.toLowerCase().includes('environment') || 
+          d.label.toLowerCase().includes('rear') ||
+          d.label.toLowerCase().includes('0')
+        ) || activeList[0];
+
+        if (preferredBack && !selectedCameraId) {
+          setSelectedCameraId(preferredBack.id);
         }
       }
     } catch (err) {
@@ -106,7 +113,7 @@ export default function TicketScanner() {
   }, [refreshCameras]);
 
   const startScanning = async (overrideCameraId?: string) => {
-    setResult({ status: 'scanning', message: 'Camera active. Position QR code inside the frame.' });
+    setResult({ status: 'scanning', message: 'Back camera active. Position QR code inside the frame.' });
     setIsScanning(true);
     processingRef.current = false;
     cooldownRef.current = false;
@@ -150,35 +157,29 @@ export default function TicketScanner() {
       };
 
       const qrConfig = {
-        fps: 10,
+        fps: 15,
         qrbox: (width: number, height: number) => {
-          const size = Math.floor(Math.min(width, height) * 0.75);
+          const size = Math.floor(Math.min(width, height) * 0.8);
           return { width: size, height: size };
         }
       };
 
-      // Cascading start attempts to maximize device compatibility
+      // Strictly start the back / environment camera
       let startError: any = null;
-
-      // Attempt 1: Direct device ID or facingMode
-      try {
-        const initialConfig = camToUse ? camToUse : { facingMode: { ideal: facingMode } };
-        await html5QrCode.start(initialConfig, qrConfig, scanCallbacks.onSuccess, scanCallbacks.onError);
-      } catch (err1) {
-        startError = err1;
-        // Attempt 2: Simple string facingMode
+      if (camToUse) {
         try {
-          await html5QrCode.start({ facingMode }, qrConfig, scanCallbacks.onSuccess, scanCallbacks.onError);
+          await html5QrCode.start(camToUse, qrConfig, scanCallbacks.onSuccess, scanCallbacks.onError);
+        } catch (errId) {
+          startError = errId;
+        }
+      }
+
+      if (!camToUse || startError) {
+        try {
+          await html5QrCode.start({ facingMode: "environment" }, qrConfig, scanCallbacks.onSuccess, scanCallbacks.onError);
           startError = null;
-        } catch (err2) {
-          startError = err2;
-          // Attempt 3: User facing fallback (for desktops/laptops)
-          try {
-            await html5QrCode.start({ facingMode: "user" }, qrConfig, scanCallbacks.onSuccess, scanCallbacks.onError);
-            startError = null;
-          } catch (err3) {
-            startError = err3;
-          }
+        } catch (errEnv) {
+          startError = errEnv;
         }
       }
 
@@ -186,17 +187,17 @@ export default function TicketScanner() {
         throw startError;
       }
 
-      // Once camera stream is active, refresh the enumerated device list
+      // Once back camera is active, refresh the enumerated device list
       refreshCameras();
     } catch (err: any) {
-      console.error('Failed to start scanner:', err);
+      console.error('Failed to start back camera scanner:', err);
       setIsScanning(false);
       const isPermissionErr = err.name === 'NotAllowedError' || err.message?.toLowerCase().includes('permission') || err.message?.toLowerCase().includes('denied');
       setResult({
         status: 'error',
         message: isPermissionErr
           ? 'Camera permission blocked. Click the lock/tune icon in your browser address bar to allow Camera access.'
-          : `Camera error: ${err.message || 'Unable to open camera'}. Try switching camera or upload a QR image below.`
+          : `Camera error: ${err.message || 'Unable to open back camera'}. Ensure no other app is using the lens or upload QR photo below.`
       });
     }
   };
@@ -251,19 +252,6 @@ export default function TicketScanner() {
     setSelectedCameraId(cameraId);
     if (isScanning) {
       startScanning(cameraId);
-    }
-  };
-
-  const toggleFacingMode = () => {
-    const nextMode = facingMode === 'environment' ? 'user' : 'environment';
-    setFacingMode(nextMode);
-    setSelectedCameraId('');
-    if (isScanning) {
-      stopScanning().then(() => {
-        setTimeout(() => {
-          startScanning();
-        }, 300);
-      });
     }
   };
 
@@ -657,22 +645,13 @@ export default function TicketScanner() {
               onChange={(e) => handleCameraChange(e.target.value)}
               className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs outline-none text-[#222B26] font-semibold"
             >
-              <option value="">Default Camera ({facingMode === 'environment' ? 'Back' : 'Front'})</option>
+              <option value="">Auto-Detect Back Camera</option>
               {cameras.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.label || `Camera ${cameras.indexOf(c) + 1}`}
+                  {c.label || `Back Camera ${cameras.indexOf(c) + 1}`}
                 </option>
               ))}
             </select>
-
-            <button
-              onClick={toggleFacingMode}
-              className="px-3 py-2 bg-stone-100 hover:bg-stone-200 text-[#1A3C2E] rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer shrink-0"
-              title="Flip between back/environment and front/user camera"
-            >
-              <SwitchCamera size={14} />
-              <span className="hidden sm:inline">Flip</span>
-            </button>
 
             <button
               onClick={() => {
@@ -689,7 +668,7 @@ export default function TicketScanner() {
               }`}
             >
               <Camera size={14} />
-              <span>{isScanning ? 'Stop Camera' : 'Start Camera'}</span>
+              <span>{isScanning ? 'Stop Camera' : 'Start Back Camera'}</span>
             </button>
           </div>
 
