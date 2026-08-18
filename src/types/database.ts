@@ -118,7 +118,7 @@ export interface EventRegistration {
   status: 'confirmed' | 'pending' | 'cancelled' | 'attended';
   registered_at: string;
   // Joined fields
-  profiles?: { full_name: string | null; student_number: string | null; email: string } | null;
+  profiles?: { full_name: string | null; student_number: string | null; email: string; section: string | null } | null;
   events?: { title: string; event_date: string; location: string | null } | null;
 }
 
