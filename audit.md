@@ -307,7 +307,7 @@ Close, previous, next, menu, notifications, and logout controls render icons wit
 
 **Fix:** Add `aria-label` values and use `aria-expanded` where a control opens a panel.
 
-### 21. Selected pagination state is visual only
+### 21. [RESOLVED] Selected pagination state is visual only
 
 **Severity:** WARNING - Accessibility
 **Standards:** 34
