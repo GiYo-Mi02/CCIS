@@ -339,7 +339,7 @@ The dashboard fetches five conversations, then runs one additional `messages` co
 
 **Fix:** Fetch unread messages once and group by `conversation_id`, or expose a grouped SQL view/RPC that returns the conversation list and unread counts together.
 
-### 28. Registration capacity display counts cancelled rows
+### 28. [RESOLVED] Registration capacity display counts cancelled rows
 
 **Severity:** WARNING - Logic
 **Standards:** 20
