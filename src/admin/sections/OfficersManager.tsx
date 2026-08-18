@@ -41,14 +41,12 @@ export default function OfficersManager() {
       .sort((a, b) => a.display_order - b.display_order);
     const idx = sorted.findIndex(o => o.id === id);
     if ((direction === 'up' && idx === 0) || (direction === 'down' && idx === sorted.length - 1)) return;
-    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
-    const orderA = sorted[idx].display_order;
-    const orderB = sorted[swapIdx].display_order;
-    await Promise.all([
-      supabase.from('officers').update({ display_order: orderB }).eq('id', sorted[idx].id),
-      supabase.from('officers').update({ display_order: orderA }).eq('id', sorted[swapIdx].id),
-    ]);
-    fetchData();
+    const { error } = await supabase.rpc('swap_officer_order', {
+      p_officer_id: id,
+      p_direction: direction,
+    });
+    if (error) { showToast('Failed to update officer order', 'error'); return; }
+    await fetchData();
   };
 
   const deleteOfficer = async (id: string) => {
@@ -756,4 +754,3 @@ function CommitteeForm({ committee, onSave, onClose }: { committee: Partial<Comm
     </div>
   );
 }
-

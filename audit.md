@@ -439,15 +439,16 @@ Any transparency query error replaces the live records with hardcoded budget and
 
 **Fix:** Render an explicit unavailable/error state for production reads. Restrict mock data to an intentional development mode that is impossible to enable in production builds.
 
-### 38. Reordering writes can leave duplicate or conflicting display orders
+### 38. Reordering writes can leave duplicate or conflicting display orders [RESOLVED]
 
 **Severity:** WARNING - Data Integrity
 **Standards:** 16, 24
-**Files:** `src/admin/sections/OfficersManager.tsx:35-52`, `src/admin/sections/FaqManager.tsx:46-79`
+**Status:** RESOLVED in commits `cc51ee8` and `8303170`
+**Files:** `src/admin/sections/OfficersManager.tsx:35-52`, `src/admin/sections/FaqManager.tsx:46-79`, `supabase/migrations/20260818105327_reorder_display_order.sql`, `supabase/migrations/20260818110806_repair_display_order_constraints.sql`
 
 Officer and FAQ reordering issue two independent updates to swap order values. The officer path ignores both results, and either path can leave duplicate order numbers if one update fails or concurrent editors reorder the same records.
 
-**Fix:** Use a transactional reorder RPC or a single ordered-position mutation, enforce the intended uniqueness scope in the database, and report failure before refreshing the list.
+**Resolution:** Replaced the client-side swaps with admin-only transactional RPCs, serialized reorder operations with advisory locks, repaired existing duplicate values, added scoped unique indexes, and made the UI refresh only after a successful RPC.
 
 ## Things that we're done correctly
 
