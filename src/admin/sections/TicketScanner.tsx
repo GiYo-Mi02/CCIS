@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { Camera, AlertTriangle, CheckCircle, XCircle, RefreshCw, Send, ShieldAlert, History, Volume2, VolumeX, Calendar, SwitchCamera } from 'lucide-react';
+import { Camera, AlertTriangle, CheckCircle, XCircle, RefreshCw, Send, ShieldAlert, History, Volume2, VolumeX, Calendar, SwitchCamera, FileImage } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { supabase } from '../../lib/supabase';
 import { useAdmin } from '../AdminContext';
@@ -127,54 +127,108 @@ export default function TicketScanner() {
       html5QrCodeRef.current = html5QrCode;
 
       const camToUse = overrideCameraId || selectedCameraId;
-      const cameraConfig = camToUse ? camToUse : { facingMode };
-
-      await html5QrCode.start(
-        cameraConfig,
-        {
-          fps: 10,
-          qrbox: (width, height) => {
-            const size = Math.floor(Math.min(width, height) * 0.75);
-            return { width: size, height: size };
-          }
-        },
-        async (decodedText) => {
-          // GATE: Skip if processing, in cooldown, or same QR as last scan
+      
+      const scanCallbacks = {
+        onSuccess: async (decodedText: string) => {
           if (processingRef.current || cooldownRef.current) return;
           if (decodedText === lastScannedRef.current) return;
 
-          // Lock processing
           processingRef.current = true;
           lastScannedRef.current = decodedText;
 
           await handleValidateTicket(decodedText);
 
-          // Start cooldown period — prevents duplicate scans
           cooldownRef.current = true;
           setTimeout(() => {
             cooldownRef.current = false;
-            lastScannedRef.current = ''; // Allow re-scan of same code after cooldown
+            lastScannedRef.current = '';
           }, COOLDOWN_MS);
 
           processingRef.current = false;
         },
-        () => {
-          // Verbose scanner noise, ignore
+        onError: () => {}
+      };
+
+      const qrConfig = {
+        fps: 10,
+        qrbox: (width: number, height: number) => {
+          const size = Math.floor(Math.min(width, height) * 0.75);
+          return { width: size, height: size };
         }
-      );
+      };
+
+      // Cascading start attempts to maximize device compatibility
+      let startError: any = null;
+
+      // Attempt 1: Direct device ID or facingMode
+      try {
+        const initialConfig = camToUse ? camToUse : { facingMode: { ideal: facingMode } };
+        await html5QrCode.start(initialConfig, qrConfig, scanCallbacks.onSuccess, scanCallbacks.onError);
+      } catch (err1) {
+        startError = err1;
+        // Attempt 2: Simple string facingMode
+        try {
+          await html5QrCode.start({ facingMode }, qrConfig, scanCallbacks.onSuccess, scanCallbacks.onError);
+          startError = null;
+        } catch (err2) {
+          startError = err2;
+          // Attempt 3: User facing fallback (for desktops/laptops)
+          try {
+            await html5QrCode.start({ facingMode: "user" }, qrConfig, scanCallbacks.onSuccess, scanCallbacks.onError);
+            startError = null;
+          } catch (err3) {
+            startError = err3;
+          }
+        }
+      }
+
+      if (startError) {
+        throw startError;
+      }
 
       // Once camera stream is active, refresh the enumerated device list
       refreshCameras();
     } catch (err: any) {
       console.error('Failed to start scanner:', err);
       setIsScanning(false);
-      const isPermissionErr = err.name === 'NotAllowedError' || err.message?.toLowerCase().includes('permission');
+      const isPermissionErr = err.name === 'NotAllowedError' || err.message?.toLowerCase().includes('permission') || err.message?.toLowerCase().includes('denied');
       setResult({
         status: 'error',
         message: isPermissionErr
-          ? 'Camera permission denied. Please allow camera access in your browser address bar/settings.'
-          : `Camera error: ${err.message || 'Unable to open camera.'}. Ensure HTTPS or use manual ID entry.`
+          ? 'Camera permission blocked. Click the lock/tune icon in your browser address bar to allow Camera access.'
+          : `Camera error: ${err.message || 'Unable to open camera'}. Try switching camera or upload a QR image below.`
       });
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setResult({ status: 'processing', message: 'Scanning uploaded QR image...' });
+
+    try {
+      let scanner = html5QrCodeRef.current;
+      if (!scanner) {
+        scanner = new Html5Qrcode(scannerId);
+        html5QrCodeRef.current = scanner;
+      }
+
+      const decodedText = await scanner.scanFile(file, true);
+      if (decodedText) {
+        await handleValidateTicket(decodedText);
+      }
+    } catch (err: any) {
+      console.error('Failed to scan file:', err);
+      playSound('error');
+      const errorResult: ScanResult = {
+        status: 'error',
+        message: 'Could not read a valid QR code from this image. Please try another photo.'
+      };
+      setResult(errorResult);
+      scheduleAutoDismiss(AUTO_DISMISS_ERROR_MS);
+    } finally {
+      e.target.value = '';
     }
   };
 
@@ -671,23 +725,42 @@ export default function TicketScanner() {
             )}
           </div>
 
-          {/* Manual Entry Fallback Form */}
-          <form onSubmit={handleManualSubmit} className="w-full mt-6 pt-5 border-t border-gray-50 flex items-center gap-2">
-            <input
-              type="text"
-              placeholder="Or enter Ticket UUID manually..."
-              value={manualId}
-              onChange={(e) => setManualId(e.target.value)}
-              className="flex-1 bg-gray-50 border border-gray-200 focus:border-[#F5B400] rounded-xl px-4 py-2.5 text-xs outline-none text-[#222B26] font-semibold"
-            />
-            <button
-              type="submit"
-              className="bg-[#1A3C2E] hover:bg-[#255541] text-white p-2.5 rounded-xl transition-all cursor-pointer flex items-center justify-center"
-              title="Validate Manual Ticket ID"
-            >
-              <Send size={14} />
-            </button>
-          </form>
+          {/* Secondary Actions: Scan Image File or Manual Input */}
+          <div className="w-full mt-6 pt-4 border-t border-gray-100 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#5E6E64]">
+                Alternative Entry Options
+              </span>
+              <label className="text-[11px] font-bold text-[#1A3C2E] hover:text-[#255541] cursor-pointer flex items-center gap-1.5 bg-stone-100 hover:bg-stone-200 px-3 py-1.5 rounded-xl transition-all shadow-2xs">
+                <FileImage size={13} className="text-[#F5B400]" />
+                <span>Upload QR Photo</span>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={handleFileUpload} 
+                  className="hidden" 
+                />
+              </label>
+            </div>
+
+            {/* Manual Entry Fallback Form */}
+            <form onSubmit={handleManualSubmit} className="flex items-center gap-2">
+              <input
+                type="text"
+                placeholder="Or paste QR payload / Student ID / Ticket UUID..."
+                value={manualId}
+                onChange={(e) => setManualId(e.target.value)}
+                className="flex-1 bg-gray-50 border border-gray-200 focus:border-[#F5B400] rounded-xl px-4 py-2.5 text-xs outline-none text-[#222B26] font-semibold"
+              />
+              <button
+                type="submit"
+                className="bg-[#1A3C2E] hover:bg-[#255541] text-white p-2.5 rounded-xl transition-all cursor-pointer flex items-center justify-center shrink-0"
+                title="Validate Manual Ticket ID"
+              >
+                <Send size={14} />
+              </button>
+            </form>
+          </div>
         </div>
 
         {/* RIGHT COLUMN: Validation Result Display + Scan Log */}
