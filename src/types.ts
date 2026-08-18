@@ -58,6 +58,8 @@ export interface EventItem {
   slots: number;
   registeredCount: number;
   description: string;
+  event_type?: 'competition' | 'general';
+  banner_url?: string | null;
 }
 
 export interface Registration {

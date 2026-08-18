@@ -47,7 +47,7 @@ export default function EventCalendar() {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     setIsCreating(true);
     setEditingEvent({
-      title: '', description: '', category: 'general',
+      title: '', description: '', category: 'general', event_type: 'general',
       event_date: dateStr, event_time: '', location: '',
       registration_required: false, registration_cap: null,
     });
@@ -57,6 +57,7 @@ export default function EventCalendar() {
     if (isCreating) {
       const { error } = await supabase.from('events').insert({
         title: form.title, description: form.description, category: form.category,
+        event_type: form.event_type || 'general',
         event_date: form.event_date, event_time: form.event_time || null,
         location: form.location || null, registration_required: form.registration_required || false,
         registration_cap: form.registration_cap || null, created_by: user?.id,
@@ -67,6 +68,7 @@ export default function EventCalendar() {
     } else {
       const { error } = await supabase.from('events').update({
         title: form.title, description: form.description, category: form.category,
+        event_type: form.event_type || 'general',
         event_date: form.event_date, event_time: form.event_time || null,
         location: form.location || null, registration_required: form.registration_required || false,
         registration_cap: form.registration_cap || null,
@@ -168,7 +170,16 @@ export default function EventCalendar() {
               <div key={ev.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => { setIsCreating(false); setEditingEvent(ev); }}>
                 <div className={`w-2 h-10 rounded-full shrink-0 ${ev.category === 'priority' ? 'bg-[#F5B400]' : 'bg-[#2E7D32]'}`} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-[#222B26] truncate">{ev.title}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold text-[#222B26] truncate">{ev.title}</p>
+                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                      ev.event_type === 'competition'
+                        ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                        : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                    }`}>
+                      {ev.event_type === 'competition' ? '🏆 Competition' : '🎓 General'}
+                    </span>
+                  </div>
                   <p className="text-[11px] text-gray-400 font-mono">{ev.description}</p>
                 </div>
                 <div className="text-right shrink-0">
@@ -303,17 +314,59 @@ function EventForm({ event, isCreating, onSave, onDelete, onClose }: {
           <input type="text" value={form.event_time || ''} onChange={(e) => setForm({ ...form, event_time: e.target.value })} placeholder="e.g. 2:00 PM" className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400]" />
         </div>
       </div>
+      {/* Event Classification Selection */}
+      <div>
+        <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">
+          Event Classification
+        </label>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => setForm({ ...form, event_type: 'competition', registration_required: true })}
+            className={`p-3 rounded-xl border text-left flex flex-col gap-1 transition-all cursor-pointer ${
+              form.event_type === 'competition'
+                ? 'border-amber-400 bg-amber-50/80 text-amber-900 ring-2 ring-amber-300/50'
+                : 'border-gray-200 bg-white hover:bg-gray-50 text-gray-700'
+            }`}
+          >
+            <span className="text-xs font-black flex items-center gap-1.5 text-[#1A3C2E]">
+              🏆 Competition / Tournament
+            </span>
+            <span className="text-[10px] text-gray-500 leading-snug">
+              Hackathons, coding contests, esports. Prompts participant registrations.
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setForm({ ...form, event_type: 'general' })}
+            className={`p-3 rounded-xl border text-left flex flex-col gap-1 transition-all cursor-pointer ${
+              form.event_type !== 'competition'
+                ? 'border-emerald-500 bg-emerald-50/80 text-emerald-900 ring-2 ring-emerald-300/50'
+                : 'border-gray-200 bg-white hover:bg-gray-50 text-gray-700'
+            }`}
+          >
+            <span className="text-xs font-black flex items-center gap-1.5 text-[#1A3C2E]">
+              🎓 General Assembly / Seminar
+            </span>
+            <span className="text-[10px] text-gray-500 leading-snug">
+              Seminars, webinars, GAs. Audiences use their Universal Attendance QR pass.
+            </span>
+          </button>
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Category</label>
+          <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Category Priority</label>
           <select value={form.category || 'general'} onChange={(e) => setForm({ ...form, category: e.target.value as any })} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400]">
-            <option value="general">General</option>
-            <option value="priority">Priority / Deadline</option>
+            <option value="general">Standard Schedule</option>
+            <option value="priority">Priority / Critical Deadline</option>
           </select>
         </div>
         <div>
           <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Location</label>
-          <input type="text" value={form.location || ''} onChange={(e) => setForm({ ...form, location: e.target.value })} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400]" />
+          <input type="text" value={form.location || ''} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="e.g. HPSB Hall 1 / Online" className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400]" />
         </div>
       </div>
       <div>
@@ -323,23 +376,23 @@ function EventForm({ event, isCreating, onSave, onDelete, onClose }: {
       <div className="grid grid-cols-2 gap-4">
         <div className="flex items-center gap-2">
           <input type="checkbox" checked={form.registration_required || false} onChange={(e) => setForm({ ...form, registration_required: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-[#F5B400] focus:ring-[#F5B400]" />
-          <label className="text-xs font-bold text-[#222B26]">Registration Required</label>
+          <label className="text-xs font-bold text-[#222B26]">Participant Form Required</label>
         </div>
         {form.registration_required && (
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Cap (optional)</label>
+            <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Slot Cap (optional)</label>
             <input type="number" value={form.registration_cap || ''} onChange={(e) => setForm({ ...form, registration_cap: e.target.value ? Number(e.target.value) : null })} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400]" />
           </div>
         )}
       </div>
       <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
-        <button onClick={() => onSave(form)} className="px-5 py-2.5 bg-[#F5B400] hover:bg-[#ffc522] text-[#1A3C2E] rounded-lg font-bold text-xs uppercase tracking-wider shadow-sm transition-colors">
+        <button onClick={() => onSave(form)} className="px-5 py-2.5 bg-[#F5B400] hover:bg-[#ffc522] text-[#1A3C2E] rounded-lg font-bold text-xs uppercase tracking-wider shadow-sm transition-colors cursor-pointer">
           {isCreating ? 'Add Event' : 'Save Changes'}
         </button>
         {!isCreating && form.id && (
-          <button onClick={() => { onDelete(form.id!); onClose(); }} className="px-4 py-2.5 text-xs text-[#C0392B] hover:bg-red-50 rounded-lg transition-colors font-bold">Delete</button>
+          <button onClick={() => { onDelete(form.id!); onClose(); }} className="px-4 py-2.5 text-xs text-[#C0392B] hover:bg-red-50 rounded-lg transition-colors font-bold cursor-pointer">Delete</button>
         )}
-        <button onClick={onClose} className="ml-auto px-4 py-2.5 text-xs text-gray-400 hover:text-gray-600 transition-colors">Cancel</button>
+        <button onClick={onClose} className="ml-auto px-4 py-2.5 text-xs text-gray-400 hover:text-gray-600 transition-colors cursor-pointer">Cancel</button>
       </div>
     </div>
   );

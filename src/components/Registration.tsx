@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Ticket, Calendar, MapPin, Clock, ArrowRight, Shield, X, Lock, CheckCircle2, Info } from 'lucide-react';
+import { Ticket, Calendar, MapPin, Clock, ArrowRight, Shield, X, Lock, CheckCircle2, Info, Trophy, QrCode, Sparkles } from 'lucide-react';
 import { EventItem, Registration } from '../types';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
@@ -85,7 +85,6 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
       let eventsQuery = supabase
         .from('events')
         .select('*', { count: 'exact' })
-        .eq('registration_required', true)
         .gte('event_date', today);
 
       if (filter !== 'all') {
@@ -133,6 +132,9 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
         slots: e.registration_cap || 100,
         registeredCount: counts[e.id] || 0,
         description: e.description || '',
+        event_type: (e.event_type as 'competition' | 'general') || (
+          (e.title && (e.title.toLowerCase().includes('competition') || e.title.toLowerCase().includes('hackathon') || e.title.toLowerCase().includes('contest') || e.title.toLowerCase().includes('tournament'))) || e.registration_required ? 'competition' : 'general'
+        ),
         banner_url: e.banner_url || null,
       }));
 
@@ -370,26 +372,45 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
                       <div className="p-6 flex-1 flex flex-col justify-between">
                         <div>
                           {/* Upper Details */}
-                          <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                          <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                             <span className="flex items-center gap-1.5 font-mono text-[10px] text-[#5E6E64] font-bold">
                               <Calendar size={13} className="text-[#F5B400]" />
                               {ev.date}
                             </span>
-                            <span className={`text-[9px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-full font-black ${
-                              isRegistered
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : isFull 
-                                  ? 'bg-rose-100 text-rose-800'
-                                  : slotsLeft < 15
-                                    ? 'bg-amber-100 text-[#1A3C2E]'
-                                    : 'bg-zinc-100 text-zinc-600'
-                            }`}>
-                              {isRegistered 
-                                ? '✓ Registered' 
-                                : isFull 
-                                  ? 'Sold Out' 
-                                  : `${slotsLeft} of ${ev.slots} slots left`}
-                            </span>
+                            {ev.event_type === 'competition' ? (
+                              <span className={`text-[9px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-full font-black ${
+                                isRegistered
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : isFull 
+                                    ? 'bg-rose-100 text-rose-800'
+                                    : slotsLeft < 15
+                                      ? 'bg-amber-100 text-[#1A3C2E]'
+                                      : 'bg-zinc-100 text-zinc-600'
+                              }`}>
+                                {isRegistered 
+                                  ? '✓ Registered' 
+                                  : isFull 
+                                    ? 'Slots Full' 
+                                    : `${slotsLeft} of ${ev.slots} competitor slots`}
+                              </span>
+                            ) : (
+                              <span className="text-[9px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-full font-black bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                Open Entry
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Event Classification Tag */}
+                          <div className="mb-2">
+                            {ev.event_type === 'competition' ? (
+                              <span className="inline-flex items-center gap-1 text-[9.5px] font-black uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-300/80 px-2.5 py-0.5 rounded-full">
+                                <Trophy size={11} className="text-amber-600 shrink-0" /> Competition / Tournament
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[9.5px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-900 border border-emerald-300/80 px-2.5 py-0.5 rounded-full">
+                                <QrCode size={11} className="text-emerald-700 shrink-0" /> General Assembly / Seminar
+                              </span>
+                            )}
                           </div>
 
                           {/* Title & Desc */}
@@ -402,7 +423,7 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
                         </div>
 
                         {/* Footer Metadata & CTA */}
-                        <div className="space-y-4">
+                        <div className="space-y-3.5">
                           <div className="grid grid-cols-1 gap-1.5 border-t border-zinc-100 pt-3 text-[11px] text-[#5E6E64] font-sans">
                             <span className="flex items-center gap-1.5 break-words">
                               <Clock size={12} className="text-[#FAF7EA] stroke-[#1D4A38]" />
@@ -414,28 +435,52 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
                             </span>
                           </div>
 
-                          {/* CTA button */}
-                          {isRegistered ? (
-                            <div className="w-full text-center bg-emerald-50 text-emerald-700 font-sans text-xs font-black uppercase tracking-wider py-2.5 rounded-xl border border-emerald-200">
-                              ✓ Seat Secured
+                          {/* CTA button differentiated by Event Type */}
+                          {ev.event_type === 'competition' ? (
+                            <div>
+                              {isRegistered ? (
+                                <div className="w-full text-center bg-emerald-50 text-emerald-700 font-sans text-xs font-black uppercase tracking-wider py-2.5 rounded-xl border border-emerald-200">
+                                  ✓ Participant Registered
+                                </div>
+                              ) : isFull ? (
+                                <button
+                                  disabled
+                                  className="w-full bg-zinc-100 text-zinc-400 font-sans text-xs font-bold uppercase tracking-wider py-2.5 rounded-xl cursor-not-allowed border border-zinc-200"
+                                >
+                                  Competitor Slots Full
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => {
+                                    setSelectedEventId(ev.id);
+                                    setIsModalOpen(true);
+                                  }}
+                                  className="w-full bg-[#1A3C2E] hover:bg-[#255541] text-white font-sans text-xs font-bold uppercase tracking-wider py-2.5 rounded-xl transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                                >
+                                  <Trophy size={13} className="text-[#F5B400]" />
+                                  <span>Register as Participant</span>
+                                  <ArrowRight size={12} />
+                                </button>
+                              )}
                             </div>
-                          ) : isFull ? (
-                            <button
-                              disabled
-                              className="w-full bg-zinc-100 text-zinc-400 font-sans text-xs font-bold uppercase tracking-wider py-2.5 rounded-xl cursor-not-allowed border border-zinc-200"
-                            >
-                              Slots Full
-                            </button>
                           ) : (
-                            <button
-                              onClick={() => {
-                                setSelectedEventId(ev.id);
-                                setIsModalOpen(true);
-                              }}
-                              className="w-full bg-[#1A3C2E] hover:bg-[#255541] text-white font-sans text-xs font-bold uppercase tracking-wider py-2.5 rounded-xl transition-all shadow-xs flex items-center justify-center gap-1"
-                            >
-                              Register <ArrowRight size={12} />
-                            </button>
+                            <div className="space-y-2">
+                              <p className="text-[10px] text-[#5E6E64] font-medium leading-tight">
+                                🎟️ Open to all students. No registration required — simply present your Universal Attendance QR Pass at entry!
+                              </p>
+                              <button
+                                onClick={() => {
+                                  if (onNavigate) {
+                                    onNavigate('account');
+                                  }
+                                }}
+                                className="w-full bg-stone-100 hover:bg-[#1A3C2E] text-[#1A3C2E] hover:text-white border border-stone-200 hover:border-[#1A3C2E] font-sans text-xs font-bold uppercase tracking-wider py-2.5 rounded-xl transition-all shadow-2xs flex items-center justify-center gap-1.5 cursor-pointer group"
+                              >
+                                <QrCode size={13} className="text-[#F5B400] group-hover:scale-110 transition-transform" />
+                                <span>Get Universal Attendance QR</span>
+                                <ArrowRight size={12} />
+                              </button>
+                            </div>
                           )}
                         </div>
                       </div>

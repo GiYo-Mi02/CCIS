@@ -98,6 +98,7 @@ export interface EventItem {
   title: string;
   description: string | null;
   category: 'general' | 'priority';
+  event_type?: 'competition' | 'general' | null;
   event_date: string;
   event_time: string | null;
   location: string | null;

@@ -16,6 +16,7 @@ interface EventItemDB {
   title: string;
   description: string | null;
   category: 'general' | 'priority';
+  event_type?: 'competition' | 'general';
   event_date: string;
   event_time: string | null;
   location: string | null;
@@ -36,7 +37,7 @@ export function UpcomingEventsList({ onNavigate }: UpcomingEventsListProps) {
       try {
         const { data, error } = await supabase
           .from('events')
-          .select('id, title, description, category, event_date, event_time, location, banner_url')
+          .select('id, title, description, category, event_type, event_date, event_time, location, banner_url')
           .gte('event_date', today)
           .order('event_date', { ascending: true })
           .limit(5);
@@ -75,48 +76,66 @@ export function UpcomingEventsList({ onNavigate }: UpcomingEventsListProps) {
         <CalendarRange size={14} className="text-[#123524]" /> Upcoming Directives
       </h3>
       <div className="space-y-3">
-        {upcoming.map(evt => (
-          <div key={evt.id} className="bg-white p-4 rounded-2xl border-2 border-stone-200 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-between gap-4">
-            <div className="flex items-start gap-3.5 flex-1 min-w-0">
-              {evt.banner_url ? (
-                <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-stone-200 relative shadow-sm">
-                  <img src={evt.banner_url} alt="" className="w-full h-full object-cover" />
-                  <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${
-                    evt.category === 'priority' ? 'bg-[#FFBC00]' : 'bg-[#123524]'
-                  }`} />
+        {upcoming.map(evt => {
+          const isComp = evt.event_type === 'competition' || evt.title?.toLowerCase().includes('competition') || evt.title?.toLowerCase().includes('hackathon') || evt.title?.toLowerCase().includes('contest');
+
+          return (
+            <div key={evt.id} className="bg-white p-4 rounded-2xl border-2 border-stone-200 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-between gap-4">
+              <div className="flex items-start gap-3.5 flex-1 min-w-0">
+                {evt.banner_url ? (
+                  <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-stone-200 relative shadow-sm">
+                    <img src={evt.banner_url} alt="" className="w-full h-full object-cover" />
+                    <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${
+                      evt.category === 'priority' ? 'bg-[#FFBC00]' : 'bg-[#123524]'
+                    }`} />
+                  </div>
+                ) : (
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border shadow-xs transition-colors duration-300 ${
+                    evt.category === 'priority' 
+                      ? 'bg-[#FFBC00]/15 border-[#FFBC00]/30 text-[#8F6A00]' 
+                      : 'bg-[#123524]/10 border-[#123524]/20 text-[#123524]'
+                  }`}>
+                    {evt.category === 'priority' ? <Zap size={20} className="animate-pulse" /> : <CalendarDays size={20} />}
+                  </div>
+                )}
+                <div className="flex-1 min-w-0 space-y-1 text-left">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10.5px] font-black text-[#123524] bg-stone-100 px-2.5 py-0.5 rounded-md inline-flex items-center gap-1">
+                      <Calendar size={11} className="text-[#FFBC00] shrink-0" /> {evt.event_date}
+                    </span>
+                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider ${
+                      isComp ? 'bg-amber-100 text-amber-900 border border-amber-200' : 'bg-emerald-100 text-emerald-900 border border-emerald-200'
+                    }`}>
+                      {isComp ? '🏆 Competition' : '🎓 General'}
+                    </span>
+                  </div>
+                  <h4 className="font-bold text-xs text-[#123524] truncate mt-1">{evt.title}</h4>
+                  <p className="text-[10.5px] text-[#5E6E64] truncate">{evt.description}</p>
                 </div>
-              ) : (
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border shadow-xs transition-colors duration-300 ${
-                  evt.category === 'priority' 
-                    ? 'bg-[#FFBC00]/15 border-[#FFBC00]/30 text-[#8F6A00]' 
-                    : 'bg-[#123524]/10 border-[#123524]/20 text-[#123524]'
-                }`}>
-                  {evt.category === 'priority' ? <Zap size={20} className="animate-pulse" /> : <CalendarDays size={20} />}
-                </div>
-              )}
-              <div className="flex-1 min-w-0 space-y-1 text-left">
-                <span className="text-[10.5px] font-black text-[#123524] bg-stone-100 px-2.5 py-0.5 rounded-md inline-flex items-center gap-1">
-                  <Calendar size={11} className="text-[#FFBC00] shrink-0" /> {evt.event_date}
-                </span>
-                <h4 className="font-bold text-xs text-[#123524] truncate mt-1">{evt.title}</h4>
-                <p className="text-[10.5px] text-[#5E6E64] truncate">{evt.description}</p>
               </div>
+              
+              {evt.event_date < getTodayStr() ? (
+                <span className="text-[10px] font-bold text-stone-400 bg-stone-100 border border-stone-200 px-2.5 py-1 rounded-lg cursor-not-allowed select-none shrink-0 animate-fade-in">
+                  Event Ended
+                </span>
+              ) : isComp ? (
+                <button
+                  onClick={() => onNavigate && onNavigate('registration', evt.id)}
+                  className="text-[10px] font-bold text-[#123524] hover:text-[#FFBC00] hover:bg-[#123524] border border-[#123524]/20 hover:border-transparent px-3 py-1.5 rounded-lg transition-all shrink-0 cursor-pointer"
+                >
+                  Register
+                </button>
+              ) : (
+                <button
+                  onClick={() => onNavigate && onNavigate('account')}
+                  className="text-[10px] font-bold text-emerald-800 bg-emerald-50 hover:bg-[#123524] hover:text-white border border-emerald-200 hover:border-transparent px-3 py-1.5 rounded-lg transition-all shrink-0 cursor-pointer"
+                >
+                  Audience Pass
+                </button>
+              )}
             </div>
-            
-            {evt.event_date < getTodayStr() ? (
-              <span className="text-[10px] font-bold text-stone-400 bg-stone-100 border border-stone-200 px-2.5 py-1 rounded-lg cursor-not-allowed select-none shrink-0 animate-fade-in">
-                Event has Ended
-              </span>
-            ) : (
-              <button
-                onClick={() => onNavigate && onNavigate('registration', evt.id)}
-                className="text-[10px] font-bold text-[#123524] hover:text-[#FFBC00] hover:bg-[#123524] border border-[#123524]/20 hover:border-transparent px-2.5 py-1.5 rounded-lg transition-all shrink-0"
-              >
-                Register
-              </button>
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
