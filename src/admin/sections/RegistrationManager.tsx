@@ -193,9 +193,23 @@ export default function RegistrationManager() {
       showToast('No registrations to export', 'warning');
       return;
     }
+    const csvCell = (value: unknown) => {
+      const text = String(value ?? '');
+      const safeText = /^[\s\x00-\x1F\x7F\uFEFF]*[=+\-@]/.test(text) ? `'${text}` : text;
+      return `"${safeText.replace(/"/g, '""')}"`;
+    };
+    const csvRow = (values: unknown[]) => values.map(csvCell).join(',');
     const csv = [
-      'Name,Email,Student Number,Section,Event,Status,Registered At',
-      ...toExport.map(r => `"${r.profiles?.full_name || ''}","${r.profiles?.email || ''}","${r.profiles?.student_number || ''}","${r.profiles?.section || ''}","${r.events?.title || ''}","${r.status === 'confirmed' || r.status === 'pending' ? 'Not Attended' : r.status === 'attended' ? 'Attended' : r.status}","${r.registered_at}"`)
+      csvRow(['Name', 'Email', 'Student Number', 'Section', 'Event', 'Status', 'Registered At']),
+      ...toExport.map(r => csvRow([
+        r.profiles?.full_name,
+        r.profiles?.email,
+        r.profiles?.student_number,
+        r.profiles?.section,
+        r.events?.title,
+        r.status === 'confirmed' || r.status === 'pending' ? 'Not Attended' : r.status === 'attended' ? 'Attended' : r.status,
+        r.registered_at,
+      ])),
     ].join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
