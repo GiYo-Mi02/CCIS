@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { Camera, AlertTriangle, CheckCircle, XCircle, RefreshCw, Send, ShieldAlert, History, Volume2, VolumeX } from 'lucide-react';
+import { Camera, AlertTriangle, CheckCircle, XCircle, RefreshCw, Send, ShieldAlert, History, Volume2, VolumeX, Calendar, SwitchCamera } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { supabase } from '../../lib/supabase';
 import { useAdmin } from '../AdminContext';
@@ -23,8 +23,14 @@ interface ScanLogEntry {
   result: ScanResult;
 }
 
+interface EventOption {
+  id: string;
+  title: string;
+  event_date: string;
+}
+
 const COOLDOWN_MS = 2000; // 2 second cooldown between scans
-const AUTO_DISMISS_SUCCESS_MS = 3000; // auto-dismiss success/warning after 3s
+const AUTO_DISMISS_SUCCESS_MS = 3500; // auto-dismiss success/warning after 3.5s
 const AUTO_DISMISS_ERROR_MS = 5000; // auto-dismiss error after 5s
 
 export default function TicketScanner() {
@@ -32,11 +38,16 @@ export default function TicketScanner() {
   const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
   const [selectedCameraId, setSelectedCameraId] = useState<string>('');
   const [isScanning, setIsScanning] = useState(false);
+  const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
   const [manualId, setManualId] = useState('');
   const [result, setResult] = useState<ScanResult>({ status: 'idle', message: 'Ready to scan.' });
   const [scanLog, setScanLog] = useState<ScanLogEntry[]>([]);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [scanCount, setScanCount] = useState(0);
+
+  // Events list for targeting specific event attendance
+  const [events, setEvents] = useState<EventOption[]>([]);
+  const [selectedEventId, setSelectedEventId] = useState<string>('');
 
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
   const processingRef = useRef(false);
@@ -45,37 +56,56 @@ export default function TicketScanner() {
   const autoDismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scannerId = 'ccis-qr-reader';
 
-  // Request camera list on mount
+  // Fetch active events list on mount
   useEffect(() => {
-    Html5Qrcode.getCameras()
-      .then((devices) => {
-        if (devices && devices.length > 0) {
-          setCameras(devices);
-          const backCam = devices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('environment'));
-          setSelectedCameraId(backCam ? backCam.id : devices[0].id);
-        } else {
-          setResult({
-            status: 'error',
-            message: 'No camera devices detected. Please ensure camera access is granted.'
-          });
+    const fetchEvents = async () => {
+      const { data, error } = await supabase
+        .from('events')
+        .select('id, title, event_date')
+        .order('event_date', { ascending: false })
+        .limit(20);
+      
+      if (!error && data) {
+        setEvents(data);
+        if (data.length > 0) {
+          setSelectedEventId(data[0].id);
         }
-      })
-      .catch((err) => {
-        console.error('Error getting cameras:', err);
-        setResult({
-          status: 'error',
-          message: 'Failed to access camera hardware. Verify permissions and HTTPS context.'
-        });
-      });
+      }
+    };
+    fetchEvents();
+  }, []);
 
+  // Discover cameras safely
+  const refreshCameras = useCallback(async () => {
+    try {
+      const devices = await Html5Qrcode.getCameras();
+      if (devices && devices.length > 0) {
+        setCameras(devices);
+        const backCam = devices.find(d => 
+          d.label.toLowerCase().includes('back') || 
+          d.label.toLowerCase().includes('environment') ||
+          d.label.toLowerCase().includes('rear')
+        );
+        if (backCam && !selectedCameraId) {
+          setSelectedCameraId(backCam.id);
+        } else if (!selectedCameraId) {
+          setSelectedCameraId(devices[0].id);
+        }
+      }
+    } catch (err) {
+      console.warn('Camera enumeration note:', err);
+    }
+  }, [selectedCameraId]);
+
+  useEffect(() => {
+    refreshCameras();
     return () => {
       stopScanning();
       if (autoDismissTimerRef.current) clearTimeout(autoDismissTimerRef.current);
     };
-  }, []);
+  }, [refreshCameras]);
 
-  const startScanning = async (cameraId: string) => {
-    if (!cameraId) return;
+  const startScanning = async (overrideCameraId?: string) => {
     setResult({ status: 'scanning', message: 'Camera active. Position QR code inside the frame.' });
     setIsScanning(true);
     processingRef.current = false;
@@ -87,15 +117,24 @@ export default function TicketScanner() {
         await stopScanning();
       }
 
+      // Check if scanner container element exists in DOM
+      const container = document.getElementById(scannerId);
+      if (!container) {
+        throw new Error('Scanner container element not found.');
+      }
+
       const html5QrCode = new Html5Qrcode(scannerId);
       html5QrCodeRef.current = html5QrCode;
 
+      const camToUse = overrideCameraId || selectedCameraId;
+      const cameraConfig = camToUse ? camToUse : { facingMode };
+
       await html5QrCode.start(
-        cameraId,
+        cameraConfig,
         {
           fps: 10,
           qrbox: (width, height) => {
-            const size = Math.min(width, height) * 0.7;
+            const size = Math.floor(Math.min(width, height) * 0.75);
             return { width: size, height: size };
           }
         },
@@ -123,23 +162,33 @@ export default function TicketScanner() {
           // Verbose scanner noise, ignore
         }
       );
+
+      // Once camera stream is active, refresh the enumerated device list
+      refreshCameras();
     } catch (err: any) {
       console.error('Failed to start scanner:', err);
       setIsScanning(false);
+      const isPermissionErr = err.name === 'NotAllowedError' || err.message?.toLowerCase().includes('permission');
       setResult({
         status: 'error',
-        message: `Camera error: ${err.message || err}. Ensure page runs in HTTPS or localhost.`
+        message: isPermissionErr
+          ? 'Camera permission denied. Please allow camera access in your browser address bar/settings.'
+          : `Camera error: ${err.message || 'Unable to open camera.'}. Ensure HTTPS or use manual ID entry.`
       });
     }
   };
 
   const stopScanning = async () => {
-    if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
+    if (html5QrCodeRef.current) {
       try {
-        await html5QrCodeRef.current.stop();
+        if (html5QrCodeRef.current.isScanning) {
+          await html5QrCodeRef.current.stop();
+        }
+        await html5QrCodeRef.current.clear();
       } catch (err) {
-        console.error('Error stopping scanner:', err);
+        console.warn('Error clearing scanner:', err);
       }
+      html5QrCodeRef.current = null;
     }
     setIsScanning(false);
   };
@@ -148,6 +197,19 @@ export default function TicketScanner() {
     setSelectedCameraId(cameraId);
     if (isScanning) {
       startScanning(cameraId);
+    }
+  };
+
+  const toggleFacingMode = () => {
+    const nextMode = facingMode === 'environment' ? 'user' : 'environment';
+    setFacingMode(nextMode);
+    setSelectedCameraId('');
+    if (isScanning) {
+      stopScanning().then(() => {
+        setTimeout(() => {
+          startScanning();
+        }, 300);
+      });
     }
   };
 
@@ -193,7 +255,6 @@ export default function TicketScanner() {
     const trimmedId = ticketId.trim();
     if (!trimmedId) return;
 
-    // Do NOT stop camera — just update the result overlay
     setResult({ status: 'processing', message: 'Validating ticket credentials against database...' });
 
     try {
@@ -206,7 +267,7 @@ export default function TicketScanner() {
             audienceData = parsed;
           }
         } catch {
-          // not JSON, proceed to event registration query
+          // not JSON, fallback
         }
       } else if (trimmedId.startsWith('CCIS-AUDIENCE:')) {
         const parts = trimmedId.split(':');
@@ -229,7 +290,7 @@ export default function TicketScanner() {
           playSound('error');
           const errorResult: ScanResult = {
             status: 'error',
-            message: 'Audience Pass Not Recognized! No matching student profile found in database.'
+            message: 'Unrecognized Student Pass! No profile record found in the database.'
           };
           setResult(errorResult);
           addToLog(trimmedId, errorResult);
@@ -237,21 +298,106 @@ export default function TicketScanner() {
           return;
         }
 
+        // VALIDATION CHECK 1: Profile Approval Status
+        if (stProfile.status !== 'approved') {
+          playSound('warning');
+          const warningResult: ScanResult = {
+            status: 'warning',
+            message: `Student Pass Inactive: Profile status is '${stProfile.status || 'pending'}'. Must be approved by admin.`,
+            student: {
+              name: stProfile.full_name || audienceData.name || 'Student',
+              studentNumber: stProfile.student_number || audienceData.student_id || '—',
+              section: stProfile.section || audienceData.section || '—',
+              program: stProfile.program || audienceData.program || 'CCIS',
+              eventTitle: 'Audience Pass Verification (Pending)'
+            }
+          };
+          setResult(warningResult);
+          addToLog(trimmedId, warningResult);
+          scheduleAutoDismiss(AUTO_DISMISS_ERROR_MS);
+          return;
+        }
+
+        // VALIDATION CHECK 2: Banned Check
+        if (stProfile.banned) {
+          playSound('error');
+          const errorResult: ScanResult = {
+            status: 'error',
+            message: 'Access Denied: Student account is suspended or banned.'
+          };
+          setResult(errorResult);
+          addToLog(trimmedId, errorResult);
+          scheduleAutoDismiss(AUTO_DISMISS_ERROR_MS);
+          return;
+        }
+
+        // VALIDATION CHECK 3: Record Attendance in Database for Selected Event
+        const targetEvent = events.find(e => e.id === selectedEventId);
+        const eventTitle = targetEvent ? targetEvent.title : 'General Audience Attendance';
+
+        if (selectedEventId) {
+          // Check if already registered or checked in for this event
+          const { data: existingReg } = await supabase
+            .from('event_registrations')
+            .select('id, status, updated_at')
+            .eq('event_id', selectedEventId)
+            .eq('user_id', stProfile.id)
+            .maybeSingle();
+
+          if (existingReg && existingReg.status === 'attended') {
+            playSound('warning');
+            const warningResult: ScanResult = {
+              status: 'warning',
+              message: 'Already Checked In! Audience pass already scanned for this event.',
+              student: {
+                name: stProfile.full_name || audienceData.name || 'Student',
+                studentNumber: stProfile.student_number || audienceData.student_id || '—',
+                section: stProfile.section || audienceData.section || '—',
+                program: stProfile.program || audienceData.program || 'CCIS',
+                eventTitle,
+                attendedAt: existingReg.updated_at ? new Date(existingReg.updated_at).toLocaleTimeString() : 'Previously'
+              }
+            };
+            setResult(warningResult);
+            addToLog(trimmedId, warningResult);
+            scheduleAutoDismiss(AUTO_DISMISS_SUCCESS_MS);
+            return;
+          }
+
+          if (existingReg) {
+            // Update to attended
+            await supabase
+              .from('event_registrations')
+              .update({ status: 'attended' })
+              .eq('id', existingReg.id);
+          } else {
+            // Create new attended record in event_registrations
+            await supabase
+              .from('event_registrations')
+              .insert({
+                event_id: selectedEventId,
+                user_id: stProfile.id,
+                status: 'attended'
+              });
+          }
+        }
+
         playSound('success');
         setScanCount(prev => prev + 1);
         const successResult: ScanResult = {
           status: 'success',
-          message: 'Audience Attendance Verified! Student authorized for assembly entry.',
+          message: 'Audience Attendance Verified! Check-in logged in database.',
           student: {
             name: stProfile.full_name || audienceData.name || 'Student',
             studentNumber: stProfile.student_number || audienceData.student_id || '—',
             section: stProfile.section || audienceData.section || '—',
             program: stProfile.program || audienceData.program || 'CCIS',
-            eventTitle: 'General Audience Attendance'
+            eventTitle
           }
         };
         setResult(successResult);
         addToLog(trimmedId, successResult);
+        showToast(`Audience attendance confirmed for ${stProfile.full_name || 'Student'}`, 'success');
         scheduleAutoDismiss(AUTO_DISMISS_SUCCESS_MS);
         return;
       }
@@ -402,27 +548,57 @@ export default function TicketScanner() {
         
         {/* LEFT COLUMN: Camera Feed & Controller */}
         <div className="flex-1 bg-white border border-gray-100 rounded-3xl p-5 shadow-sm flex flex-col items-center">
-          <h3 className="font-sans font-black text-[#1A3C2E] text-base mb-4 flex items-center gap-2 w-full text-left">
-            <Camera size={18} className="text-[#F5B400]" /> Ticket Scanner
-          </h3>
+          <div className="flex items-center justify-between w-full mb-4 border-b border-gray-100 pb-3">
+            <h3 className="font-sans font-black text-[#1A3C2E] text-base flex items-center gap-2">
+              <Camera size={18} className="text-[#F5B400]" /> Ticket &amp; Audience Scanner
+            </h3>
+            <span className="text-[10px] font-mono bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-bold">
+              AY 2026-2027
+            </span>
+          </div>
+
+          {/* Active Event Target Selector */}
+          <div className="w-full mb-4 bg-stone-50 border border-stone-200/80 p-3 rounded-2xl space-y-1.5 text-left">
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-[#5E6E64] flex items-center gap-1.5">
+              <Calendar size={12} className="text-[#1A3C2E]" /> Target Event for Attendance Logging:
+            </label>
+            <select
+              value={selectedEventId}
+              onChange={(e) => setSelectedEventId(e.target.value)}
+              className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2 text-xs outline-none text-[#1A3C2E] font-bold focus:border-[#F5B400]"
+            >
+              <option value="">-- General Assembly / Any Event --</option>
+              {events.map((ev) => (
+                <option key={ev.id} value={ev.id}>
+                  {ev.title} ({ev.event_date})
+                </option>
+              ))}
+            </select>
+          </div>
 
           {/* Camera Selection controls */}
-          <div className="w-full flex flex-col sm:flex-row gap-3 mb-4">
+          <div className="w-full flex flex-col sm:flex-row gap-2 mb-4">
             <select
               value={selectedCameraId}
               onChange={(e) => handleCameraChange(e.target.value)}
               className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs outline-none text-[#222B26] font-semibold"
             >
-              {cameras.length === 0 ? (
-                <option value="">Searching for cameras...</option>
-              ) : (
-                cameras.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.label || `Camera ${cameras.indexOf(c) + 1}`}
-                  </option>
-                ))
-              )}
+              <option value="">Default Camera ({facingMode === 'environment' ? 'Back' : 'Front'})</option>
+              {cameras.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.label || `Camera ${cameras.indexOf(c) + 1}`}
+                </option>
+              ))}
             </select>
+
+            <button
+              onClick={toggleFacingMode}
+              className="px-3 py-2 bg-stone-100 hover:bg-stone-200 text-[#1A3C2E] rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer shrink-0"
+              title="Flip between back/environment and front/user camera"
+            >
+              <SwitchCamera size={14} />
+              <span className="hidden sm:inline">Flip</span>
+            </button>
 
             <button
               onClick={() => {
@@ -432,14 +608,14 @@ export default function TicketScanner() {
                   startScanning(selectedCameraId);
                 }
               }}
-              disabled={cameras.length === 0}
-              className={`px-5 py-2 rounded-xl font-bold text-xs uppercase tracking-wider transition-all cursor-pointer ${
+              className={`px-5 py-2 rounded-xl font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shrink-0 flex items-center justify-center gap-1.5 ${
                 isScanning
                   ? 'bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100'
-                  : 'bg-[#1A3C2E] hover:bg-[#255541] text-white'
+                  : 'bg-[#1A3C2E] hover:bg-[#255541] text-white shadow-xs'
               }`}
             >
-              {isScanning ? 'Stop Camera' : 'Start Camera'}
+              <Camera size={14} />
+              <span>{isScanning ? 'Stop Camera' : 'Start Camera'}</span>
             </button>
           </div>
 

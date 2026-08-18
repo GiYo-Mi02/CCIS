@@ -830,21 +830,34 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
             {activeTab === 'attendance-pass' && (
               <div className="space-y-6 animate-fade-in">
                 
-                {/* Informational Role Banner */}
-                <div className="p-4 bg-white rounded-2xl border border-stone-200/80 shadow-xs flex items-start gap-3.5">
+                {/* Informational Role & Validation Guide Banner */}
+                <div className="p-4 sm:p-5 bg-white rounded-2xl border border-stone-200/80 shadow-xs flex items-start gap-3.5">
                   <div className="w-9 h-9 rounded-xl bg-[#FAF7EA] border border-[#1A3C2E]/10 flex items-center justify-center text-[#1A3C2E] shrink-0 mt-0.5">
                     <QrCode size={18} className="text-[#1A3C2E]" />
                   </div>
-                  <div className="text-xs space-y-1">
-                    <h4 className="font-sans font-bold text-sm text-[#1A3C2E]">
-                      Universal Audience Attendance Pass
-                    </h4>
+                  <div className="text-xs space-y-1.5 flex-1">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <h4 className="font-sans font-bold text-sm text-[#1A3C2E]">
+                        Universal Audience Attendance Pass
+                      </h4>
+                      <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                        profile.status === 'approved' 
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' 
+                          : profile.status === 'rejected'
+                          ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                          : 'bg-amber-100 text-amber-800 border border-amber-200 animate-pulse'
+                      }`}>
+                        {profile.status === 'approved' ? '✓ Valid & Active Pass' : profile.status === 'rejected' ? '✕ Profile Rejected' : '⏱ Pending Admin Approval'}
+                      </span>
+                    </div>
                     <p className="text-stone-600 leading-relaxed">
-                      Present this digital pass for quick entrance and attendance verification across all CCIS assemblies, seminars, and events without pre-registering.
+                      Present this digital pass for entrance and attendance verification across all CCIS assemblies and events without pre-registering.
                     </p>
-                    <p className="text-[11px] text-stone-500 font-mono">
-                      *Note: Event registration on the Our Events page is reserved for active event participants/competitors.
-                    </p>
+                    <div className="p-2.5 bg-stone-50 rounded-xl border border-stone-200/60 text-[11px] text-stone-600 space-y-1">
+                      <p><strong>• Activation:</strong> Your pass is permanently active once your student profile is approved by the council.</p>
+                      <p><strong>• Database Check-In:</strong> Scanning this QR code at the door logs your attendance directly into the college database.</p>
+                      <p><strong>• Participants vs Audiences:</strong> Event registration on the Our Events page is reserved for active event participants/competitors.</p>
+                    </div>
                   </div>
                 </div>
 
@@ -880,8 +893,12 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
                           </div>
                         </div>
 
-                        <span className="bg-[#F5B400] text-[#1A3C2E] text-[9px] font-bold font-mono px-2.5 py-1 rounded-full uppercase tracking-wider shadow-xs shrink-0">
-                          AUDIENCE PASS
+                        <span className={`text-[9px] font-bold font-mono px-2.5 py-1 rounded-full uppercase tracking-wider shadow-xs shrink-0 ${
+                          profile.status === 'approved' 
+                            ? 'bg-[#F5B400] text-[#1A3C2E]' 
+                            : 'bg-amber-400/90 text-stone-900'
+                        }`}>
+                          {profile.status === 'approved' ? 'AUDIENCE PASS • VALID' : 'AUDIENCE PASS • PENDING'}
                         </span>
                       </div>
 
@@ -930,7 +947,9 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
                       <div className="pt-3 border-t border-white/10 flex flex-wrap items-center justify-between text-[10px] text-stone-300 font-mono">
                         <span>SECURITY TOKEN: {passToken.substring(0, 12)}</span>
                         <span>ISSUED: {passGeneratedAt}</span>
-                        <span>STATUS: {profile.status === 'approved' ? '✓ VERIFIED' : 'PENDING'}</span>
+                        <span className={`font-bold ${profile.status === 'approved' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                          STATUS: {profile.status === 'approved' ? '✓ APPROVED & VALID' : '⏱ PENDING APPROVAL'}
+                        </span>
                       </div>
 
                     </div>
