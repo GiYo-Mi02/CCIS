@@ -1,8 +1,7 @@
-// @ts-nocheck
 // Supabase Edge Function: Automated SMTP Email Queue Processor
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
-import nodemailer from "npm:nodemailer@^6.9.1";
+import nodemailer from "npm:nodemailer@^9.0.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
