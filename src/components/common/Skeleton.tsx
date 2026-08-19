@@ -345,6 +345,54 @@ export function AccountSkeleton() {
   );
 }
 
+/** Skeleton for About / InfoHub Page */
+export function InfoHubSkeleton() {
+  return (
+    <div className="bg-[#FAF7EA] min-h-screen font-sans text-stone-800 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto space-y-10">
+        {/* Header Strip Skeleton */}
+        <div className="text-center space-y-3">
+          <Skeleton className="h-4 w-28 mx-auto bg-stone-300" />
+          <Skeleton className="h-10 w-80 max-w-full mx-auto bg-stone-300" />
+          <Skeleton className="h-4 w-96 max-w-full mx-auto bg-stone-200" />
+          <Skeleton className="h-1.5 w-16 bg-[#FFBC00]/40 mx-auto rounded-full" />
+        </div>
+
+        {/* Tab Pills */}
+        <div className="flex justify-center gap-3">
+          <Skeleton className="h-11 w-36 rounded-2xl bg-stone-200" />
+          <Skeleton className="h-11 w-36 rounded-2xl bg-stone-200" />
+          <Skeleton className="h-11 w-36 rounded-2xl bg-stone-200" />
+        </div>
+
+        {/* Hero Info Card */}
+        <div className="bg-white rounded-3xl p-8 border border-zinc-200 shadow-sm grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+          <div className="space-y-4">
+            <Skeleton className="h-4 w-32 bg-stone-200" />
+            <Skeleton className="h-8 w-4/5 bg-stone-300" />
+            <Skeleton className="h-4 w-full bg-stone-150" />
+            <Skeleton className="h-4 w-full bg-stone-150" />
+            <Skeleton className="h-4 w-3/4 bg-stone-150" />
+          </div>
+          <Skeleton className="h-64 rounded-2xl bg-stone-200" />
+        </div>
+
+        {/* 3 Grid Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-white rounded-3xl p-6 border border-zinc-200 shadow-sm space-y-3">
+              <Skeleton className="h-12 w-12 rounded-2xl bg-stone-200" />
+              <Skeleton className="h-6 w-3/4 bg-stone-300" />
+              <Skeleton className="h-4 w-full bg-stone-100" />
+              <Skeleton className="h-4 w-5/6 bg-stone-100" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** Full Page Layout Fallback Skeleton */
 export function FullPageSkeleton() {
   return (

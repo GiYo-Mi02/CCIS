@@ -9,6 +9,7 @@ import { Officer, Committee } from '../types';
 import CouncilSeal from './CouncilSeal';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { InfoHubSkeleton } from './common/Skeleton';
 
 interface StudentOrgMeta {
   id: string;
@@ -150,11 +151,7 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
   };
 
   if (loading) {
-    return (
-      <div className="bg-[#FAF7EA] min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-3 border-[#F5B400] border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
+    return <InfoHubSkeleton />;
   }
 
   // Filter officers based on selected organization and term
