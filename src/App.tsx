@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import NavBar from './components/NavBar';
 import Hero from './components/Hero';
 import Announcements from './components/Announcements';
@@ -9,13 +9,16 @@ import FaqSection from './components/FaqSection';
 import DeveloperDedication from './components/DeveloperDedication';
 import Footer from './components/Footer';
 import LoadingScreen from './components/LoadingScreen';
-import AuthPage from './pages/AuthPage';
-import AccountPage from './pages/AccountPage';
-import MessagesPage from './pages/MessagesPage';
-import GalleryPage from './pages/GalleryPage';
-import BukasKabanPage from './pages/BukasKabanPage';
-import PatchPage from './pages/PatchPage';
-import NotFoundPage from './pages/NotFoundPage';
+import { FullPageSkeleton } from './components/common/Skeleton';
+
+const AuthPage = lazy(() => import('./pages/AuthPage'));
+const AccountPage = lazy(() => import('./pages/AccountPage'));
+const MessagesPage = lazy(() => import('./pages/MessagesPage'));
+const GalleryPage = lazy(() => import('./pages/GalleryPage'));
+const BukasKabanPage = lazy(() => import('./pages/BukasKabanPage'));
+const PatchPage = lazy(() => import('./pages/PatchPage'));
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
+
 import { useAuth } from './context/AuthContext';
 import SubscriptionPreferenceModal from './components/SubscriptionPreferenceModal';
 import SupportWidget from './components/SupportWidget';
@@ -46,6 +49,20 @@ export default function App({ onAdminSwitch }: AppProps) {
     }
   }, [activeTab]);
 
+  // Restore post-OAuth redirect return (e.g. returning to event registration after Google login)
+  useEffect(() => {
+    const savedTab = localStorage.getItem('ccis_auth_redirect_tab');
+    const savedEvent = localStorage.getItem('ccis_auth_redirect_event');
+    if (savedTab) {
+      setActiveTab(savedTab);
+      localStorage.removeItem('ccis_auth_redirect_tab');
+    }
+    if (savedEvent) {
+      setPreselectedEventId(savedEvent);
+      localStorage.removeItem('ccis_auth_redirect_event');
+    }
+  }, [user]);
+
   const handleLearnMore = () => {
     handleNavigate('info');
   };
@@ -70,8 +87,12 @@ export default function App({ onAdminSwitch }: AppProps) {
 
 
   // Full-screen pages (no navbar/footer)
-  if (activeTab === 'login' || (user && (!profile || !profile.profile_complete || (isPending && !isUnverified)))) {
-    return <AuthPage onNavigate={handleNavigate} />;
+  if (activeTab === 'login' || (user && !isAdmin && (!profile || !profile.profile_complete || (isPending && !isUnverified)))) {
+    return (
+      <Suspense fallback={<FullPageSkeleton />}>
+        <AuthPage onNavigate={handleNavigate} />
+      </Suspense>
+    );
   }
 
   return (
@@ -150,75 +171,77 @@ export default function App({ onAdminSwitch }: AppProps) {
         )}
 
         {/* 3. Dedicated Inner Section Views */}
-        {activeTab === 'info' && (
-          <div className="animate-fade-in border-b border-[#1A3C2E]/10">
-            <InfoHub 
-              onNavigate={handleNavigate} 
-              activeSubTab={infoSubTab}
-              onSubTabChange={setInfoSubTab}
-            />
-          </div>
-        )}
+        <Suspense fallback={<FullPageSkeleton />}>
+          {activeTab === 'info' && (
+            <div className="animate-fade-in border-b border-[#1A3C2E]/10">
+              <InfoHub 
+                onNavigate={handleNavigate} 
+                activeSubTab={infoSubTab}
+                onSubTabChange={setInfoSubTab}
+              />
+            </div>
+          )}
 
-        {activeTab === 'announcements' && (
-          <div className="animate-fade-in">
-            <Announcements previewMode={false} />
-          </div>
-        )}
+          {activeTab === 'announcements' && (
+            <div className="animate-fade-in">
+              <Announcements previewMode={false} />
+            </div>
+          )}
 
-        {activeTab === 'registration' && (
-          <div className="animate-fade-in">
-            <RegistrationSection 
-              onNavigate={handleNavigate} 
-              preselectedEventId={preselectedEventId}
-              onClearPreselected={() => setPreselectedEventId(null)}
-            />
-          </div>
-        )}
+          {activeTab === 'registration' && (
+            <div className="animate-fade-in">
+              <RegistrationSection 
+                onNavigate={handleNavigate} 
+                preselectedEventId={preselectedEventId}
+                onClearPreselected={() => setPreselectedEventId(null)}
+              />
+            </div>
+          )}
 
-        {activeTab === 'gallery' && (
-          <div className="animate-fade-in">
-            <GalleryPage isAdmin={isAdmin} />
-          </div>
-        )}
+          {activeTab === 'gallery' && (
+            <div className="animate-fade-in">
+              <GalleryPage isAdmin={isAdmin} />
+            </div>
+          )}
 
-        {activeTab === 'transparency' && (
-          <div className="animate-fade-in">
-            <BukasKabanPage isAdmin={isAdmin} />
-          </div>
-        )}
+          {activeTab === 'transparency' && (
+            <div className="animate-fade-in">
+              <BukasKabanPage isAdmin={isAdmin} />
+            </div>
+          )}
 
-        {activeTab === 'patch' && (
-          <div className="animate-fade-in">
-            <PatchPage isAdmin={isAdmin} />
-          </div>
-        )}
+          {activeTab === 'patch' && (
+            <div className="animate-fade-in">
+              <PatchPage isAdmin={isAdmin} />
+            </div>
+          )}
 
-        {activeTab === 'messages' && (
-          <div className="animate-fade-in">
-            {user && profile ? (
-              <MessagesPage onNavigate={handleNavigate} />
-            ) : (
-              <AuthPage onNavigate={handleNavigate} />
-            )}
-          </div>
-        )}
+          {activeTab === 'messages' && (
+            <div className="animate-fade-in">
+              {user && profile ? (
+                <MessagesPage onNavigate={handleNavigate} />
+              ) : (
+                <AuthPage onNavigate={handleNavigate} />
+              )}
+            </div>
+          )}
 
-        {activeTab === 'account' && (
-          <div className="animate-fade-in">
-            {user && profile ? (
-              <AccountPage onNavigate={handleNavigate} />
-            ) : (
-              <AuthPage onNavigate={handleNavigate} />
-            )}
-          </div>
-        )}
+          {activeTab === 'account' && (
+            <div className="animate-fade-in">
+              {user && profile ? (
+                <AccountPage onNavigate={handleNavigate} />
+              ) : (
+                <AuthPage onNavigate={handleNavigate} />
+              )}
+            </div>
+          )}
 
-        {activeTab === '404' && (
-          <div className="animate-fade-in">
-            <NotFoundPage onNavigate={handleNavigate} />
-          </div>
-        )}
+          {activeTab === '404' && (
+            <div className="animate-fade-in">
+              <NotFoundPage onNavigate={handleNavigate} />
+            </div>
+          )}
+        </Suspense>
       </main>
 
       {/* 5. Onboarding / Sign-in Subscription Preference Modal */}

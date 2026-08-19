@@ -80,7 +80,8 @@ async function processQueue() {
 
       for (const item of dequeuedItems) {
         try {
-          console.log(`[Email Worker] Dispatching ${item.email_type} email to ${item.recipient_email}...`);
+          const maskedEmail = (item.recipient_email || '').replace(/(?<=^.{2}).*(?=@)/, '***');
+          console.log(`[Email Worker] Dispatching item ${item.id} (${item.email_type}) to ${maskedEmail}...`);
           
           const mailOptions = {
             from: smtpFrom,

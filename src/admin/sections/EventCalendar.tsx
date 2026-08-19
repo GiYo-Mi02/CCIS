@@ -17,7 +17,7 @@ export default function EventCalendar() {
   const [isCreating, setIsCreating] = useState(false);
 
   const fetchEvents = async () => {
-    const { data, error } = await supabase.from('events').select('*').order('event_date');
+    const { data, error } = await supabase.from('events').select('*').order('event_date').limit(200);
     if (!error && data) setEvents(data as EventItem[]);
     setLoading(false);
   };

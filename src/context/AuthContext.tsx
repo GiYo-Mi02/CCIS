@@ -72,44 +72,78 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const clearBanNotice = useCallback(() => setBanNotice(null), []);
   const clearEmailValidationError = useCallback(() => setEmailValidationError(null), []);
 
-  // Replace Google OAuth callback URL in browser history to fix back-button loop
-  useEffect(() => {
-    if (
-      window.location.hash.includes('access_token=') ||
-      window.location.search.includes('code=') ||
-      window.location.hash.includes('error=')
-    ) {
-      const cleanUrl = window.location.origin + window.location.pathname;
-      window.history.replaceState(null, '', cleanUrl);
-    }
-  }, []);
+  const fetchProfile = useCallback(async (userId: string): Promise<Profile | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
 
-  const fetchProfile = useCallback(async (userId: string) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
-
-    if (error) {
-      console.error('Error fetching profile:', error.message);
-      try {
-        // Only call the tombstone RPC when we have a confirmed active session.
-        // The RPC is GRANT-ed to `authenticated` only — calling it mid-PKCE
-        // (before the session is fully committed) returns a 403 and incorrectly
-        // triggers a signOut cascade that freezes the loading state.
-        const { data: { user: activeUser } } = await supabase.auth.getUser();
-        if (activeUser) {
-          await supabase.rpc('is_account_deletion_tombstoned');
-        }
-        await supabase.auth.signOut();
-      } catch (err) {
-        console.error('[AuthContext] Failed to check deleted account:', err);
-        await supabase.auth.signOut();
+      if (error) {
+        console.error('[AuthContext] Error fetching profile:', error.message);
       }
+
+      if (data) {
+        return data as Profile;
+      }
+
+      // Check tombstone if profile row is not present
+      try {
+        const { data: isTombstoned } = await supabase.rpc('is_account_deletion_tombstoned');
+        if (isTombstoned === true) {
+          await supabase.auth.signOut();
+          return null;
+        }
+      } catch {
+        // ignore tombstone check error
+      }
+
+      // 1. Try server-side auto-provisioning RPC
+      try {
+        const { data: ensuredProfile, error: ensureErr } = await supabase.rpc('ensure_user_profile');
+        if (!ensureErr && ensuredProfile) {
+          return ensuredProfile as Profile;
+        }
+      } catch (ensureEx) {
+        console.warn('[AuthContext] ensure_user_profile notice:', ensureEx);
+      }
+
+      // 2. Client fallback insert if RPC is not yet deployed on remote DB
+      try {
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        if (currentUser && currentUser.id === userId) {
+          const isBypassAdmin = ADMIN_BYPASS_EMAILS.has(currentUser.email?.toLowerCase() || '');
+          const initialRole = isBypassAdmin ? 'devcom_head' : 'student';
+          const { data: fallbackProfile, error: insertErr } = await supabase
+            .from('profiles')
+            .insert({
+              id: currentUser.id,
+              email: currentUser.email || '',
+              full_name: currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || '',
+              avatar_url: currentUser.user_metadata?.avatar_url || currentUser.user_metadata?.picture || null,
+              role: initialRole,
+              status: isBypassAdmin ? 'approved' : 'pending',
+              profile_complete: isBypassAdmin,
+              subscribe_announcements_events: false,
+              email_subscription_decided: false,
+            })
+            .select('*')
+            .maybeSingle();
+
+          if (!insertErr && fallbackProfile) {
+            return fallbackProfile as Profile;
+          }
+        }
+      } catch (fallbackEx) {
+        console.warn('[AuthContext] Client profile fallback notice:', fallbackEx);
+      }
+
+      return null;
+    } catch (err) {
+      console.error('[AuthContext] Unexpected fetchProfile exception:', err);
       return null;
     }
-    return data as Profile;
   }, []);
 
   const refreshProfile = useCallback(async () => {
@@ -176,26 +210,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
 
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
-
         if (currentSession?.user) {
           const p = await fetchProfile(currentSession.user.id);
           
-          // Sync IP address to profiles table
+          // Sync IP address in background without blocking auth init
           try {
-            const res = await fetch('https://api.ipify.org?format=json');
-            if (res.ok) {
-              const ipData = await res.json();
-              if (ipData.ip) {
-                await supabase
-                  .from('profiles')
-                  .update({ last_ip: ipData.ip })
-                  .eq('id', currentSession.user.id);
-              }
-            }
-          } catch (e) {
-            console.error('Failed to sync last_ip:', e);
+            fetch('https://api.ipify.org?format=json')
+              .then(res => res.ok ? res.json() : null)
+              .then(ipData => {
+                if (ipData?.ip && currentSession?.user?.id) {
+                  supabase
+                    .from('profiles')
+                    .update({ last_ip: ipData.ip })
+                    .eq('id', currentSession.user.id);
+                }
+              })
+              .catch(() => {});
+          } catch {
+            // non-blocking
           }
 
           const isBanned = p?.banned && (!p.banned_until || new Date(p.banned_until) > new Date());
@@ -210,7 +242,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
             return;
           }
-          if (mounted) setProfile(p);
+          if (mounted) {
+            setProfile(p);
+            setSession(currentSession);
+            setUser(currentSession.user);
+          }
+        } else {
+          if (mounted) {
+            setSession(null);
+            setUser(null);
+            setProfile(null);
+          }
         }
       } catch (err) {
         console.error('Auth init error:', err);
@@ -239,22 +281,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
             return;
           }
-        }
 
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
-
-        if (newSession?.user) {
-          // Small delay to let the trigger create the profile row for new users
-          if (event === 'SIGNED_IN') {
-            await new Promise(r => setTimeout(r, 500));
-          }
           let p = await fetchProfile(newSession.user.id);
           if (!p && event === 'SIGNED_IN') {
-            // Retry once more after 1.5 seconds if the trigger is slow
-            await new Promise(r => setTimeout(r, 1500));
+            await new Promise(r => setTimeout(r, 600));
             p = await fetchProfile(newSession.user.id);
           }
+
           const isBanned = p?.banned && (!p.banned_until || new Date(p.banned_until) > new Date());
           if (isBanned) {
             await supabase.auth.signOut();
@@ -267,17 +300,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
             return;
           }
-          if (mounted) setProfile(p);
-        } else {
-          setProfile(null);
-        }
 
-        if (mounted) setLoading(false);
+          if (mounted) {
+            setProfile(p);
+            setSession(newSession);
+            setUser(newSession.user);
+            setLoading(false);
+
+            // Cleanly strip the ?code= query from the address bar after successful authentication
+            if (typeof window !== 'undefined' && window.location.search.includes('code=')) {
+              const cleanUrl = window.location.origin + window.location.pathname;
+              window.history.replaceState(null, '', cleanUrl);
+            }
+          }
+        } else {
+          if (mounted) {
+            setSession(null);
+            setUser(null);
+            setProfile(null);
+            setLoading(false);
+          }
+        }
       }
     );
 
+    // Safety timeout to prevent loading state from getting stuck forever
+    const safetyTimer = setTimeout(() => {
+      if (mounted) setLoading(false);
+    }, 4000);
+
     return () => {
       mounted = false;
+      clearTimeout(safetyTimer);
       subscription.unsubscribe();
     };
   }, [fetchProfile]);
@@ -367,7 +421,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [profile]);
 
-  const isAdmin = profile ? isAdminRole(profile.role) : false;
+  const isAdmin = Boolean((profile && isAdminRole(profile.role)) || (user?.email && ADMIN_BYPASS_EMAILS.has(user.email.toLowerCase())));
   const isPending = profile ? profile.status === 'pending' : false;
   const isApproved = profile ? profile.status === 'approved' : false;
   const isRejected = profile ? profile.status === 'rejected' : false;

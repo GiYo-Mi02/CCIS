@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Calendar, ChevronLeft, ChevronRight, Clock, MapPin, X, Loader2, Zap, CalendarDays, CalendarRange, Trophy, GraduationCap, QrCode } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { UpcomingEventsSkeleton, Skeleton } from './common/Skeleton';
 
 const getTodayStr = (): string => {
   const today = new Date();
@@ -55,11 +56,7 @@ export function UpcomingEventsList({ onNavigate }: UpcomingEventsListProps) {
   }, []);
 
   if (loading) {
-    return (
-      <div className="flex justify-center py-6">
-        <div className="w-5 h-5 border-2 border-[#FFBC00] border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
+    return <UpcomingEventsSkeleton />;
   }
 
   if (upcoming.length === 0) {
@@ -421,9 +418,13 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
 
         {/* Days Grid */}
         {loading ? (
-          <div className="py-24 flex flex-col items-center justify-center text-zinc-400 space-y-2">
-            <Loader2 className="animate-spin text-[#FFBC00]" size={24} />
-            <p className="text-[10px] font-mono uppercase tracking-wider">Loading Schedules...</p>
+          <div className="grid grid-cols-7 grid-rows-5 gap-2 py-4 border-t border-[#123524]/10">
+            {Array.from({ length: 35 }).map((_, idx) => (
+              <div key={idx} className="h-16 md:h-20 p-1.5 bg-stone-50 rounded-xl flex flex-col justify-between">
+                <Skeleton className="h-3 w-4 bg-stone-200" />
+                <Skeleton className="h-3 w-3/4 bg-stone-100" />
+              </div>
+            ))}
           </div>
         ) : (
           <div className="grid grid-cols-7 grid-rows-5 divide-x-2 divide-y-2 divide-[#123524]/15 border-t border-[#123524]/20">

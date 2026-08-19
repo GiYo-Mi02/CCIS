@@ -318,12 +318,12 @@ export default function TicketScanner() {
           student_id: parts[1],
           profile_id: parts[2]
         };
-      } else if (trimmedId.startsWith('CCIS-') || /^[A-Za-z0-9-]{8,40}$/.test(trimmedId)) {
-        // Match by token or student ID directly in database
+      } else if (trimmedId.startsWith('CCIS-PASS-') || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trimmedId)) {
+        // Match by secure pass token in database
         const { data: matchedProf } = await supabase
           .from('profiles')
           .select('*')
-          .or(`attendance_qr_code.eq.${postgrestEquals(trimmedId)},student_number.eq.${postgrestEquals(trimmedId.toUpperCase())}`)
+          .eq('attendance_qr_code', trimmedId)
           .maybeSingle();
 
         if (matchedProf) {
@@ -482,10 +482,11 @@ export default function TicketScanner() {
         .maybeSingle();
 
       if (error) {
+        console.error('Ticket scan query error:', error.message);
         playSound('error');
         const errorResult: ScanResult = {
           status: 'error',
-          message: `Database query failed: ${error.message}`
+          message: 'Unable to verify ticket credentials. Please try scanning again.'
         };
         setResult(errorResult);
         addToLog(trimmedId, errorResult);
@@ -536,10 +537,11 @@ export default function TicketScanner() {
           .eq('id', trimmedId);
 
         if (updateErr) {
+          console.error('Attendance status update error:', updateErr.message);
           playSound('error');
           const errorResult: ScanResult = {
             status: 'error',
-            message: `Failed to update attendance: ${updateErr.message}`
+            message: 'Failed to update attendance record. Please try again.'
           };
           setResult(errorResult);
           addToLog(trimmedId, errorResult);

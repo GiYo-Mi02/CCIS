@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
 import { Announcement } from '../types/database';
 import { Search, Calendar, User, ArrowRight, Tag, X, Megaphone, Star } from 'lucide-react';
+import { AnnouncementsSkeleton } from './common/Skeleton';
 
 interface AnnouncementsProps {
   previewMode?: boolean;
@@ -74,12 +75,7 @@ export default function Announcements({ previewMode = false, onViewAllClick }: A
   };
 
   if (loading) {
-    return (
-      <div className="py-16 bg-[#FAF7EA]/30 flex flex-col items-center justify-center min-h-[300px]">
-        <div className="w-8 h-8 border-3 border-[#F5B400] border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="font-mono text-xs text-[#5E6E64] uppercase tracking-widest">Loading announcements...</p>
-      </div>
-    );
+    return <AnnouncementsSkeleton previewMode={previewMode} />;
   }
 
   // --- PREVIEW MODE LAYOUT ---

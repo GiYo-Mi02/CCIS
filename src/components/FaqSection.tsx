@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Minus, HelpCircle } from 'lucide-react';
 import { FAQItem } from '../types';
 import { supabase } from '../lib/supabase';
+import { FaqSkeleton } from './common/Skeleton';
 
 export default function FaqSection() {
   const [faqs, setFaqs] = useState<FAQItem[]>([]);
@@ -14,7 +15,8 @@ export default function FaqSection() {
         .from('faqs')
         .select('*')
         .eq('is_active', true)
-        .order('display_order');
+        .order('display_order')
+        .limit(100);
       if (!error && data) {
         setFaqs(data.map((f: any) => ({
           id: f.id,
@@ -33,8 +35,10 @@ export default function FaqSection() {
 
   if (loading) {
     return (
-      <section className="py-16 bg-[#FAF7EA]/50 border-b border-[#1A3C2E]/10 flex items-center justify-center min-h-[200px]">
-        <div className="w-8 h-8 border-3 border-[#F5B400] border-t-transparent rounded-full animate-spin" />
+      <section className="py-16 bg-[#FAF7EA]/50 border-b border-[#1A3C2E]/10" id="faq-accordions">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6">
+          <FaqSkeleton />
+        </div>
       </section>
     );
   }

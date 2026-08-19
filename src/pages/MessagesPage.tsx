@@ -249,9 +249,24 @@ export default function MessagesPage({ onNavigate }: MessagesPageProps) {
         {/* Chat Messages Panel */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-zinc-50/50 flex flex-col">
           {loading ? (
-            <div className="flex-1 flex flex-col items-center justify-center text-zinc-400 space-y-2">
-              <Loader2 className="animate-spin text-[var(--color-accent-gold,#F5B400)]" size={24} />
-              <p className="text-xs font-mono uppercase tracking-wider">Loading inbox connection...</p>
+            <div className="flex-1 space-y-4 py-4 animate-pulse">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-stone-200" />
+                <div className="space-y-1.5 max-w-xs">
+                  <div className="h-10 w-48 bg-stone-200 rounded-2xl rounded-tl-sm" />
+                </div>
+              </div>
+              <div className="flex items-end justify-end gap-3">
+                <div className="space-y-1.5 max-w-xs">
+                  <div className="h-12 w-56 bg-[#1A3C2E]/15 rounded-2xl rounded-tr-sm" />
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-stone-200" />
+                <div className="space-y-1.5 max-w-xs">
+                  <div className="h-16 w-64 bg-stone-200 rounded-2xl rounded-tl-sm" />
+                </div>
+              </div>
             </div>
           ) : (
             <>

@@ -95,7 +95,8 @@ export default function GalleryPage({ isAdmin = false }: GalleryPageProps) {
         const { data, error } = await supabase
           .from('gallery_items')
           .select('*')
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .limit(100);
 
         if (error) throw error;
 

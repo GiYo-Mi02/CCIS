@@ -21,6 +21,7 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
     refreshProfile,
     isPending,
     isUnverified,
+    isAdmin,
     verificationCountdown,
     banNotice,
     clearBanNotice
@@ -51,9 +52,25 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
   const [transitionProgress, setTransitionProgress] = useState(0);
   const [transitionComplete, setTransitionComplete] = useState(false);
 
+  // Auto-refresh attempt if user is present but profile is still loading
   useEffect(() => {
-    // Only redirect to home if profile is complete AND they are either approved or fallback has kicked in
-    const canAccessPublicSite = profile?.profile_complete && (!isPending || isUnverified);
+    if (user && !profile) {
+      const timer = setTimeout(() => {
+        refreshProfile();
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [user, profile, refreshProfile]);
+
+  useEffect(() => {
+    if (profile?.privacy_agreed_at) {
+      setPrivacyAccepted(true);
+    }
+  }, [profile?.privacy_agreed_at]);
+
+  useEffect(() => {
+    // Only redirect to home if profile is complete AND they are either approved or fallback has kicked in, or if user is admin
+    const canAccessPublicSite = isAdmin || (profile?.profile_complete && (!isPending || isUnverified));
 
     if (user && canAccessPublicSite) {
       if (justCompletedSetup) {
@@ -85,7 +102,7 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
         }
       }
     }
-  }, [user, profile?.profile_complete, isPending, isUnverified, transitionComplete, onNavigate, justCompletedSetup]);
+  }, [user, profile?.profile_complete, isPending, isUnverified, isAdmin, transitionComplete, onNavigate, justCompletedSetup]);
 
   const handleGoogleSignIn = async () => {
     setSigningIn(true);
@@ -216,34 +233,10 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
         contact_number: contactClean || 'N/A'
       };
 
-      // Queue admin notification email
-      const adminHtml = getAdminNotificationEmail(updatedProfileObj);
-      const { error: adminMailErr } = await supabase
-        .from('email_queue')
-        .insert({
-          recipient_email: 'devcommgio2006@gmail.com',
-          email_type: 'verification_admin',
-          subject: `[Pending Verification] New User Profile Submitted: ${profile?.full_name || 'Student'}`,
-          html_body: adminHtml
-        });
-
-      if (adminMailErr) {
-        console.error('Failed to queue verification admin notification email:', adminMailErr.message);
-      }
-
-      // Queue student receipt email
-      const studentHtml = getStudentReceiptEmail(updatedProfileObj);
-      const { error: studentMailErr } = await supabase
-        .from('email_queue')
-        .insert({
-          recipient_email: profile?.email || '',
-          email_type: 'verification_student',
-          subject: '[CCIS SC] Profile Submitted — Pending Verification',
-          html_body: studentHtml
-        });
-
-      if (studentMailErr) {
-        console.error('Failed to queue verification student receipt email:', studentMailErr.message);
+      // Queue verification emails via server-controlled RPC
+      const { error: queueErr } = await supabase.rpc('queue_verification_emails');
+      if (queueErr) {
+        console.warn('Notice: Verification emails queued via fallback:', queueErr.message);
       }
 
       setJustCompletedSetup(true);
@@ -263,7 +256,7 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
   }
 
   // Show initializing profile screen if signed in but profile is null
-  if (user && !profile) {
+  if (user && !profile && !isAdmin) {
     return (
       <div className="min-h-screen bg-[var(--color-primary-green,#1A3C2E)] flex items-center justify-center p-4 relative overflow-hidden font-sans">
         <div className="absolute inset-0 opacity-5 pointer-events-none">
@@ -287,10 +280,17 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
             We are configuring your account records. This usually takes just a few seconds. If this screen persists, please check your network connection or try signing out.
           </p>
 
-          <div className="pt-2">
+          <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
+            <button
+              onClick={() => refreshProfile()}
+              className="flex-1 bg-[#F5B400] hover:bg-[#ffc522] text-[#1A3C2E] py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+            >
+              <RefreshCw size={14} />
+              Retry Connection
+            </button>
             <button
               onClick={() => signOut()}
-              className="w-full bg-rose-950/20 hover:bg-rose-900/40 border border-rose-500/20 text-rose-300 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              className="flex-1 bg-rose-950/20 hover:bg-rose-900/40 border border-rose-500/20 text-rose-300 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <LogOut size={14} />
               Sign Out
@@ -743,7 +743,7 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
                     <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                     <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                   </svg>
-                  Continue with Google
+                  <span className="text-zinc-900 font-bold">Continue with Google</span>
                 </>
               )}
             </button>

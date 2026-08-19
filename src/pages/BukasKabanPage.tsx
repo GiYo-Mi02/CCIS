@@ -204,7 +204,8 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
       const { data, error } = await supabase
         .from('transparency_reports')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(100);
 
       if (error) {
         console.warn('Supabase transparency table access error:', error.message);
@@ -637,7 +638,15 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
     }
 
     try {
-      // 1. Delete files from storage
+      // 1. Delete DB Row first so database consistency is guaranteed
+      const { error: dbErr } = await supabase
+        .from('transparency_reports')
+        .delete()
+        .eq('id', report.id);
+
+      if (dbErr) throw dbErr;
+
+      // 2. Clean up associated files from storage after DB deletion succeeds
       const pdfPath = getStoragePathFromUrl(report.pdfUrl);
       const thumbPath = getStoragePathFromUrl(report.thumbnailUrl);
       const pathsToDelete: string[] = [];
@@ -653,16 +662,8 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
         if (storageErr) console.warn('Failed to delete assets from storage bucket:', storageErr.message);
       }
 
-      // 2. Delete DB Row
-      const { error: dbErr } = await supabase
-        .from('transparency_reports')
-        .delete()
-        .eq('id', report.id);
-
-      if (dbErr) throw dbErr;
-
       setReports(prev => prev.filter(r => r.id !== report.id));
-      triggerToast('Report and associated storage files deleted successfully.', 'success');
+      triggerToast('Report deleted successfully.', 'success');
     } catch (err: any) {
       console.error('Deletion error:', err);
       triggerToast(err.message || 'Failed to delete report.', 'error');

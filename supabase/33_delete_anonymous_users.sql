@@ -19,7 +19,7 @@ BEGIN
   );
 
   DELETE FROM public.conversations
-  WHERE student_id IN (
+  WHERE profile_id IN (
     SELECT id FROM auth.users 
     WHERE is_anonymous = TRUE 
        OR email IS NULL 
@@ -28,7 +28,16 @@ BEGIN
   );
 
   DELETE FROM public.event_registrations
-  WHERE user_id IN (
+  WHERE profile_id IN (
+    SELECT id FROM auth.users 
+    WHERE is_anonymous = TRUE 
+       OR email IS NULL 
+       OR email = '' 
+       OR (raw_user_meta_data->>'is_anonymous')::boolean = TRUE
+  );
+
+  DELETE FROM public.concerns
+  WHERE profile_id IN (
     SELECT id FROM auth.users 
     WHERE is_anonymous = TRUE 
        OR email IS NULL 
@@ -84,14 +93,17 @@ BEGIN
      OR email = '' 
      OR (raw_user_meta_data->>'is_anonymous')::boolean = TRUE;
 
-  -- Delete associated records
+  -- Delete associated records with correct schema columns
   DELETE FROM public.messages WHERE sender_id IN (
     SELECT id FROM auth.users WHERE is_anonymous = TRUE OR email IS NULL OR email = ''
   );
-  DELETE FROM public.conversations WHERE student_id IN (
+  DELETE FROM public.conversations WHERE profile_id IN (
     SELECT id FROM auth.users WHERE is_anonymous = TRUE OR email IS NULL OR email = ''
   );
-  DELETE FROM public.event_registrations WHERE user_id IN (
+  DELETE FROM public.concerns WHERE profile_id IN (
+    SELECT id FROM auth.users WHERE is_anonymous = TRUE OR email IS NULL OR email = ''
+  );
+  DELETE FROM public.event_registrations WHERE profile_id IN (
     SELECT id FROM auth.users WHERE is_anonymous = TRUE OR email IS NULL OR email = ''
   );
   DELETE FROM public.profiles WHERE email IS NULL OR email = '' OR id IN (
@@ -108,4 +120,5 @@ BEGIN
 END;
 $$;
 
+REVOKE ALL ON FUNCTION public.purge_anonymous_users() FROM public, anon;
 GRANT EXECUTE ON FUNCTION public.purge_anonymous_users() TO authenticated, service_role;

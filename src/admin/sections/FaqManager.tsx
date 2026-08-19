@@ -26,7 +26,8 @@ export default function FaqManager() {
       const { data, error } = await supabase
         .from('faqs')
         .select('*')
-        .order('display_order', { ascending: true });
+        .order('display_order', { ascending: true })
+        .limit(100);
 
       if (error) throw error;
       if (data) {

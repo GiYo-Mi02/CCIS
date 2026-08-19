@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import App from './App';
-import AdminApp from './admin/AdminApp';
+import LoadingScreen from './components/LoadingScreen';
+
+const AdminApp = lazy(() => import('./admin/AdminApp'));
 import { useAuth } from './context/AuthContext';
 import { supabase } from './lib/supabase';
 import { applyTheme, DEFAULT_THEME } from './utils/theme';
@@ -37,17 +39,23 @@ export default function RootRouter() {
   }, []);
 
   const switchToAdmin = () => {
-    if (isAdmin) {
-      setMode('admin');
-    }
+    setMode('admin');
   };
 
   const switchToPublic = () => {
     setMode('public');
   };
 
-  if (mode === 'admin' && isAdmin) {
-    return <AdminApp onExitAdmin={switchToPublic} />;
+  if (mode === 'admin') {
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen bg-[#1A3C2E] flex items-center justify-center">
+          <div className="w-8 h-8 border-3 border-[#F5B400] border-t-transparent rounded-full animate-spin" />
+        </div>
+      }>
+        <AdminApp onExitAdmin={switchToPublic} />
+      </Suspense>
+    );
   }
 
   return <App onAdminSwitch={switchToAdmin} />;

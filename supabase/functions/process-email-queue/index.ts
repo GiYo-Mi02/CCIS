@@ -8,15 +8,59 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-serve(async (req) => {
+serve(async (req: Request) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  const requestId = crypto.randomUUID();
+
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseSecretKey = Deno.env.get("SUPABASE_SECRET_KEY");
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+    const supabaseSecretKey = Deno.env.get("SUPABASE_SECRET_KEY") || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+    if (!supabaseUrl || !supabaseSecretKey) {
+      throw new Error("Missing database environment credentials.");
+    }
+
+    // Authenticate invocation: must be an admin user or called with service role / secret key
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Unauthorized: Missing Authorization header." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
+      );
+    }
+
+    const token = authHeader.replace(/^Bearer\s+/i, "");
+    let isAuthorized = token === supabaseSecretKey;
+
+    if (!isAuthorized && supabaseAnonKey) {
+      const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: { user } } = await authClient.auth.getUser();
+      if (user) {
+        const adminCheck = createClient(supabaseUrl, supabaseSecretKey);
+        const { data: profile } = await adminCheck
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .single();
+        if (profile && ["devcom_head", "officer", "comm_registration"].includes(profile.role)) {
+          isAuthorized = true;
+        }
+      }
+    }
+
+    if (!isAuthorized) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Forbidden: Administrative access required." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 }
+      );
+    }
 
     // Read SMTP Credentials strictly from secure Supabase Secrets / Environment Variables
     const smtpHost = Deno.env.get("SMTP_HOST") || "smtp.gmail.com";
@@ -25,16 +69,12 @@ serve(async (req) => {
     const smtpPass = Deno.env.get("SMTP_PASS");
     const smtpFrom = Deno.env.get("SMTP_FROM") || `"CCIS Student Council" <${smtpUser}>`;
 
-    if (!supabaseUrl || !supabaseSecretKey) {
-      throw new Error("Missing database environment credentials.");
-    }
-
     if (!smtpUser || !smtpPass) {
-      throw new Error("Missing SMTP credentials. Please set SMTP_USER and SMTP_PASS in Supabase Edge Function Secrets.");
+      throw new Error("Missing SMTP credentials in Edge Function Secrets.");
     }
 
     const supabase = createClient(supabaseUrl, supabaseSecretKey);
-    const workerId = `edge-${crypto.randomUUID()}`;
+    const workerId = `edge-${requestId}`;
 
     // Initialize Nodemailer Transporter via SMTP
     const transporter = nodemailer.createTransport({
@@ -55,13 +95,17 @@ serve(async (req) => {
     );
 
     if (dequeueError) {
-      throw new Error(`Failed to dequeue emails: ${dequeueError.message}`);
+      console.error(`[process-email-queue:${requestId}] Dequeue error:`, dequeueError.message);
+      return new Response(
+        JSON.stringify({ success: false, error: "Failed to dequeue emails." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+      );
     }
 
     const results = [];
 
     if (dequeuedItems && dequeuedItems.length > 0) {
-      console.log(`[SMTP Cloud Worker] Processing batch of ${dequeuedItems.length} queued emails...`);
+      console.log(`[process-email-queue:${requestId}] Processing batch of ${dequeuedItems.length} queued emails...`);
 
       for (const item of dequeuedItems) {
         try {
@@ -73,7 +117,7 @@ serve(async (req) => {
           };
 
           const info = await transporter.sendMail(mailOptions);
-          console.log(`[SMTP Cloud Worker] Email sent via SMTP to ${item.recipient_email}. MessageId: ${info.messageId}`);
+          console.log(`[process-email-queue:${requestId}] Email item ${item.id} dispatched successfully.`);
 
           // Update status to sent
           const { error: updateError } = await supabase
@@ -90,18 +134,18 @@ serve(async (req) => {
             .eq("lease_worker_id", workerId);
 
           if (updateError) {
-            console.error(`Failed to update status for item ${item.id}:`, updateError.message);
+            console.error(`[process-email-queue:${requestId}] Failed to update status for item ${item.id}:`, updateError.message);
           }
 
-          results.push({ id: item.id, status: "sent", messageId: info.messageId });
+          results.push({ id: item.id, status: "sent" });
         } catch (itemErr: any) {
           const errMsg = itemErr.message || String(itemErr);
-          console.error(`SMTP sending error for item ${item.id}:`, errMsg);
+          console.error(`[process-email-queue:${requestId}] SMTP sending error for item ${item.id}:`, errMsg);
 
           const exhausted = item.attempts >= 3;
           const failureUpdate: Record<string, string | null> = {
             status: exhausted ? "dead_letter" : "failed",
-            error_message: errMsg,
+            error_message: "SMTP delivery failed",
             lease_expires_at: null,
             lease_worker_id: null,
             dead_lettered_at: exhausted ? new Date().toISOString() : null
@@ -110,21 +154,16 @@ serve(async (req) => {
             failureUpdate.scheduled_for = new Date(Date.now() + 60_000 * item.attempts).toISOString();
           }
 
-          const { error: updateError } = await supabase
+          await supabase
             .from("email_queue")
             .update(failureUpdate)
             .eq("id", item.id)
             .eq("status", "processing")
             .eq("lease_worker_id", workerId);
 
-          if (updateError) {
-            console.error(`Failed to update status for item ${item.id}:`, updateError.message);
-          }
-          results.push({ id: item.id, status: exhausted ? "dead_letter" : "failed", error: errMsg });
+          results.push({ id: item.id, status: exhausted ? "dead_letter" : "failed" });
         }
       }
-    } else {
-      console.log("[SMTP Cloud Worker] No pending emails in queue.");
     }
 
     return new Response(
@@ -139,9 +178,9 @@ serve(async (req) => {
       }
     );
   } catch (err: any) {
-    console.error("Fatal SMTP queue processing error:", err);
+    console.error(`[process-email-queue:${requestId}] Fatal error:`, err.message || err);
     return new Response(
-      JSON.stringify({ success: false, error: err.message || err }),
+      JSON.stringify({ success: false, error: "An internal server error occurred while processing queue." }),
       { 
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 500 

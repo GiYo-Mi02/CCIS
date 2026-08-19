@@ -351,7 +351,8 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
       const { data, error } = await supabase
         .from('patch_videos')
         .select('*')
-        .order('episode_number', { ascending: false });
+        .order('episode_number', { ascending: false })
+        .limit(100);
 
       if (error) {
         console.error('Supabase patch videos table load error:', error.message);

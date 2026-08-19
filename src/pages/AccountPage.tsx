@@ -76,13 +76,12 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
         setPassGeneratedAt(new Date(profile.attendance_qr_generated_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }));
       }
     } else {
-      const initialToken = 'CCIS-' + (profile?.student_number || 'STU') + '-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+      const initialToken = 'CCIS-PASS-' + crypto.randomUUID();
       const nowIso = new Date().toISOString();
       setPassToken(initialToken);
-      supabase.from('profiles').update({ attendance_qr_code: initialToken, attendance_qr_generated_at: nowIso }).eq('id', user.id).then();
       updateProfile({ attendance_qr_code: initialToken, attendance_qr_generated_at: nowIso }).catch(console.warn);
     }
-  }, [profile?.attendance_qr_code, profile?.student_number, user?.id]);
+  }, [profile?.attendance_qr_code, user?.id]);
 
   // Data sections
   const [registrations, setRegistrations] = useState<EventRegistration[]>([]);
@@ -370,24 +369,11 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
     if (!user) return;
     setIsRegenerating(true);
     try {
-      const newToken = 'CCIS-' + (profile?.student_number || 'STU') + '-' + Math.random().toString(36).substring(2, 7).toUpperCase() + '-' + Date.now().toString(36).toUpperCase();
+      const newToken = 'CCIS-PASS-' + crypto.randomUUID();
       const nowIso = new Date().toISOString();
       const newDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 
-      // 1. Direct update to Supabase database
-      const { error: dbErr } = await supabase
-        .from('profiles')
-        .update({
-          attendance_qr_code: newToken,
-          attendance_qr_generated_at: nowIso
-        })
-        .eq('id', user.id);
-
-      if (dbErr) {
-        console.warn('Database pass update note:', dbErr);
-      }
-
-      // 2. Update context state
+      // Update via secure profile RPC
       await updateProfile({
         attendance_qr_code: newToken,
         attendance_qr_generated_at: nowIso
@@ -1092,8 +1078,16 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
                   </div>
  
                   {loadingData ? (
-                    <div className="text-center py-16">
-                      <div className="w-8 h-8 border-3 border-[var(--color-accent-gold,#F5B400)] border-t-transparent rounded-full animate-spin mx-auto" />
+                    <div className="space-y-3 py-2 animate-pulse">
+                      {[1, 2].map((i) => (
+                        <div key={i} className="bg-white rounded-2xl border border-zinc-150 p-4 flex items-center justify-between">
+                          <div className="space-y-1.5 flex-1">
+                            <div className="h-4 w-1/3 bg-stone-200 rounded" />
+                            <div className="h-3 w-1/4 bg-stone-100 rounded" />
+                          </div>
+                          <div className="h-8 w-20 bg-stone-200 rounded-xl" />
+                        </div>
+                      ))}
                     </div>
                   ) : (
                     <div className="space-y-4 animate-fade-in">
