@@ -82,18 +82,16 @@ export default function MessagesPage({ onNavigate }: MessagesPageProps) {
         
         // Mark admin messages as read by student in the entire conversation
         const latestAdminMsg = [...data].reverse().find(m => m.sender_role === 'admin');
-        if (latestAdminMsg && user) {
-          localStorage.setItem(`dismissed_msg_${user.id}`, latestAdminMsg.id);
-        }
-
         const hasUnreadAdmin = data.some(m => m.sender_role === 'admin' && !m.read_by_student);
         if (hasUnreadAdmin) {
-          await supabase
-            .from('messages')
-            .update({ read_by_student: true })
-            .eq('conversation_id', conversation.id)
-            .eq('sender_role', 'admin')
-            .eq('read_by_student', false);
+          const { error: readError } = await supabase.rpc('mark_conversation_messages_read_by_student', {
+            p_conversation_id: conversation.id,
+          });
+          if (readError) {
+            console.error('Error marking messages as read:', readError.message);
+          } else if (latestAdminMsg && user) {
+            localStorage.setItem(`dismissed_msg_${user.id}`, latestAdminMsg.id);
+          }
         }
       }
     } catch (err) {
@@ -133,11 +131,14 @@ export default function MessagesPage({ onNavigate }: MessagesPageProps) {
             
             // Mark admin messages as read by student in the database
             if (newMsg.sender_role === 'admin' && !newMsg.read_by_student) {
-              await supabase
-                .from('messages')
-                .update({ read_by_student: true })
-                .eq('id', newMsg.id);
-              newMsg.read_by_student = true;
+              const { error: readError } = await supabase.rpc('mark_conversation_messages_read_by_student', {
+                p_conversation_id: conversation.id,
+              });
+              if (readError) {
+                console.error('Error marking message as read:', readError.message);
+              } else {
+                newMsg.read_by_student = true;
+              }
             }
 
             setMessages((prev) => {

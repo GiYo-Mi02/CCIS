@@ -303,7 +303,7 @@ This document provides an exhaustive, end-to-end suite of manual and automated t
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **TC-WRK-001** | Dequeue & Dispatch | Process queued emails via SMTP | `email_worker.js` active, queued emails exist in DB | 1. Trigger an announcement or ticket response<br>2. Observe email worker console | Worker invokes `public.dequeue_emails(5)`; dispatches email via SMTP; marks queue record `status = 'sent'`. |
 | **TC-WRK-002** | Failed Retry Handling | Retry failed email dispatch up to 3 attempts | Queue item failed | 1. Simulate SMTP connection failure | Worker increments `attempts`; sets status `failed`; retries on next poll until `attempts = 3`. |
-| **TC-WRK-003** | Service Role Auth | Verify worker operates with valid database credentials | `SUPABASE_SERVICE_ROLE_KEY` set or function granted `EXECUTE` | 1. Run `node email_worker.js` | Worker executes `dequeue_emails` without permission errors. |
+| **TC-WRK-003** | Secret Key Auth | Verify worker operates with valid database credentials | `SUPABASE_SECRET_KEY` set or function granted `EXECUTE` | 1. Run `node email_worker.js` | Worker executes `dequeue_emails` without permission errors. |
 
 ---
 

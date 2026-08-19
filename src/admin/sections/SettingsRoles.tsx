@@ -177,116 +177,47 @@ export default function SettingsRoles() {
 
   const handleApplyTheme = async (theme: ThemeSetting) => {
     setLoadingThemes(true);
-    
-    // 1. Reset all themes to inactive in DB
-    const { error: resetError } = await supabase
-      .from('theme_settings')
-      .update({ is_active: false })
-      .eq('is_active', true);
 
-    if (resetError) {
-      showToast('Theme synchronization failed', 'error');
-      setLoadingThemes(false);
-      return;
-    }
+    const { data, error } = await supabase.rpc('activate_theme', {
+      p_theme_id: theme.id,
+    });
+    const resultTheme = data as ThemeSetting | null;
 
-    // 2. Set this theme to active in DB
-    const { error: setActiveError } = await supabase
-      .from('theme_settings')
-      .update({ is_active: true })
-      .eq('id', theme.id);
-
-    if (setActiveError) {
+    if (error || !resultTheme || resultTheme.id !== theme.id || !resultTheme.is_active) {
       showToast('Failed to activate theme', 'error');
     } else {
-      // 3. Update active theme state and apply colors live in CSS variables
-      setActiveTheme(theme);
-      setCustomPrimary(theme.primary_color);
-      setCustomAccent(theme.accent_color);
-      setCustomCanvas(theme.canvas_color);
+      setActiveTheme(resultTheme);
+      setCustomPrimary(resultTheme.primary_color);
+      setCustomAccent(resultTheme.accent_color);
+      setCustomCanvas(resultTheme.canvas_color);
       
       applyTheme({
-        primaryGreen: theme.primary_color,
-        accentGold: theme.accent_color,
-        bgCream: theme.canvas_color
+        primaryGreen: resultTheme.primary_color,
+        accentGold: resultTheme.accent_color,
+        bgCream: resultTheme.canvas_color
       });
 
       // Update the local list state
-      setThemes(prev => prev.map(t => t.id === theme.id ? { ...t, is_active: true } : { ...t, is_active: false }));
-      showToast(`Theme "${theme.preset_name}" is now active globally!`, 'success');
+      setThemes(prev => prev.map(t => t.id === resultTheme.id ? resultTheme : { ...t, is_active: false }));
+      showToast(`Theme "${resultTheme.preset_name}" is now active globally!`, 'success');
     }
     setLoadingThemes(false);
   };
 
   const handleSaveCustomTheme = async () => {
     const customName = 'Custom Workspace Palette';
+    const { data, error } = await supabase.rpc('activate_theme', {
+      p_preset_name: customName,
+      p_primary_color: customPrimary,
+      p_accent_color: customAccent,
+      p_canvas_color: customCanvas,
+    });
+    const resultData = data as ThemeSetting | null;
 
-    // 1. Reset all themes to inactive in DB
-    const { error: resetError } = await supabase
-      .from('theme_settings')
-      .update({ is_active: false })
-      .eq('is_active', true);
-
-    if (resetError) {
-      showToast('Theme synchronization failed', 'error');
-      return;
-    }
-
-    // 2. Check if the custom theme already exists
-    const { data: existingTheme, error: selectError } = await supabase
-      .from('theme_settings')
-      .select('*')
-      .eq('preset_name', customName)
-      .maybeSingle();
-
-    if (selectError) {
-      showToast('Failed to check custom theme', 'error');
-      console.error('Select custom theme error:', selectError.message);
-      return;
-    }
-
-    let resultData: ThemeSetting | null = null;
-    let resultError: any = null;
-
-    if (existingTheme) {
-      // Update the existing theme row
-      const { data, error } = await supabase
-        .from('theme_settings')
-        .update({
-          primary_color: customPrimary,
-          accent_color: customAccent,
-          canvas_color: customCanvas,
-          is_active: true
-        })
-        .eq('id', existingTheme.id)
-        .select()
-        .single();
-      
-      resultData = data as ThemeSetting;
-      resultError = error;
-    } else {
-      // Insert a new theme row
-      const { data, error } = await supabase
-        .from('theme_settings')
-        .insert({
-          preset_name: customName,
-          primary_color: customPrimary,
-          accent_color: customAccent,
-          canvas_color: customCanvas,
-          is_active: true
-        })
-        .select()
-        .single();
-
-      resultData = data as ThemeSetting;
-      resultError = error;
-    }
-
-    if (resultError) {
+    if (error || !resultData || !resultData.is_active) {
       showToast('Failed to save colors', 'error');
-      console.error('Save custom theme error:', resultError.message);
+      if (error) console.error('Save custom theme error:', error.message);
     } else if (resultData) {
-      // 3. Apply active colors live and sync list state
       setActiveTheme(resultData);
       
       applyTheme({

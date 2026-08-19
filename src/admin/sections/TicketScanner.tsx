@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Camera, AlertTriangle, CheckCircle, XCircle, RefreshCw, Send, ShieldAlert, History, Volume2, VolumeX, Calendar, SwitchCamera, FileImage } from 'lucide-react';
 import { Html5Qrcode, CameraDevice } from 'html5-qrcode';
 import { supabase } from '../../lib/supabase';
+import { postgrestEquals } from '../../lib/postgrest';
 import { useAdmin } from '../AdminContext';
 
 interface ScanResult {
@@ -322,7 +323,7 @@ export default function TicketScanner() {
         const { data: matchedProf } = await supabase
           .from('profiles')
           .select('*')
-          .or(`attendance_qr_code.eq.${trimmedId},student_number.eq.${trimmedId.toUpperCase()}`)
+          .or(`attendance_qr_code.eq.${postgrestEquals(trimmedId)},student_number.eq.${postgrestEquals(trimmedId.toUpperCase())}`)
           .maybeSingle();
 
         if (matchedProf) {
@@ -398,15 +399,41 @@ export default function TicketScanner() {
         const eventTitle = targetEvent ? targetEvent.title : 'General Audience Attendance';
 
         if (selectedEventId) {
-          // Check if already registered or checked in for this event
-          const { data: existingReg } = await supabase
-            .from('event_registrations')
-            .select('id, status, updated_at')
-            .eq('event_id', selectedEventId)
-            .eq('user_id', stProfile.id)
-            .maybeSingle();
+          const attendanceToken = stProfile.attendance_qr_code;
+          if (!attendanceToken) {
+            playSound('error');
+            const errorResult: ScanResult = {
+              status: 'error',
+              message: 'This profile does not have a valid audience attendance token.'
+            };
+            setResult(errorResult);
+            addToLog(trimmedId, errorResult);
+            scheduleAutoDismiss(AUTO_DISMISS_ERROR_MS);
+            return;
+          }
 
-          if (existingReg && existingReg.status === 'attended') {
+          const { data: attendanceData, error: attendanceErr } = await supabase.rpc('check_in_audience', {
+            p_event_id: selectedEventId,
+            p_attendance_token: attendanceToken,
+          }).single();
+          const attendance = attendanceData as {
+            was_already_attended: boolean;
+            attended_at: string | null;
+          } | null;
+
+          if (attendanceErr || !attendance) {
+            playSound('error');
+            const errorResult: ScanResult = {
+              status: 'error',
+              message: 'Unable to record audience attendance. Please try again.'
+            };
+            setResult(errorResult);
+            addToLog(trimmedId, errorResult);
+            scheduleAutoDismiss(AUTO_DISMISS_ERROR_MS);
+            return;
+          }
+
+          if (attendance.was_already_attended) {
             playSound('warning');
             const warningResult: ScanResult = {
               status: 'warning',
@@ -417,30 +444,13 @@ export default function TicketScanner() {
                 section: stProfile.section || audienceData.section || '—',
                 program: stProfile.program || audienceData.program || 'CCIS',
                 eventTitle,
-                attendedAt: existingReg.updated_at ? new Date(existingReg.updated_at).toLocaleTimeString() : 'Previously'
+                attendedAt: attendance.attended_at ? new Date(attendance.attended_at).toLocaleTimeString() : 'Previously'
               }
             };
             setResult(warningResult);
             addToLog(trimmedId, warningResult);
             scheduleAutoDismiss(AUTO_DISMISS_SUCCESS_MS);
             return;
-          }
-
-          if (existingReg) {
-            // Update to attended
-            await supabase
-              .from('event_registrations')
-              .update({ status: 'attended' })
-              .eq('id', existingReg.id);
-          } else {
-            // Create new attended record in event_registrations
-            await supabase
-              .from('event_registrations')
-              .insert({
-                event_id: selectedEventId,
-                user_id: stProfile.id,
-                status: 'attended'
-              });
           }
         }
 

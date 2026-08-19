@@ -16,7 +16,7 @@ serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const supabaseSecretKey = Deno.env.get("SUPABASE_SECRET_KEY");
 
     // Read SMTP Credentials strictly from secure Supabase Secrets / Environment Variables
     const smtpHost = Deno.env.get("SMTP_HOST") || "smtp.gmail.com";
@@ -25,7 +25,7 @@ serve(async (req) => {
     const smtpPass = Deno.env.get("SMTP_PASS");
     const smtpFrom = Deno.env.get("SMTP_FROM") || `"CCIS Student Council" <${smtpUser}>`;
 
-    if (!supabaseUrl || !supabaseServiceKey) {
+    if (!supabaseUrl || !supabaseSecretKey) {
       throw new Error("Missing database environment credentials.");
     }
 
@@ -33,7 +33,8 @@ serve(async (req) => {
       throw new Error("Missing SMTP credentials. Please set SMTP_USER and SMTP_PASS in Supabase Edge Function Secrets.");
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createClient(supabaseUrl, supabaseSecretKey);
+    const workerId = `edge-${crypto.randomUUID()}`;
 
     // Initialize Nodemailer Transporter via SMTP
     const transporter = nodemailer.createTransport({
@@ -50,7 +51,7 @@ serve(async (req) => {
     const batchSize = 10;
     const { data: dequeuedItems, error: dequeueError } = await supabase.rpc(
       "dequeue_emails",
-      { p_limit: batchSize }
+      { p_limit: batchSize, p_worker_id: workerId }
     );
 
     if (dequeueError) {
@@ -80,9 +81,13 @@ serve(async (req) => {
             .update({
               status: "sent",
               processed_at: new Date().toISOString(),
-              error_message: null
+              error_message: null,
+              lease_expires_at: null,
+              lease_worker_id: null
             })
-            .eq("id", item.id);
+            .eq("id", item.id)
+            .eq("status", "processing")
+            .eq("lease_worker_id", workerId);
 
           if (updateError) {
             console.error(`Failed to update status for item ${item.id}:`, updateError.message);
@@ -93,18 +98,29 @@ serve(async (req) => {
           const errMsg = itemErr.message || String(itemErr);
           console.error(`SMTP sending error for item ${item.id}:`, errMsg);
 
+          const exhausted = item.attempts >= 3;
+          const failureUpdate: Record<string, string | null> = {
+            status: exhausted ? "dead_letter" : "failed",
+            error_message: errMsg,
+            lease_expires_at: null,
+            lease_worker_id: null,
+            dead_lettered_at: exhausted ? new Date().toISOString() : null
+          };
+          if (!exhausted) {
+            failureUpdate.scheduled_for = new Date(Date.now() + 60_000 * item.attempts).toISOString();
+          }
+
           const { error: updateError } = await supabase
             .from("email_queue")
-            .update({
-              status: "failed",
-              error_message: errMsg
-            })
-            .eq("id", item.id);
+            .update(failureUpdate)
+            .eq("id", item.id)
+            .eq("status", "processing")
+            .eq("lease_worker_id", workerId);
 
           if (updateError) {
             console.error(`Failed to update status for item ${item.id}:`, updateError.message);
           }
-          results.push({ id: item.id, status: "failed", error: errMsg });
+          results.push({ id: item.id, status: exhausted ? "dead_letter" : "failed", error: errMsg });
         }
       }
     } else {

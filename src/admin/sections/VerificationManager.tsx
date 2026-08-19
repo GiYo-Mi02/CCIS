@@ -9,6 +9,7 @@ import { Profile } from '../../types/database';
 import { getApprovalEmail, getRejectionEmail } from '../../utils/verificationEmails';
 import Pagination from '../components/Pagination';
 import EmptyState from '../components/EmptyState';
+import { postgrestIlike } from '../../lib/postgrest';
 
 export default function VerificationManager() {
   const { showToast } = useAdmin();
@@ -53,8 +54,9 @@ export default function VerificationManager() {
         .eq('profile_complete', true);
 
       if (debouncedSearch.trim()) {
+        const searchFilter = postgrestIlike(debouncedSearch);
         query = query.or(
-          `full_name.ilike.%${debouncedSearch}%,email.ilike.%${debouncedSearch}%,student_number.ilike.%${debouncedSearch}%`
+          `full_name.ilike.${searchFilter},email.ilike.${searchFilter},student_number.ilike.${searchFilter}`
         );
       }
 

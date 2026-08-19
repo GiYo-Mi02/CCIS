@@ -111,7 +111,7 @@ The cleanup script and its `purge_anonymous_users()` function reference `convers
 
 **Fix:** Align the cleanup predicates with the current schema, run them in a transaction with a dry-run/count step, and test them against a disposable database snapshot before deployment.
 
-### 22. Legacy gallery policy leaves unauthenticated inserts enabled
+### 22. [RESOLVED] Legacy gallery policy leaves unauthenticated inserts enabled
 
 **Severity:** ERROR - Security
 **Standards:** 4, 20
@@ -121,7 +121,7 @@ The numbered migrations create `gallery_items_user_insert` with `profile_id IS N
 
 **Fix:** Drop the legacy user insert/delete policies in the final migration and create one authenticated admin-only write policy. Add an integration check that verifies anonymous `INSERT`, `UPDATE`, and `DELETE` are denied after all migrations run.
 
-### 23. Students can rewrite message content and sender identity
+### 23. [RESOLVED] Students can rewrite message content and sender identity
 
 **Severity:** ERROR - Security
 **Standards:** 4, 20
@@ -131,7 +131,7 @@ The student update policy checks only `auth.uid() = student_id`. It does not res
 
 **Fix:** Remove broad client `UPDATE` access and expose a narrow RPC for read-state changes, or enforce column-level privileges so students can update only their own read flag. Keep sender identity, role, content, and conversation ownership server-controlled.
 
-### 24. Audience attendance writes use a nonexistent column and a revoked grant
+### 24. [RESOLVED] Audience attendance writes use a nonexistent column and a revoked grant
 
 **Severity:** ERROR - Data Integrity
 **Standards:** 12, 16, 20, 24
@@ -141,7 +141,7 @@ The scanner looks up registrations with `event_registrations.user_id` and insert
 
 **Fix:** Use a server-side attendance RPC that accepts a validated profile token and event ID, derives `profile_id`, performs an atomic already-attended check plus write, and returns a stable result. Remove the direct client insert path and check every RPC result before reporting success.
 
-### 25. Deleting a profile does not revoke the Auth account
+### 25. [RESOLVED] Deleting a profile does not revoke the Auth account
 
 **Severity:** ERROR - Security
 **Standards:** 4, 16, 20, 24
@@ -297,7 +297,7 @@ The repository does not use Supabase CLI migrations under `supabase/migrations/`
 
 **Fix:** Add a small test command covering auth/profile authorization and event registration RPC behavior first, then add browser coverage for the critical registration and admin flows.
 
-### 20. Icon-only controls lack accessible names
+### 20. [RESOLVED] Icon-only controls lack accessible names
 
 **Severity:** WARNING - Accessibility
 **Standards:** 32
@@ -307,7 +307,7 @@ Close, previous, next, menu, notifications, and logout controls render icons wit
 
 **Fix:** Add `aria-label` values and use `aria-expanded` where a control opens a panel.
 
-### 21. Selected pagination state is visual only
+### 21. [RESOLVED] Selected pagination state is visual only
 
 **Severity:** WARNING - Accessibility
 **Standards:** 34
@@ -319,7 +319,7 @@ The current page is styled differently but is not exposed with `aria-current="pa
 
 ## SECOND ROUND ADDITIONS - WARNING
 
-### 26. Supabase client and worker are wired to legacy key names
+### 26. [RESOLVED] Supabase client and worker are wired to legacy key names
 
 **Severity:** WARNING - DevOps
 **Standards:** 30, 36
@@ -329,7 +329,7 @@ The browser still expects `VITE_SUPABASE_ANON_KEY`, and the worker still expects
 
 **Fix:** Migrate the browser configuration to the project's publishable key and the worker/Edge Functions to a secret key, rename the environment variables, remove the anonymous fallback, and update deployment secrets and documentation. Check the ignored environment and Supabase project settings before deciding whether key rotation is required.
 
-### 27. Dashboard has a proven N+1 query for unread counts
+### 27. [RESOLVED] Dashboard has a proven N+1 query for unread counts
 
 **Severity:** WARNING - Performance
 **Standards:** 23
@@ -339,7 +339,7 @@ The dashboard fetches five conversations, then runs one additional `messages` co
 
 **Fix:** Fetch unread messages once and group by `conversation_id`, or expose a grouped SQL view/RPC that returns the conversation list and unread counts together.
 
-### 28. Registration capacity display counts cancelled rows
+### 28. [RESOLVED] Registration capacity display counts cancelled rows
 
 **Severity:** WARNING - Logic
 **Standards:** 20
@@ -349,7 +349,7 @@ The registration card counts every row returned from `event_registrations`, incl
 
 **Fix:** Use one shared server-side capacity result, such as `events_with_slots` or the registration RPC, for display, re-registration, and enforcement. Define exactly which statuses consume capacity and apply that definition in every path.
 
-### 29. Theme activation is a non-transactional two-write invariant
+### 29. [RESOLVED] Theme activation is a non-transactional two-write invariant
 
 **Severity:** WARNING - Concurrency
 **Standards:** 16, 24
@@ -359,7 +359,7 @@ Applying a theme first deactivates the current theme and then activates the sele
 
 **Fix:** Use one transactional RPC or a database constraint-backed mutation that always leaves exactly one active theme. Check the final row returned by the mutation before showing success.
 
-### 30. Several destructive admin actions have no confirmation
+### 30. [RESOLVED] Several destructive admin actions have no confirmation
 
 **Severity:** WARNING - Code Quality
 **Standards:** 37
@@ -369,7 +369,7 @@ Announcement deletion, officer deletion, committee deletion, and the two bulk-de
 
 **Fix:** Require a confirmation step for every destructive action, especially bulk deletion. Keep the selected record in the confirmation state and disable duplicate submissions while the delete is pending.
 
-### 31. Dequeued email rows can remain stuck in `processing` forever
+### 31. [RESOLVED] Dequeued email rows can remain stuck in `processing` forever
 
 **Severity:** WARNING - Error Handling
 **Standards:** 29, 38
@@ -379,7 +379,7 @@ Announcement deletion, officer deletion, committee deletion, and the two bulk-de
 
 **Fix:** Store a lease timestamp/worker ID, reclaim expired processing rows, cap retries, and move exhausted rows to a dead-letter state with an operator-visible diagnostic.
 
-### 32. Email triggers perform one queue insert per subscriber inside the source transaction
+### 32. [RESOLVED] Email triggers perform one queue insert per subscriber inside the source transaction
 
 **Severity:** WARNING - Performance
 **Standards:** 23
@@ -389,7 +389,7 @@ Publishing an announcement or creating an event loops through every subscribed p
 
 **Fix:** Use a set-based `INSERT ... SELECT` for queue rows, move fan-out to an asynchronous job, and add a batch-level retry/dead-letter policy.
 
-### 33. Admin search values are concatenated into raw PostgREST filters
+### 33. [RESOLVED] Admin search values are concatenated into raw PostgREST filters
 
 **Severity:** WARNING - API Design
 **Standards:** 3
@@ -399,7 +399,7 @@ User-controlled search text is interpolated directly into `.or(...)` filter expr
 
 **Fix:** Escape PostgREST filter metacharacters or use separate parameterized filters supported by the client library. Add tests for commas, parentheses, quotes, percent signs, and very long search values.
 
-### 34. Registration CSV export is vulnerable to formula injection and malformed quoting
+### 34. Registration CSV export is vulnerable to formula injection and malformed quoting [RESOLVED]
 
 **Severity:** WARNING - Security
 **Standards:** 18
@@ -409,7 +409,7 @@ Profile-controlled values are placed in CSV cells without escaping embedded quot
 
 **Fix:** Apply RFC 4180 quoting to every cell and prefix dangerous formula-leading values with a single quote or tab before generating the download.
 
-### 35. The CSP blocks the app's external PDF and IP integrations
+### 35. The CSP blocks the app's external PDF and IP integrations [RESOLVED]
 
 **Severity:** WARNING - DevOps
 **Standards:** 30

@@ -243,30 +243,25 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
   // Mark messages as read when the Messages tab is opened on AccountPage
   useEffect(() => {
     if (activeTab === 'messages' && conversation && user) {
-      // Find the latest admin message ID and mark as dismissed in localStorage
       const latestAdminMsg = [...lastMessages].reverse().find(m => m.sender_role === 'admin');
-      if (latestAdminMsg) {
-        localStorage.setItem(`dismissed_msg_${user.id}`, latestAdminMsg.id);
-      }
-
       const hasUnreadLocal = lastMessages.some(m => m.sender_role === 'admin' && !m.read_by_student);
       if (hasUnreadLocal) {
-        // Optimistically clear the unread state locally
-        setLastMessages(prev =>
-          prev.map(m => m.sender_role === 'admin' ? { ...m, read_by_student: true } : m)
-        );
-
-        // Perform the Supabase update asynchronously for ALL unread admin messages in conversation
         supabase
-          .from('messages')
-          .update({ read_by_student: true })
-          .eq('conversation_id', conversation.id)
-          .eq('sender_role', 'admin')
-          .eq('read_by_student', false)
+          .rpc('mark_conversation_messages_read_by_student', {
+            p_conversation_id: conversation.id,
+          })
           .then(({ error }) => {
             if (error) {
               console.error('Failed to update read status on Supabase:', error.message);
+              return;
             }
+
+            if (latestAdminMsg) {
+              localStorage.setItem(`dismissed_msg_${user.id}`, latestAdminMsg.id);
+            }
+            setLastMessages(prev =>
+              prev.map(m => m.sender_role === 'admin' ? { ...m, read_by_student: true } : m)
+            );
           });
       }
     }

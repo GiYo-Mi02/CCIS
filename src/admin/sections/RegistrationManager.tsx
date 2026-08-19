@@ -8,6 +8,7 @@ import Modal from '../components/Modal';
 import EmptyState from '../components/EmptyState';
 import Pagination from '../components/Pagination';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import { postgrestIlike } from '../../lib/postgrest';
 
 export default function RegistrationManager() {
   const { showToast } = useAdmin();
@@ -41,10 +42,11 @@ export default function RegistrationManager() {
       // 2. Fetch matching set for statistics & pagination counts
       let totalQuery;
       if (search.trim()) {
+        const searchFilter = postgrestIlike(search);
         totalQuery = supabase
           .from('event_registrations')
           .select('id, status, profiles!inner(full_name, email)')
-          .or(`full_name.ilike.%${search.trim()}%,email.ilike.%${search.trim()}%`, { referencedTable: 'profiles' });
+          .or(`full_name.ilike.${searchFilter},email.ilike.${searchFilter}`, { referencedTable: 'profiles' });
       } else {
         totalQuery = supabase
           .from('event_registrations')
@@ -84,10 +86,11 @@ export default function RegistrationManager() {
       // 3. Fetch paginated records for the current page
       let listQuery;
       if (search.trim()) {
+        const searchFilter = postgrestIlike(search);
         listQuery = supabase
           .from('event_registrations')
           .select('*, profiles!inner(full_name, student_number, email, section), events(title, event_date, location)')
-          .or(`full_name.ilike.%${search.trim()}%,email.ilike.%${search.trim()}%`, { referencedTable: 'profiles' });
+          .or(`full_name.ilike.${searchFilter},email.ilike.${searchFilter}`, { referencedTable: 'profiles' });
       } else {
         listQuery = supabase
           .from('event_registrations')
@@ -193,9 +196,23 @@ export default function RegistrationManager() {
       showToast('No registrations to export', 'warning');
       return;
     }
+    const csvCell = (value: unknown) => {
+      const text = String(value ?? '');
+      const safeText = /^[\s\x00-\x1F\x7F\uFEFF]*[=+\-@]/.test(text) ? `'${text}` : text;
+      return `"${safeText.replace(/"/g, '""')}"`;
+    };
+    const csvRow = (values: unknown[]) => values.map(csvCell).join(',');
     const csv = [
-      'Name,Email,Student Number,Section,Event,Status,Registered At',
-      ...toExport.map(r => `"${r.profiles?.full_name || ''}","${r.profiles?.email || ''}","${r.profiles?.student_number || ''}","${r.profiles?.section || ''}","${r.events?.title || ''}","${r.status === 'confirmed' || r.status === 'pending' ? 'Not Attended' : r.status === 'attended' ? 'Attended' : r.status}","${r.registered_at}"`)
+      csvRow(['Name', 'Email', 'Student Number', 'Section', 'Event', 'Status', 'Registered At']),
+      ...toExport.map(r => csvRow([
+        r.profiles?.full_name,
+        r.profiles?.email,
+        r.profiles?.student_number,
+        r.profiles?.section,
+        r.events?.title,
+        r.status === 'confirmed' || r.status === 'pending' ? 'Not Attended' : r.status === 'attended' ? 'Attended' : r.status,
+        r.registered_at,
+      ])),
     ].join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);

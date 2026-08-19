@@ -19,6 +19,7 @@ export default function OfficersManager() {
   const [editingOfficer, setEditingOfficer] = useState<Partial<Officer> | null>(null);
   const [editingCommittee, setEditingCommittee] = useState<Partial<Committee> | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   const fetchData = async () => {
     const [offRes, commRes] = await Promise.all([
@@ -50,10 +51,16 @@ export default function OfficersManager() {
   };
 
   const deleteOfficer = async (id: string) => {
-    const { error } = await supabase.from('officers').delete().eq('id', id);
-    if (error) { showToast('Failed to delete', 'error'); return; }
-    setOfficers(prev => prev.filter(o => o.id !== id));
-    showToast('Officer removed', 'error');
+    if (deleting || !window.confirm('Remove this officer? This action cannot be undone.')) return;
+    setDeleting(`officer:${id}`);
+    try {
+      const { error } = await supabase.from('officers').delete().eq('id', id);
+      if (error) { showToast('Failed to delete', 'error'); return; }
+      setOfficers(prev => prev.filter(o => o.id !== id));
+      showToast('Officer removed', 'error');
+    } finally {
+      setDeleting(null);
+    }
   };
 
   const saveOfficer = async (form: Partial<Officer>) => {
@@ -93,10 +100,16 @@ export default function OfficersManager() {
   };
 
   const deleteCommittee = async (id: string) => {
-    const { error } = await supabase.from('committees').delete().eq('id', id);
-    if (error) { showToast('Failed to delete', 'error'); return; }
-    setCommittees(prev => prev.filter(c => c.id !== id));
-    showToast('Committee removed', 'error');
+    if (deleting || !window.confirm('Remove this committee? This action cannot be undone.')) return;
+    setDeleting(`committee:${id}`);
+    try {
+      const { error } = await supabase.from('committees').delete().eq('id', id);
+      if (error) { showToast('Failed to delete', 'error'); return; }
+      setCommittees(prev => prev.filter(c => c.id !== id));
+      showToast('Committee removed', 'error');
+    } finally {
+      setDeleting(null);
+    }
   };
 
   const saveCommittee = async (form: Partial<Committee>) => {
@@ -127,17 +140,29 @@ export default function OfficersManager() {
   };
 
   const handleDeleteAllOfficers = async () => {
-    const { error } = await supabase.from('officers').delete().not('id', 'is', null);
-    if (error) { showToast('Failed to delete all', 'error'); return; }
-    setOfficers([]);
-    showToast('All officers deleted', 'error');
+    if (deleting || !window.confirm('Delete all officers? This action cannot be undone.')) return;
+    setDeleting('officers:all');
+    try {
+      const { error } = await supabase.from('officers').delete().not('id', 'is', null);
+      if (error) { showToast('Failed to delete all', 'error'); return; }
+      setOfficers([]);
+      showToast('All officers deleted', 'error');
+    } finally {
+      setDeleting(null);
+    }
   };
 
   const handleDeleteAllCommittees = async () => {
-    const { error } = await supabase.from('committees').delete().not('id', 'is', null);
-    if (error) { showToast('Failed to delete all', 'error'); return; }
-    setCommittees([]);
-    showToast('All committees deleted', 'error');
+    if (deleting || !window.confirm('Delete all committees? This action cannot be undone.')) return;
+    setDeleting('committees:all');
+    try {
+      const { error } = await supabase.from('committees').delete().not('id', 'is', null);
+      if (error) { showToast('Failed to delete all', 'error'); return; }
+      setCommittees([]);
+      showToast('All committees deleted', 'error');
+    } finally {
+      setDeleting(null);
+    }
   };
 
   if (loading) {
@@ -188,12 +213,12 @@ export default function OfficersManager() {
 
         <div className="flex-1" />
         {tab === 'officers' && officers.length > 0 && (
-          <button onClick={handleDeleteAllOfficers} className="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 px-3 py-2 rounded-lg font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 transition-colors">
+           <button onClick={handleDeleteAllOfficers} disabled={deleting !== null} className="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 px-3 py-2 rounded-lg font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
             <Trash size={13} /> Delete All
           </button>
         )}
         {tab === 'committees' && committees.length > 0 && (
-          <button onClick={handleDeleteAllCommittees} className="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 px-3 py-2 rounded-lg font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 transition-colors">
+           <button onClick={handleDeleteAllCommittees} disabled={deleting !== null} className="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 px-3 py-2 rounded-lg font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
             <Trash size={13} /> Delete All
           </button>
         )}
@@ -263,7 +288,7 @@ export default function OfficersManager() {
                     <td className="px-5 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <button onClick={() => { setIsCreating(false); setEditingOfficer(off); }} className="p-1.5 rounded-lg text-gray-400 hover:text-[#1A3C2E] hover:bg-gray-100 transition-colors"><Edit3 size={14} /></button>
-                        <button onClick={() => deleteOfficer(off.id)} className="p-1.5 rounded-lg text-gray-400 hover:text-[#C0392B] hover:bg-red-50 transition-colors"><Trash2 size={14} /></button>
+                         <button onClick={() => deleteOfficer(off.id)} disabled={deleting !== null} className="p-1.5 rounded-lg text-gray-400 hover:text-[#C0392B] hover:bg-red-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"><Trash2 size={14} /></button>
                       </div>
                     </td>
                   </tr>
@@ -287,7 +312,7 @@ export default function OfficersManager() {
                   <h3 className="font-sans font-bold text-sm text-[#1A3C2E]">{comm.name}</h3>
                   <div className="flex items-center gap-1">
                     <button onClick={() => { setIsCreating(false); setEditingCommittee(comm); }} className="p-1.5 rounded-lg text-gray-400 hover:text-[#1A3C2E] hover:bg-gray-100 transition-colors"><Edit3 size={13} /></button>
-                    <button onClick={() => deleteCommittee(comm.id)} className="p-1.5 rounded-lg text-gray-400 hover:text-[#C0392B] hover:bg-red-50 transition-colors"><Trash2 size={13} /></button>
+                     <button onClick={() => deleteCommittee(comm.id)} disabled={deleting !== null} className="p-1.5 rounded-lg text-gray-400 hover:text-[#C0392B] hover:bg-red-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"><Trash2 size={13} /></button>
                   </div>
                 </div>
                 <p className="text-xs text-gray-500 leading-relaxed mb-3">{comm.description}</p>

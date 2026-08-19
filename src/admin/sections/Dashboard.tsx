@@ -82,33 +82,36 @@ export default function Dashboard() {
         let mappedCon: RecentConversation[] = [];
 
         if (hasMessageAccess) {
-          const [msgTotal, msgUnread, recentConData] = await Promise.all([
+          const [msgTotal, msgUnread, recentConData, unreadCountsData] = await Promise.all([
             supabase.from('messages').select('*', { count: 'exact', head: true }),
             supabase.from('messages').select('*', { count: 'exact', head: true }).eq('read_by_admin', false).eq('sender_role', 'student'),
             supabase.from('conversations').select('id, last_message_at, profiles(full_name, email)').order('last_message_at', { ascending: false }).limit(5),
+            supabase.rpc('get_dashboard_unread_counts'),
           ]);
 
           msgTotalCount = msgTotal.count || 0;
           msgUnreadCount = msgUnread.count || 0;
 
           if (recentConData.data) {
-            // Fetch unread count per conversation to display
             const rawConList = recentConData.data as any[];
-            mappedCon = await Promise.all(rawConList.map(async (con) => {
-              const { count: unread } = await supabase
-                .from('messages')
-                .select('*', { count: 'exact', head: true })
-                .eq('conversation_id', con.id)
-                .eq('read_by_admin', false)
-                .eq('sender_role', 'student');
+            const unreadByConversation = new Map<string, number>(
+              (unreadCountsData.data || []).map((row: { conversation_id: string; unread_count: number }) => [
+                row.conversation_id,
+                Number(row.unread_count) || 0,
+              ])
+            );
+            if (unreadCountsData.error) {
+              console.error('Error fetching dashboard unread counts:', unreadCountsData.error.message);
+            }
 
+            mappedCon = rawConList.map((con) => {
               return {
                 id: con.id,
                 last_message_at: con.last_message_at,
                 profiles: con.profiles,
-                unread_count: unread || 0,
+                unread_count: unreadByConversation.get(con.id) || 0,
               };
-            }));
+            });
           }
         }
 

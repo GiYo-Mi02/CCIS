@@ -28,6 +28,7 @@ export default function ToastContainer() {
             <p className="text-sm font-medium flex-1">{toast.message}</p>
             <button
               onClick={() => dismissToast(toast.id)}
+              aria-label="Dismiss notification"
               className="p-0.5 rounded hover:bg-white/20 transition-colors shrink-0"
             >
               <X size={14} />

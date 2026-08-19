@@ -17,6 +17,7 @@ export default function AnnouncementsManager() {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [editingAnn, setEditingAnn] = useState<Announcement | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   const fetchAnnouncements = async () => {
     const { data, error } = await supabase
@@ -37,17 +38,29 @@ export default function AnnouncementsManager() {
   });
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase.from('announcements').delete().eq('id', id);
-    if (error) { showToast('Failed to delete', 'error'); return; }
-    setAnnouncements(prev => prev.filter(a => a.id !== id));
-    showToast('Announcement deleted', 'error');
+    if (deleting || !window.confirm('Delete this announcement? This action cannot be undone.')) return;
+    setDeleting(id);
+    try {
+      const { error } = await supabase.from('announcements').delete().eq('id', id);
+      if (error) { showToast('Failed to delete', 'error'); return; }
+      setAnnouncements(prev => prev.filter(a => a.id !== id));
+      showToast('Announcement deleted', 'error');
+    } finally {
+      setDeleting(null);
+    }
   };
 
   const handleDeleteAll = async () => {
-    const { error } = await supabase.from('announcements').delete().not('id', 'is', null);
-    if (error) { showToast('Failed to delete all', 'error'); return; }
-    setAnnouncements([]);
-    showToast('All announcements deleted', 'error');
+    if (deleting || !window.confirm('Delete all announcements? This action cannot be undone.')) return;
+    setDeleting('all');
+    try {
+      const { error } = await supabase.from('announcements').delete().not('id', 'is', null);
+      if (error) { showToast('Failed to delete all', 'error'); return; }
+      setAnnouncements([]);
+      showToast('All announcements deleted', 'error');
+    } finally {
+      setDeleting(null);
+    }
   };
 
   const handleTogglePin = async (id: string) => {
@@ -139,6 +152,7 @@ export default function AnnouncementsManager() {
           {announcements.length > 0 && (
             <button
               onClick={handleDeleteAll}
+              disabled={deleting !== null}
               className="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 px-4 py-2.5 rounded-lg font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-colors flex-1 sm:flex-initial justify-center"
             >
               <Trash size={14} /> Delete All
@@ -218,7 +232,7 @@ export default function AnnouncementsManager() {
                         <button onClick={() => handleTogglePin(ann.id)} className={`p-1.5 rounded-lg transition-colors ${ann.pinned ? 'text-[#F5B400] bg-[#F5B400]/10' : 'text-gray-400 hover:text-[#F5B400] hover:bg-[#F5B400]/10'}`} title="Toggle Pin">
                           <Pin size={14} />
                         </button>
-                        <button onClick={() => handleDelete(ann.id)} className="p-1.5 rounded-lg text-gray-400 hover:text-[#C0392B] hover:bg-red-50 transition-colors" title="Delete">
+                         <button onClick={() => handleDelete(ann.id)} disabled={deleting !== null} className="p-1.5 rounded-lg text-gray-400 hover:text-[#C0392B] hover:bg-red-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed" title="Delete">
                           <Trash2 size={14} />
                         </button>
                       </div>

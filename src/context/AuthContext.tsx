@@ -93,37 +93,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (error) {
       console.error('Error fetching profile:', error.message);
-      // Auto-recreate fallback if the profile doesn't exist but the user is currently authenticated
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user && session.user.id === userId) {
-          console.log('[AuthContext] Profile row missing for logged-in user, auto-recreating...', userId);
-          const newProfile = {
-            id: userId,
-            email: session.user.email || '',
-            full_name: session.user.user_metadata?.full_name || '',
-            avatar_url: session.user.user_metadata?.avatar_url || null,
-            role: 'student',
-            status: 'pending',
-            profile_complete: false,
-            subscribe_announcements_events: false,
-            email_subscription_decided: false
-          };
-          const { data: insertedData, error: insertError } = await supabase
-            .from('profiles')
-            .insert(newProfile)
-            .select('*')
-            .single();
-
-          if (insertError) {
-            console.error('[AuthContext] Failed to auto-recreate profile:', insertError.message);
-            return null;
-          }
-          console.log('[AuthContext] Profile auto-recreated successfully:', insertedData);
-          return insertedData as Profile;
+        // Only call the tombstone RPC when we have a confirmed active session.
+        // The RPC is GRANT-ed to `authenticated` only — calling it mid-PKCE
+        // (before the session is fully committed) returns a 403 and incorrectly
+        // triggers a signOut cascade that freezes the loading state.
+        const { data: { user: activeUser } } = await supabase.auth.getUser();
+        if (activeUser) {
+          await supabase.rpc('is_account_deletion_tombstoned');
         }
+        await supabase.auth.signOut();
       } catch (err) {
-        console.error('[AuthContext] Exception in profile auto-recreation:', err);
+        console.error('[AuthContext] Failed to check deleted account:', err);
+        await supabase.auth.signOut();
       }
       return null;
     }
@@ -165,6 +147,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Error updating profile:', error.message);
       throw error;
     }
+    // Re-fetch the profile from the server so local state reflects the
+    // authoritative DB values (including any server-side defaults).
     await refreshProfile();
   }, [user, refreshProfile]);
 

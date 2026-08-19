@@ -27,6 +27,7 @@ export default function Modal({ isOpen, onClose, title, children, mode = 'center
             <h3 className="font-sans font-bold text-white text-sm tracking-wide">{title}</h3>
             <button
               onClick={onClose}
+              aria-label="Close dialog"
               className="p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
               id="admin-modal-close"
             >
@@ -57,6 +58,7 @@ export default function Modal({ isOpen, onClose, title, children, mode = 'center
           <h3 className="font-sans font-bold text-white text-sm tracking-wide">{title}</h3>
           <button
             onClick={onClose}
+            aria-label="Close dialog"
             className="p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
             id="admin-modal-close"
           >
