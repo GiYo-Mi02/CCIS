@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { Session, User } from '@supabase/supabase-js';
+import { AuthChangeEvent, Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { Profile, isAdminRole } from '../types/database';
 import { GraduationCap, ShieldAlert } from 'lucide-react';
@@ -208,135 +208,160 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return result as { attendance_qr_code: string; attendance_qr_generated_at: string };
   }, [user, refreshProfile]);
 
-  // Initialize auth on mount
+  // Initialize auth on mount. Supabase auth callbacks must stay synchronous:
+  // awaiting another Supabase request inside onAuthStateChange can hold the
+  // auth lock and leave the OAuth return screen waiting until a hard refresh.
   useEffect(() => {
     let mounted = true;
+    let authRevision = 0;
+    let receivedAuthEvent = false;
+    let hydratedUserId: string | null = null;
+    let hydrationSafetyTimer: number | null = null;
+    const deferredTimers = new Set<number>();
 
-    const initAuth = async () => {
-      try {
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        if (!mounted) return;
+    const isCurrentRevision = (revision: number) => mounted && revision === authRevision;
 
-        if (currentSession?.user) {
-          const email = currentSession.user.email || '';
-          if (!isAllowedEmail(email)) {
-            await supabase.auth.signOut();
-            if (mounted) {
-              setSession(null);
-              setUser(null);
-              setProfile(null);
-              setLoading(false);
-              setEmailValidationError('Only institutional email accounts (@umak.edu.ph) are allowed to access this platform.');
-            }
-            return;
-          }
-        }
-
-        if (currentSession?.user) {
-          const p = await fetchProfile(currentSession.user.id);
-
-          const isBanned = p?.banned && (!p.banned_until || new Date(p.banned_until) > new Date());
-          if (isBanned) {
-            await supabase.auth.signOut();
-            if (mounted) {
-              setSession(null);
-              setUser(null);
-              setProfile(null);
-              setBanNotice({ bannedUntil: p.banned_until });
-              setLoading(false);
-            }
-            return;
-          }
-          if (mounted) {
-            setProfile(p);
-            setSession(currentSession);
-            setUser(currentSession.user);
-          }
-        } else {
-          if (mounted) {
-            setSession(null);
-            setUser(null);
-            setProfile(null);
-          }
-        }
-      } catch (err) {
-        console.error('Auth init error:', err);
-      } finally {
-        if (mounted) setLoading(false);
+    const clearHydrationSafetyTimer = () => {
+      if (hydrationSafetyTimer !== null) {
+        window.clearTimeout(hydrationSafetyTimer);
+        hydrationSafetyTimer = null;
       }
     };
 
-    initAuth();
+    const clearSessionState = () => {
+      clearHydrationSafetyTimer();
+      hydratedUserId = null;
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+      setLoading(false);
+    };
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
-        if (!mounted) return;
-
-        if (newSession?.user) {
-          const email = newSession.user.email || '';
-          if (!isAllowedEmail(email)) {
-            await supabase.auth.signOut();
-            if (mounted) {
-              setSession(null);
-              setUser(null);
-              setProfile(null);
-              setLoading(false);
-              setEmailValidationError('Only institutional email accounts (@umak.edu.ph) are allowed to access this platform.');
-            }
-            return;
-          }
-
-          let p = await fetchProfile(newSession.user.id);
-          if (!p && event === 'SIGNED_IN') {
-            await new Promise(r => setTimeout(r, 600));
-            p = await fetchProfile(newSession.user.id);
-          }
-
-          const isBanned = p?.banned && (!p.banned_until || new Date(p.banned_until) > new Date());
-          if (isBanned) {
-            await supabase.auth.signOut();
-            if (mounted) {
-              setSession(null);
-              setUser(null);
-              setProfile(null);
-              setBanNotice({ bannedUntil: p.banned_until });
-              setLoading(false);
-            }
-            return;
-          }
-
-          if (mounted) {
-            setProfile(p);
-            setSession(newSession);
-            setUser(newSession.user);
-            setLoading(false);
-
-            // Cleanly strip the ?code= query from the address bar after successful authentication
-            if (typeof window !== 'undefined' && window.location.search.includes('code=')) {
-              const cleanUrl = window.location.origin + window.location.pathname;
-              window.history.replaceState(null, '', cleanUrl);
-            }
-          }
-        } else {
-          if (mounted) {
-            setSession(null);
-            setUser(null);
-            setProfile(null);
-            setLoading(false);
-          }
+    const processAuthSession = async (
+      event: AuthChangeEvent,
+      newSession: Session,
+      revision: number,
+    ) => {
+      try {
+        const email = newSession.user.email || '';
+        if (!isAllowedEmail(email)) {
+          if (!isCurrentRevision(revision)) return;
+          setEmailValidationError('Only institutional email accounts (@umak.edu.ph) are allowed to access this platform.');
+          clearSessionState();
+          await supabase.auth.signOut();
+          return;
         }
+
+        setEmailValidationError(null);
+        let nextProfile = await fetchProfile(newSession.user.id);
+
+        // A brand-new OAuth user can arrive a fraction of a second before the
+        // auth.users provisioning trigger becomes visible through PostgREST.
+        if (!nextProfile && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
+          await new Promise(resolve => window.setTimeout(resolve, 600));
+          if (!isCurrentRevision(revision)) return;
+          nextProfile = await fetchProfile(newSession.user.id);
+        }
+
+        if (!isCurrentRevision(revision)) return;
+
+        const isBanned = nextProfile?.banned
+          && (!nextProfile.banned_until || new Date(nextProfile.banned_until) > new Date());
+        if (isBanned) {
+          setBanNotice({ bannedUntil: nextProfile.banned_until });
+          clearSessionState();
+          await supabase.auth.signOut();
+          return;
+        }
+
+        hydratedUserId = newSession.user.id;
+        clearHydrationSafetyTimer();
+        setProfile(nextProfile);
+        setSession(newSession);
+        setUser(newSession.user);
+        setLoading(false);
+
+        // Strip the one-time PKCE code only after the session and profile have
+        // completed their automatic transition.
+        if (window.location.search.includes('code=')) {
+          const cleanUrl = window.location.origin + window.location.pathname;
+          window.history.replaceState(null, '', cleanUrl);
+        }
+      } catch (err) {
+        if (!isCurrentRevision(revision)) return;
+        console.error('[AuthContext] Auth session processing failed:', err);
+        // Keep the valid session snapshot so AuthPage can offer an automatic
+        // profile retry instead of trapping the student behind a global loader.
+        setProfile(null);
+        clearHydrationSafetyTimer();
+        setLoading(false);
       }
+    };
+
+    const scheduleSessionProcessing = (event: AuthChangeEvent, newSession: Session | null) => {
+      const revision = ++authRevision;
+
+      if (!newSession?.user) {
+        clearSessionState();
+        return;
+      }
+
+      // Make the authenticated session visible immediately. Profile hydration
+      // happens after the auth callback has returned and released its lock.
+      const isNewUser = hydratedUserId !== newSession.user.id;
+      setSession(newSession);
+      setUser(newSession.user);
+      if (isNewUser) {
+        setProfile(null);
+        setLoading(true);
+      }
+
+      clearHydrationSafetyTimer();
+      hydrationSafetyTimer = window.setTimeout(() => {
+        hydrationSafetyTimer = null;
+        if (isCurrentRevision(revision)) setLoading(false);
+      }, 8000);
+
+      const timer = window.setTimeout(() => {
+        deferredTimers.delete(timer);
+        void processAuthSession(event, newSession, revision);
+      }, 0);
+      deferredTimers.add(timer);
+    };
+
+    // Keep this callback synchronous. All database and auth work is deferred.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, newSession) => {
+        if (!mounted) return;
+        receivedAuthEvent = true;
+        scheduleSessionProcessing(event, newSession);
+      },
     );
 
-    // Safety timeout to prevent loading state from getting stuck forever
-    const safetyTimer = setTimeout(() => {
-      if (mounted) setLoading(false);
-    }, 4000);
+    // INITIAL_SESSION is expected from onAuthStateChange. getSession is only a
+    // bounded fallback for browsers that fail to emit that first event.
+    const fallbackTimer = window.setTimeout(() => {
+      if (!mounted || receivedAuthEvent) return;
+
+      void supabase.auth.getSession()
+        .then(({ data: { session: currentSession } }) => {
+          if (!mounted || receivedAuthEvent) return;
+          scheduleSessionProcessing('INITIAL_SESSION', currentSession);
+        })
+        .catch((err) => {
+          if (!mounted || receivedAuthEvent) return;
+          console.error('[AuthContext] Session fallback failed:', err);
+          setLoading(false);
+        });
+    }, 1500);
 
     return () => {
       mounted = false;
-      clearTimeout(safetyTimer);
+      authRevision += 1;
+      clearTimeout(fallbackTimer);
+      clearHydrationSafetyTimer();
+      deferredTimers.forEach(timer => clearTimeout(timer));
+      deferredTimers.clear();
       subscription.unsubscribe();
     };
   }, [fetchProfile]);

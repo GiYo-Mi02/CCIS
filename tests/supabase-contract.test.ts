@@ -47,3 +47,23 @@ test('browser code cannot invoke the internal email worker', () => {
   assert.doesNotMatch(combined, /functions\.invoke\(['"]process-email-queue['"]\)/);
   assert.doesNotMatch(combined, /api\.ipify\.org/);
 });
+
+test('OAuth session hydration is deferred outside the auth callback', () => {
+  const source = readFileSync(join(root, 'src', 'context', 'AuthContext.tsx'), 'utf8');
+
+  assert.doesNotMatch(
+    source,
+    /onAuthStateChange\s*\(\s*async\s*\(/,
+    'onAuthStateChange must not use an async callback',
+  );
+  assert.match(
+    source,
+    /onAuthStateChange\s*\(\s*\(event, newSession\)\s*=>\s*\{[\s\S]*?scheduleSessionProcessing\(event, newSession\);[\s\S]*?\}\s*,\s*\)/,
+    'the auth callback should synchronously schedule session processing',
+  );
+  assert.match(
+    source,
+    /window\.setTimeout\(\(\)\s*=>\s*\{[\s\S]*?void processAuthSession\(event, newSession, revision\);[\s\S]*?\},\s*0\)/,
+    'profile hydration must run after the auth callback releases its lock',
+  );
+});
