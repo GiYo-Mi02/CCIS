@@ -256,7 +256,11 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION public.resubmit_for_verification()
+-- The earlier audit migration returned VOID for this signature. PostgreSQL
+-- requires an explicit drop before changing a function's return type.
+DROP FUNCTION IF EXISTS public.resubmit_for_verification();
+
+CREATE FUNCTION public.resubmit_for_verification()
 RETURNS public.profiles
 LANGUAGE plpgsql
 SECURITY DEFINER
