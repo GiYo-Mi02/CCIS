@@ -1,8 +1,7 @@
 BEGIN;
 
 INSERT INTO public.gallery_items (title, category, image_url)
-VALUES ('RLS test item', 'test', 'https://example.invalid/gallery-rls-test')
-RETURNING id \gset gallery_test_
+VALUES ('RLS test item', 'test', 'https://example.invalid/gallery-rls-test');
 
 SET LOCAL ROLE anon;
 SET LOCAL request.jwt.claims = '{"role":"anon"}';
@@ -21,14 +20,14 @@ BEGIN
 
   UPDATE public.gallery_items
   SET image_url = 'https://example.invalid/gallery-rls-anon-update'
-  WHERE id = :'gallery_test_id';
+  WHERE image_url = 'https://example.invalid/gallery-rls-test';
   GET DIAGNOSTICS v_rows = ROW_COUNT;
   IF v_rows <> 0 THEN
     RAISE EXCEPTION 'anonymous gallery UPDATE was allowed';
   END IF;
 
   DELETE FROM public.gallery_items
-  WHERE id = :'gallery_test_id';
+  WHERE image_url = 'https://example.invalid/gallery-rls-test';
   GET DIAGNOSTICS v_rows = ROW_COUNT;
   IF v_rows <> 0 THEN
     RAISE EXCEPTION 'anonymous gallery DELETE was allowed';
