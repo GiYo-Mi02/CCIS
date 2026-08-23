@@ -19,9 +19,9 @@ This document summarizes the changes made to introduce the beautiful and compreh
 - **Separated Cards Grid**: Renders all other student council representatives, treasurer, auditor, and committee heads below the podium in the standard multi-column grid layout.
 
 ### 2. Officer Quote Support & Executive Officers Categorization
-- **Database Schema (Migration)**: Created [16_officers_quote.sql](file:///c:/Users/gio%20joshua%20gonzales/OneDrive/Desktop/ccis_website/supabase/16_officers_quote.sql) migration script.
+- **Historical schema note**: The former `16_officers_quote.sql` manual script is archived under `supabase/legacy/`; its schema is represented in the canonical versioned baseline.
   - Adds the `quote` column to the `public.officers` table structure.
-  - **Action Required**: The user should run the contents of [16_officers_quote.sql](file:///c:/Users/gio%20joshua%20gonzales/OneDrive/Desktop/ccis_website/supabase/16_officers_quote.sql) in their Supabase Dashboard SQL Editor to update their database columns.
+  - **Deployment**: Apply only the versioned migration chain. Do not run archived scripts manually.
 - **TypeScript interfaces updates**:
   - Appended `quote?: string | null;` to `Officer` database model inside [database.ts](file:///c:/Users/gio%20joshua%20gonzales/OneDrive/Desktop/ccis_website/src/types/database.ts).
   - Appended `quote?: string;` to public `Officer` model inside [types.ts](file:///c:/Users/gio%20joshua%20gonzales/OneDrive/Desktop/ccis_website/src/types.ts).
@@ -69,11 +69,11 @@ This document summarizes the changes made to introduce the beautiful and compreh
   - Upgraded icon indicators to `size={24}` on card items.
 
 ### 7. Database & Storage Layer (Supabase)
-- **Table Columns Fix**: Created the [15_gallery_fix.sql](file:///c:/Users/gio%20joshua%20gonzales/OneDrive/Desktop/ccis_website/supabase/15_gallery_fix.sql) migration script.
+- **Table Columns Fix**: Gallery fields are defined by the canonical versioned baseline and convergence migration.
   - Since the table name `gallery_items` was already used by the photobooth session table under the old schema, the `CREATE TABLE IF NOT EXISTS` inside `14_gallery_setup.sql` was skipped by Postgres.
-  - The fix script runs `ALTER TABLE public.gallery_items ADD COLUMN IF NOT EXISTS ...` to append our required gallery columns (`title`, `description`, `category`, `posted_by`, `thumbnails`, `aspect_ratio`, `index_label`) to the existing table cleanly.
+  - The versioned migration converges required gallery columns (`title`, `description`, `category`, `posted_by`, `thumbnails`, `aspect_ratio`, `featured`) without creating the obsolete `index_label` field on fresh databases.
   - Re-establishes SELECT read and authenticated write RLS policies.
-- **Action Required**: The user should run the contents of [15_gallery_fix.sql](file:///c:/Users/gio%20joshua%20gonzales/OneDrive/Desktop/ccis_website/supabase/15_gallery_fix.sql) directly in their Supabase Dashboard SQL editor to apply the fixes.
+- **Action Required**: Run the normal migration deployment only; never execute archived numbered scripts.
 
 ### 8. University Branding Typography Updates
 - **Headers & Titles**: Swapped `Space Grotesk` with the university's display font **`Marcellus`**.

@@ -10,7 +10,7 @@ CREATE OR REPLACE FUNCTION public.mark_conversation_messages_read_by_student(
 RETURNS INTEGER
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = ''
 AS $$
 DECLARE
   v_updated INTEGER;
@@ -42,7 +42,7 @@ CREATE OR REPLACE FUNCTION public.mark_messages_read_by_admin(
 RETURNS INTEGER
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = ''
 AS $$
 DECLARE
   v_updated INTEGER;

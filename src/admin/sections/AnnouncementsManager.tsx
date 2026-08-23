@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Search, Edit3, Pin, Trash2, Megaphone, Trash } from 'lucide-react';
+import { Plus, Search, Edit3, Pin, Trash2, Megaphone, Trash, ImageIcon } from 'lucide-react';
 import { useAdmin } from '../AdminContext';
 import { useAuth } from '../../context/AuthContext';
-import { supabase, triggerEmailWorker } from '../../lib/supabase';
+import { supabase } from '../../lib/supabase';
 import { Announcement } from '../../types/database';
 import StatusBadge from '../components/StatusBadge';
 import Modal from '../components/Modal';
@@ -88,9 +88,6 @@ export default function AnnouncementsManager() {
       if (error) { showToast('Failed to create', 'error'); return; }
       setAnnouncements(prev => [data as Announcement, ...prev]);
       showToast('Announcement created!');
-      if (ann.status === 'published') {
-        triggerEmailWorker();
-      }
     } else {
       const { error } = await supabase.from('announcements').update({
         title: ann.title,
@@ -105,9 +102,6 @@ export default function AnnouncementsManager() {
       if (error) { showToast('Failed to update', 'error'); return; }
       await fetchAnnouncements();
       showToast('Announcement updated!');
-      if (ann.status === 'published') {
-        triggerEmailWorker();
-      }
     }
     setEditingAnn(null);
     setIsCreating(false);
@@ -345,7 +339,7 @@ function AnnouncementForm({ announcement, isCreating, onSave, onClose }: {
                 {bannerUrl ? (
                   <img src={bannerUrl} alt="Banner Preview" className="w-full h-full object-cover" />
                 ) : (
-                  <span className="text-gray-300 text-lg">🖼️</span>
+                  <ImageIcon size={20} className="text-stone-300" aria-hidden="true" />
                 )}
                 {uploading && (
                   <div className="absolute inset-0 bg-black/45 flex items-center justify-center">

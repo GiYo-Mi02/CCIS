@@ -9,7 +9,7 @@ CREATE OR REPLACE FUNCTION public.register_for_event(p_event_id UUID, p_profile_
 RETURNS public.event_registrations
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = ''
 AS $$
 DECLARE
   v_event public.events%ROWTYPE;
@@ -114,7 +114,7 @@ CREATE OR REPLACE FUNCTION public.queue_verification_emails()
 RETURNS VOID
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = ''
 AS $$
 DECLARE
   v_uid UUID := auth.uid();
@@ -200,7 +200,7 @@ RETURNS BOOLEAN
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
-SET search_path = public
+SET search_path = ''
 AS $$
   SELECT EXISTS (
     SELECT 1 FROM public.ip_bans
@@ -220,7 +220,7 @@ CREATE OR REPLACE FUNCTION public.ensure_user_profile()
 RETURNS public.profiles
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = ''
 AS $$
 DECLARE
   v_user auth.users;

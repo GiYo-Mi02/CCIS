@@ -39,7 +39,15 @@ const getDummyBarcode = (idStr: string) => {
 };
 
 export default function AccountPage({ onNavigate }: AccountPageProps) {
-  const { user, profile, signOut, updateProfile, isAdmin } = useAuth();
+  const {
+    user,
+    profile,
+    signOut,
+    updateProfile,
+    setEmailPreferences,
+    issueAttendancePass,
+    isAdmin,
+  } = useAuth();
 
   // Editable profile state
   const [editing, setEditing] = useState(false);
@@ -55,33 +63,37 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
 
   // Audience Attendance Pass states
   const [passToken, setPassToken] = useState<string>(() => {
-    return profile?.attendance_qr_code || localStorage.getItem(`ccis_audience_token_${user?.id}`) || '';
+    return profile?.attendance_qr_code || '';
   });
   const [passGeneratedAt, setPassGeneratedAt] = useState<string>(() => {
     if (profile?.attendance_qr_generated_at) {
       return new Date(profile.attendance_qr_generated_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
     }
-    return localStorage.getItem(`ccis_audience_gen_${user?.id}`) || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    return '';
   });
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [passDownloadLoading, setPassDownloadLoading] = useState(false);
   const [regenerateSuccess, setRegenerateSuccess] = useState(false);
 
-  // Sync / Auto-generate database token if not yet saved in Supabase
+  // Attendance credentials are generated only by the server.
   useEffect(() => {
-    if (!user) return;
+    if (!user || !profile) return;
     if (profile?.attendance_qr_code) {
       setPassToken(profile.attendance_qr_code);
       if (profile.attendance_qr_generated_at) {
         setPassGeneratedAt(new Date(profile.attendance_qr_generated_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }));
       }
-    } else {
-      const initialToken = 'CCIS-PASS-' + crypto.randomUUID();
-      const nowIso = new Date().toISOString();
-      setPassToken(initialToken);
-      updateProfile({ attendance_qr_code: initialToken, attendance_qr_generated_at: nowIso }).catch(console.warn);
+    } else if (profile.status === 'approved') {
+      issueAttendancePass(false)
+        .then((pass) => {
+          setPassToken(pass.attendance_qr_code);
+          setPassGeneratedAt(new Date(pass.attendance_qr_generated_at).toLocaleDateString('en-US', {
+            year: 'numeric', month: 'short', day: 'numeric'
+          }));
+        })
+        .catch((error) => console.warn('Attendance pass could not be issued:', error));
     }
-  }, [profile?.attendance_qr_code, user?.id]);
+  }, [profile, user, issueAttendancePass]);
 
   // Data sections
   const [registrations, setRegistrations] = useState<EventRegistration[]>([]);
@@ -333,7 +345,6 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
         program,
         section: sectionTrimmed,
         contact_number: contactClean || null,
-        profile_complete: true,
       });
       setEditing(false);
     } catch (err) {
@@ -369,20 +380,11 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
     if (!user) return;
     setIsRegenerating(true);
     try {
-      const newToken = 'CCIS-PASS-' + crypto.randomUUID();
-      const nowIso = new Date().toISOString();
-      const newDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-
-      // Update via secure profile RPC
-      await updateProfile({
-        attendance_qr_code: newToken,
-        attendance_qr_generated_at: nowIso
-      });
-
-      setPassToken(newToken);
-      setPassGeneratedAt(newDate);
-      localStorage.setItem(`ccis_audience_token_${user.id}`, newToken);
-      localStorage.setItem(`ccis_audience_gen_${user.id}`, newDate);
+      const pass = await issueAttendancePass(true);
+      setPassToken(pass.attendance_qr_code);
+      setPassGeneratedAt(new Date(pass.attendance_qr_generated_at).toLocaleDateString('en-US', {
+        year: 'numeric', month: 'short', day: 'numeric'
+      }));
 
       setRegenerateSuccess(true);
       setTimeout(() => setRegenerateSuccess(false), 3500);
@@ -690,7 +692,7 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
                 <button
                   onClick={async () => {
                     try {
-                      await updateProfile({ subscribe_announcements_events: !profile.subscribe_announcements_events });
+                      await setEmailPreferences(!profile.subscribe_announcements_events);
                     } catch (err) {
                       console.error("Failed to update email preferences:", err);
                     }
@@ -794,6 +796,37 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
                         "Your student verification is currently under review by the student council. Since 24 hours have elapsed without approval, fallback access has been enabled so you can browse the portal. You can submit a support ticket concern below if you need help."
                       )}
                     </div>
+                    {/* ERROR 8: Resubmit for verification button for rejected profiles */}
+                    {profile.status === 'rejected' && (
+                      <button
+                        type="button"
+                        className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-[#1A3C2E] text-white text-xs font-bold rounded-xl hover:bg-[#1A3C2E]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={resending}
+                        onClick={async () => {
+                          setResending(true);
+                          setResendStatus(null);
+                          try {
+                            const { error } = await supabase.rpc('resubmit_for_verification');
+                            if (error) throw error;
+                            setResendStatus({ type: 'success', message: 'Profile resubmitted for verification! You will be notified once reviewed.' });
+                            // Refresh profile to reflect new 'pending' status
+                            window.location.reload();
+                          } catch (err: any) {
+                            setResendStatus({ type: 'error', message: err.message || 'Failed to resubmit. Please try again.' });
+                          } finally {
+                            setResending(false);
+                          }
+                        }}
+                      >
+                        <RefreshCw size={14} className={resending ? 'animate-spin' : ''} />
+                        {resending ? 'Resubmitting...' : 'Resubmit for Verification'}
+                      </button>
+                    )}
+                    {resendStatus && (
+                      <p className={`text-xs mt-2 ${resendStatus.type === 'success' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        {resendStatus.message}
+                      </p>
+                    )}
                   </div>
                 </div>
 

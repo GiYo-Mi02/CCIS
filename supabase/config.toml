@@ -1,0 +1,18 @@
+project_id = "ccis-website"
+
+[db]
+major_version = 17
+
+# Supabase Edge Function configuration.
+# The scheduled worker uses a dedicated X-Queue-Worker-Secret and performs its
+# own constant-time authentication. User-facing functions retain gateway JWT
+# verification and repeat authorization against the database.
+
+[functions.process-email-queue]
+verify_jwt = false
+
+[functions.send-ticket-email]
+verify_jwt = true
+
+[functions.delete-user]
+verify_jwt = true

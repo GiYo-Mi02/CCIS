@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { Profile, isAdminRole } from '../types/database';
-import { ShieldAlert } from 'lucide-react';
+import { GraduationCap, ShieldAlert } from 'lucide-react';
 
 const DEFAULT_BYPASS_EMAILS = [
   'ggiojoshua2006@gmail.com',
@@ -39,6 +39,19 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<void>;
+  recordPrivacyConsent: () => Promise<void>;
+  submitProfileForVerification: (details: {
+    studentNumber: string;
+    yearLevel: number;
+    program: string;
+    section: string;
+    contactNumber?: string | null;
+  }) => Promise<void>;
+  setEmailPreferences: (subscribed: boolean) => Promise<void>;
+  issueAttendancePass: (rotate?: boolean) => Promise<{
+    attendance_qr_code: string;
+    attendance_qr_generated_at: string;
+  }>;
   banNotice: { bannedUntil: string | null } | null;
   clearBanNotice: () => void;
   emailValidationError: string | null;
@@ -109,36 +122,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.warn('[AuthContext] ensure_user_profile notice:', ensureEx);
       }
 
-      // 2. Client fallback insert if RPC is not yet deployed on remote DB
-      try {
-        const { data: { user: currentUser } } = await supabase.auth.getUser();
-        if (currentUser && currentUser.id === userId) {
-          const isBypassAdmin = ADMIN_BYPASS_EMAILS.has(currentUser.email?.toLowerCase() || '');
-          const initialRole = isBypassAdmin ? 'devcom_head' : 'student';
-          const { data: fallbackProfile, error: insertErr } = await supabase
-            .from('profiles')
-            .insert({
-              id: currentUser.id,
-              email: currentUser.email || '',
-              full_name: currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || '',
-              avatar_url: currentUser.user_metadata?.avatar_url || currentUser.user_metadata?.picture || null,
-              role: initialRole,
-              status: isBypassAdmin ? 'approved' : 'pending',
-              profile_complete: isBypassAdmin,
-              subscribe_announcements_events: false,
-              email_subscription_decided: false,
-            })
-            .select('*')
-            .maybeSingle();
-
-          if (!insertErr && fallbackProfile) {
-            return fallbackProfile as Profile;
-          }
-        }
-      } catch (fallbackEx) {
-        console.warn('[AuthContext] Client profile fallback notice:', fallbackEx);
-      }
-
       return null;
     } catch (err) {
       console.error('[AuthContext] Unexpected fetchProfile exception:', err);
@@ -167,14 +150,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       p_program:                        updates.program                        ?? null,
       p_section:                        updates.section                        ?? null,
       p_contact_number:                 updates.contact_number                 ?? null,
-      p_privacy_agreed_at:              updates.privacy_agreed_at              ?? null,
-      p_submitted_at:                   updates.submitted_at                   ?? null,
-      p_subscribe_announcements_events: updates.subscribe_announcements_events ?? null,
-      p_email_subscription_decided:     updates.email_subscription_decided     ?? null,
-      p_attendance_qr_code:             updates.attendance_qr_code             ?? null,
-      p_attendance_qr_generated_at:     updates.attendance_qr_generated_at     ?? null,
-      p_last_ip:                        updates.last_ip                        ?? null,
-      p_profile_complete:               updates.profile_complete               ?? null,
+      p_clear_avatar_url:               updates.avatar_url === null,
+      p_clear_contact_number:           updates.contact_number === null,
     });
 
     if (error) {
@@ -184,6 +161,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Re-fetch the profile from the server so local state reflects the
     // authoritative DB values (including any server-side defaults).
     await refreshProfile();
+  }, [user, refreshProfile]);
+
+  const recordPrivacyConsent = useCallback(async () => {
+    if (!user) throw new Error('Authentication required');
+    const { error } = await supabase.rpc('record_privacy_consent');
+    if (error) throw error;
+    await refreshProfile();
+  }, [user, refreshProfile]);
+
+  const submitProfileForVerification = useCallback(async (details: {
+    studentNumber: string;
+    yearLevel: number;
+    program: string;
+    section: string;
+    contactNumber?: string | null;
+  }) => {
+    if (!user) throw new Error('Authentication required');
+    const { error } = await supabase.rpc('submit_profile_for_verification', {
+      p_student_number: details.studentNumber,
+      p_year_level: details.yearLevel,
+      p_program: details.program,
+      p_section: details.section,
+      p_contact_number: details.contactNumber ?? null,
+    });
+    if (error) throw error;
+    await refreshProfile();
+  }, [user, refreshProfile]);
+
+  const setEmailPreferences = useCallback(async (subscribed: boolean) => {
+    if (!user) throw new Error('Authentication required');
+    const { error } = await supabase.rpc('set_email_preferences', { p_subscribe: subscribed });
+    if (error) throw error;
+    await refreshProfile();
+  }, [user, refreshProfile]);
+
+  const issueAttendancePass = useCallback(async (rotate = false) => {
+    if (!user) throw new Error('Authentication required');
+    const { data, error } = await supabase.rpc('issue_attendance_pass', { p_rotate: rotate });
+    if (error) throw error;
+    const result = Array.isArray(data) ? data[0] : data;
+    if (!result?.attendance_qr_code || !result?.attendance_qr_generated_at) {
+      throw new Error('Attendance pass could not be issued');
+    }
+    await refreshProfile();
+    return result as { attendance_qr_code: string; attendance_qr_generated_at: string };
   }, [user, refreshProfile]);
 
   // Initialize auth on mount
@@ -212,23 +234,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (currentSession?.user) {
           const p = await fetchProfile(currentSession.user.id);
-          
-          // Sync IP address in background without blocking auth init
-          try {
-            fetch('https://api.ipify.org?format=json')
-              .then(res => res.ok ? res.json() : null)
-              .then(ipData => {
-                if (ipData?.ip && currentSession?.user?.id) {
-                  supabase
-                    .from('profiles')
-                    .update({ last_ip: ipData.ip })
-                    .eq('id', currentSession.user.id);
-                }
-              })
-              .catch(() => {});
-          } catch {
-            // non-blocking
-          }
 
           const isBanned = p?.banned && (!p.banned_until || new Date(p.banned_until) > new Date());
           if (isBanned) {
@@ -446,6 +451,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signOut,
       refreshProfile,
       updateProfile,
+      recordPrivacyConsent,
+      submitProfileForVerification,
+      setEmailPreferences,
+      issueAttendancePass,
       banNotice,
       clearBanNotice,
       emailValidationError,
@@ -467,7 +476,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 {emailValidationError}
               </p>
               <div className="bg-amber-50/50 border border-amber-100/80 p-3.5 rounded-2xl text-[11px] text-amber-800 leading-normal flex items-start gap-2 mt-2">
-                <span className="text-sm shrink-0">🎓</span>
+                <GraduationCap size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
                 <span>
                   Please sign in using your official university Google account ending with <strong>@umak.edu.ph</strong>.
                 </span>

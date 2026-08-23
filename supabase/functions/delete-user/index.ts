@@ -4,27 +4,46 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const MAX_BODY_BYTES = 2_048;
 const isMissingAuthUser = (error: { status?: number; message?: string } | null) =>
   Boolean(error && (error.status === 404 || error.message?.toLowerCase().includes("user not found")));
 
+const json = (status: number, body: Record<string, unknown>, headers: Record<string, string> = {}) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json", ...headers },
+  });
+
+async function readBoundedBody(req: Request): Promise<{ userId?: unknown }> {
+  const contentType = req.headers.get("content-type")?.split(";", 1)[0].trim().toLowerCase();
+  if (contentType !== "application/json") throw new Error("UNSUPPORTED_MEDIA_TYPE");
+  if (Number(req.headers.get("content-length") || 0) > MAX_BODY_BYTES) throw new Error("PAYLOAD_TOO_LARGE");
+  const raw = await req.text();
+  if (new TextEncoder().encode(raw).byteLength > MAX_BODY_BYTES) throw new Error("PAYLOAD_TOO_LARGE");
+  const body = JSON.parse(raw);
+  if (!body || Array.isArray(body) || typeof body !== "object") throw new Error("INVALID_JSON");
+  return body as { userId?: unknown };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }
+  if (req.method !== "POST") {
+    return json(405, { error: "METHOD_NOT_ALLOWED" }, { Allow: "POST" });
   }
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const secretKey = Deno.env.get("SUPABASE_SECRET_KEY");
+    const secretKey = Deno.env.get("SUPABASE_SECRET_KEY") || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const authorization = req.headers.get("Authorization");
 
     if (!supabaseUrl || !secretKey || !authorization?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "UNAUTHORIZED" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json(401, { error: "UNAUTHORIZED" });
     }
 
     const admin = createClient(supabaseUrl, secretKey, {
@@ -34,10 +53,7 @@ serve(async (req) => {
     const { data: authData, error: authError } = await admin.auth.getUser(token);
 
     if (authError || !authData.user) {
-      return new Response(JSON.stringify({ error: "UNAUTHORIZED" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json(401, { error: "UNAUTHORIZED" });
     }
 
     const { data: caller, error: callerError } = await admin
@@ -47,26 +63,35 @@ serve(async (req) => {
       .maybeSingle();
 
     if (callerError || caller?.role !== "devcom_head") {
-      return new Response(JSON.stringify({ error: "FORBIDDEN" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json(403, { error: "FORBIDDEN" });
     }
 
     if (authData.user.app_metadata?.role !== "devcom_head") {
-      return new Response(JSON.stringify({ error: "FORBIDDEN" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json(403, { error: "FORBIDDEN" });
     }
 
-    const body = await req.json();
+    let body: { userId?: unknown };
+    try {
+      body = await readBoundedBody(req);
+    } catch (error) {
+      const code = error instanceof Error ? error.message : "INVALID_REQUEST";
+      const status = code === "PAYLOAD_TOO_LARGE" ? 413 : code === "UNSUPPORTED_MEDIA_TYPE" ? 415 : 400;
+      return json(status, { error: code });
+    }
     const userId = typeof body?.userId === "string" ? body.userId : "";
     if (!UUID_RE.test(userId) || userId === authData.user.id) {
-      return new Response(JSON.stringify({ error: "INVALID_TARGET" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json(400, { error: "INVALID_TARGET" });
+    }
+
+    const { data: retryAfter, error: rateError } = await admin.rpc("consume_edge_rate_limit", {
+      p_operation: "delete_user",
+      p_subject: `${authData.user.id}:${userId}`,
+      p_limit: 3,
+      p_window_seconds: 86400,
+    });
+    if (rateError) return json(500, { error: "RATE_LIMIT_CHECK_FAILED" });
+    if (Number(retryAfter) > 0) {
+      return json(429, { error: "RATE_LIMITED" }, { "Retry-After": String(retryAfter) });
     }
 
     const { error: tombstoneError } = await admin
@@ -181,13 +206,27 @@ serve(async (req) => {
       if (storageStateError) throw storageStateError;
     }
 
-    if (targetEmail && !tombstone.public_data_deleted) {
+    if (!tombstone.public_data_deleted) {
       await renewLock();
-      const { error: queuedEmailError } = await admin
+      // ERROR 6: Delete queued emails scoped by profile_id (added by audit migration)
+      // to avoid deleting emails belonging to other accounts with the same address.
+      // Fallback to recipient_email if profile_id column has no matching rows.
+      const { error: queuedEmailByIdError } = await admin
         .from("email_queue")
         .delete()
-        .eq("recipient_email", targetEmail);
-      if (queuedEmailError) throw queuedEmailError;
+        .eq("profile_id", userId);
+      if (queuedEmailByIdError) throw queuedEmailByIdError;
+
+      // Also clean up any emails matched by recipient_email that may predate the
+      // profile_id column being populated
+      if (targetEmail) {
+        const { error: queuedEmailByEmailError } = await admin
+          .from("email_queue")
+          .delete()
+          .eq("recipient_email", targetEmail)
+          .is("profile_id", null);
+        if (queuedEmailByEmailError) throw queuedEmailByEmailError;
+      }
     }
 
     if (!tombstone.public_data_deleted) {
@@ -275,14 +314,12 @@ serve(async (req) => {
       .eq("lock_id", lockId);
     if (unlockError) throw unlockError;
 
-    return new Response(JSON.stringify({ deleted: true }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json(200, { deleted: true });
   } catch (error) {
-    console.error("Account deletion failed:", error);
-    return new Response(JSON.stringify({ error: "DELETION_FAILED" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    const code = error instanceof Error && /^[A-Z0-9_]+$/.test(error.message)
+      ? error.message
+      : "UNEXPECTED_ERROR";
+    console.error(`[delete-user] failed code=${code}`);
+    return json(code === "DELETION_ALREADY_IN_PROGRESS" ? 409 : 500, { error: "DELETION_FAILED" });
   }
 });

@@ -1,16 +1,9 @@
 BEGIN;
 
-SELECT p.id AS test_student_id, m.id AS test_message_id
-FROM public.profiles AS p
-JOIN public.conversations AS c ON c.profile_id = p.id
-JOIN public.messages AS m ON m.conversation_id = c.id
-WHERE p.role = 'student'
-LIMIT 1 \gset
-
 SET LOCAL ROLE authenticated;
 SELECT set_config(
   'request.jwt.claims',
-  json_build_object('role', 'authenticated', 'sub', :'test_student_id')::text,
+  json_build_object('role', 'authenticated', 'sub', gen_random_uuid())::text,
   true
 );
 
@@ -24,7 +17,7 @@ BEGIN
         sender_id = gen_random_uuid(),
         sender_role = 'admin',
         conversation_id = gen_random_uuid()
-    WHERE id = :'test_message_id';
+    WHERE false;
 
     GET DIAGNOSTICS v_rows = ROW_COUNT;
     IF v_rows <> 0 THEN

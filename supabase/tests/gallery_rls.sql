@@ -1,7 +1,7 @@
 BEGIN;
 
-INSERT INTO public.gallery_items (image_url)
-VALUES ('https://example.invalid/gallery-rls-test')
+INSERT INTO public.gallery_items (title, category, image_url)
+VALUES ('RLS test item', 'test', 'https://example.invalid/gallery-rls-test')
 RETURNING id \gset gallery_test_
 
 SET LOCAL ROLE anon;
@@ -12,8 +12,8 @@ DECLARE
   v_rows integer;
 BEGIN
   BEGIN
-    INSERT INTO public.gallery_items (image_url)
-    VALUES ('https://example.invalid/gallery-rls-anon-insert');
+    INSERT INTO public.gallery_items (title, category, image_url)
+    VALUES ('Anonymous RLS test', 'test', 'https://example.invalid/gallery-rls-anon-insert');
     RAISE EXCEPTION 'anonymous gallery INSERT was allowed';
   EXCEPTION
     WHEN insufficient_privilege THEN NULL;

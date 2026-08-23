@@ -31,7 +31,7 @@ export default function App({ onAdminSwitch }: AppProps) {
   const [activeTab, setActiveTab] = useState<string>('home');
   const [infoSubTab, setInfoSubTab] = useState<'umak' | 'college' | 'org'>('umak');
   const [preselectedEventId, setPreselectedEventId] = useState<string | null>(null);
-  const { user, profile, updateProfile, isPending, isUnverified, isAdmin, loading } = useAuth();
+  const { user, profile, setEmailPreferences, isPending, isUnverified, isAdmin, loading } = useAuth();
 
   const isUmakTheme = activeTab === 'info' && infoSubTab === 'umak';
 
@@ -249,13 +249,10 @@ export default function App({ onAdminSwitch }: AppProps) {
         <SubscriptionPreferenceModal
           isOpen={true}
           onClose={() => {
-            updateProfile({ email_subscription_decided: true });
+            void setEmailPreferences(false);
           }}
           onSave={async (subscribed) => {
-            await updateProfile({
-              subscribe_announcements_events: subscribed,
-              email_subscription_decided: true
-            });
+            await setEmailPreferences(subscribed);
           }}
           userEmail={user.email || ''}
         />
