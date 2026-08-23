@@ -18,20 +18,28 @@ BEGIN
     WHEN insufficient_privilege THEN NULL;
   END;
 
-  UPDATE public.gallery_items
-  SET image_url = 'https://example.invalid/gallery-rls-anon-update'
-  WHERE image_url = 'https://example.invalid/gallery-rls-test';
-  GET DIAGNOSTICS v_rows = ROW_COUNT;
-  IF v_rows <> 0 THEN
-    RAISE EXCEPTION 'anonymous gallery UPDATE was allowed';
-  END IF;
+  BEGIN
+    UPDATE public.gallery_items
+    SET image_url = 'https://example.invalid/gallery-rls-anon-update'
+    WHERE image_url = 'https://example.invalid/gallery-rls-test';
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+    IF v_rows <> 0 THEN
+      RAISE EXCEPTION 'anonymous gallery UPDATE was allowed';
+    END IF;
+  EXCEPTION
+    WHEN insufficient_privilege THEN NULL;
+  END;
 
-  DELETE FROM public.gallery_items
-  WHERE image_url = 'https://example.invalid/gallery-rls-test';
-  GET DIAGNOSTICS v_rows = ROW_COUNT;
-  IF v_rows <> 0 THEN
-    RAISE EXCEPTION 'anonymous gallery DELETE was allowed';
-  END IF;
+  BEGIN
+    DELETE FROM public.gallery_items
+    WHERE image_url = 'https://example.invalid/gallery-rls-test';
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+    IF v_rows <> 0 THEN
+      RAISE EXCEPTION 'anonymous gallery DELETE was allowed';
+    END IF;
+  EXCEPTION
+    WHEN insufficient_privilege THEN NULL;
+  END;
 END;
 $gallery_rls$;
 
