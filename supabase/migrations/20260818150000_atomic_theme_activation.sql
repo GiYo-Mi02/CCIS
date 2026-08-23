@@ -28,7 +28,7 @@ CREATE OR REPLACE FUNCTION public.activate_theme(
 RETURNS public.theme_settings
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = ''
 AS $$
 DECLARE
   v_theme_id UUID := p_theme_id;

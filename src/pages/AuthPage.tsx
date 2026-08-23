@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Lock, AlertTriangle, ShieldAlert, Clock, LogOut, RefreshCw, Check } from 'lucide-react';
-import { getAdminNotificationEmail, getStudentReceiptEmail } from '../utils/verificationEmails';
-import { supabase } from '../lib/supabase';
 
 interface AuthPageProps {
   onNavigate?: (tab: string) => void;
@@ -16,7 +14,8 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
     signInWithGoogle, 
     signInWithEmail, 
     signUpWithEmail, 
-    updateProfile,
+    recordPrivacyConsent,
+    submitProfileForVerification,
     signOut,
     refreshProfile,
     isPending,
@@ -134,9 +133,7 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
     setCompleting(true);
     setError('');
     try {
-      await updateProfile({
-        privacy_agreed_at: new Date().toISOString()
-      });
+      await recordPrivacyConsent();
       setPrivacyAccepted(true);
     } catch (err: any) {
       setError('Failed to record consent: ' + err.message);
@@ -211,33 +208,13 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
     const contactClean = contactNumber.trim();
 
     try {
-      const submittedAtISO = new Date().toISOString();
-      await updateProfile({
-        student_number: idClean,
-        year_level: yearLevel,
+      await submitProfileForVerification({
+        studentNumber: idClean,
+        yearLevel,
         program,
         section: sectionTrimmed,
-        contact_number: contactClean || null,
-        profile_complete: true,
-        status: 'pending',
-        submitted_at: submittedAtISO,
+        contactNumber: contactClean || null,
       });
-
-      const updatedProfileObj = {
-        full_name: profile?.full_name || 'Student',
-        email: profile?.email || '',
-        student_number: idClean,
-        year_level: yearLevel,
-        program,
-        section: sectionTrimmed,
-        contact_number: contactClean || 'N/A'
-      };
-
-      // Queue verification emails via server-controlled RPC
-      const { error: queueErr } = await supabase.rpc('queue_verification_emails');
-      if (queueErr) {
-        console.warn('Notice: Verification emails queued via fallback:', queueErr.message);
-      }
 
       setJustCompletedSetup(true);
     } catch (err: any) {

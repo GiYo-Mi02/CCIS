@@ -108,7 +108,7 @@ export interface EventItem {
   created_at: string;
   banner_url: string | null;
   // Computed/joined
-  registration_count?: number;
+  registered_count?: number;
 }
 
 export interface EventRegistration {
@@ -150,8 +150,13 @@ export interface ConcernReply {
 export interface GalleryItem {
   id: string;
   profile_id: string | null;
+  title: string;
+  description: string | null;
+  category: string;
+  posted_by: string | null;
   image_url: string;
-  frame_id: string | null;
+  thumbnails: string[];
+  aspect_ratio: 'portrait' | 'landscape' | 'square' | null;
   featured: boolean;
   created_at: string;
 }

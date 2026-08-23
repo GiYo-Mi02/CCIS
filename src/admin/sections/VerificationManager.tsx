@@ -4,9 +4,9 @@ import {
 } from 'lucide-react';
 import { useAdmin } from '../AdminContext';
 import { useAuth } from '../../context/AuthContext';
-import { supabase, triggerEmailWorker } from '../../lib/supabase';
+import { supabase } from '../../lib/supabase';
 import { Profile } from '../../types/database';
-import { getApprovalEmail, getRejectionEmail } from '../../utils/verificationEmails';
+// Email HTML is now generated server-side by admin RPCs
 import Pagination from '../components/Pagination';
 import EmptyState from '../components/EmptyState';
 import { postgrestIlike } from '../../lib/postgrest';
@@ -86,36 +86,19 @@ export default function VerificationManager() {
     if (!currentAdmin) return;
     setActionLoadingId(user.id);
     try {
-      // 1. Update user profile status
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          status: 'approved',
-          approved_at: new Date().toISOString(),
-          approved_by: currentAdmin.id,
-          profile_complete: true
-        })
-        .eq('id', user.id);
+      // WARNING 12: Use server-side RPC that checks caller role from DB
+      // (not stale JWT claims) and handles email queueing with HTML escaping
+      const { data, error: rpcError } = await supabase.rpc('admin_approve_user', {
+        p_user_id: user.id
+      });
 
-      if (profileError) throw profileError;
+      if (rpcError) throw rpcError;
 
-      // 2. Queue approval email
-      const htmlBody = getApprovalEmail(user);
-      const { error: emailError } = await supabase
-        .from('email_queue')
-        .insert({
-          recipient_email: user.email,
-          email_type: 'verification_approved',
-          subject: '[CCIS SC] Account Approved!',
-          html_body: htmlBody
-        });
-
-      if (emailError) {
-        console.error('Failed to queue approval email:', emailError.message);
-        showToast('Profile approved, but failed to queue notification email.', 'warning');
-      } else {
+      const result = data as { approved: boolean; email_queued: boolean } | null;
+      if (result?.email_queued) {
         showToast(`Approved ${user.full_name || user.email} successfully! Email notification queued.`, 'success');
-        triggerEmailWorker();
+      } else {
+        showToast(`Approved ${user.full_name || user.email}. Email notification could not be queued.`, 'warning');
       }
 
       // Remove from view list
@@ -138,35 +121,20 @@ export default function VerificationManager() {
 
     setRejectSubmitLoading(true);
     try {
-      // 1. Update user profile status to unlock profile (profile_complete = false)
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          status: 'rejected',
-          rejection_reason: rejectionReason.trim(),
-          profile_complete: false // unlock profile to allow updates/re-submission
-        })
-        .eq('id', rejectingUser.id);
+      // WARNING 12: Use server-side RPC that checks caller role from DB
+      // and HTML-escapes the rejection reason
+      const { data, error: rpcError } = await supabase.rpc('admin_reject_user', {
+        p_user_id: rejectingUser.id,
+        p_reason: rejectionReason.trim()
+      });
 
-      if (profileError) throw profileError;
+      if (rpcError) throw rpcError;
 
-      // 2. Queue rejection email
-      const htmlBody = getRejectionEmail(rejectingUser, rejectionReason.trim());
-      const { error: emailError } = await supabase
-        .from('email_queue')
-        .insert({
-          recipient_email: rejectingUser.email,
-          email_type: 'verification_rejected',
-          subject: '[CCIS SC] Verification Rejection & Update Needed',
-          html_body: htmlBody
-        });
-
-      if (emailError) {
-        console.error('Failed to queue rejection email:', emailError.message);
-        showToast('Profile rejected, but failed to queue notification email.', 'warning');
-      } else {
+      const result = data as { rejected: boolean; email_queued: boolean } | null;
+      if (result?.email_queued) {
         showToast(`Rejected submission for ${rejectingUser.full_name || rejectingUser.email}. Email notification queued.`, 'success');
-        triggerEmailWorker();
+      } else {
+        showToast(`Rejected ${rejectingUser.full_name || rejectingUser.email}. Email notification could not be queued.`, 'warning');
       }
 
       // Remove from view list

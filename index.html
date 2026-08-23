@@ -9,7 +9,11 @@
     <!-- ============================================================ -->
 
     <!-- Content Security Policy — fallback for non-Vercel environments.
-         In production (Vercel), HTTP headers in vercel.json take precedence. -->
+         In production (Vercel), HTTP headers in vercel.json take precedence.
+         NOTE: frame-ancestors is intentionally omitted here because browsers
+         ignore it in <meta> CSP tags per spec (W3C CSP Level 2 §4.6).
+         Clickjacking protection (frame-ancestors 'none' + X-Frame-Options: DENY)
+         is enforced via real HTTP headers in vercel.json and public/_headers. -->
     <meta http-equiv="Content-Security-Policy" content="
       default-src 'self';
       script-src 'self';

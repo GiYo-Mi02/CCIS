@@ -29,7 +29,7 @@ interface RegistrationSectionProps {
 }
 
 export default function RegistrationSection({ onNavigate, preselectedEventId, onClearPreselected }: RegistrationSectionProps) {
-  const { user, profile, updateProfile, signInWithGoogle } = useAuth();
+  const { user, profile, signInWithGoogle } = useAuth();
   
   const [events, setEvents] = useState<EventItem[]>([]);
   const [myRegistrations, setMyRegistrations] = useState<Registration[]>([]);
@@ -247,22 +247,9 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
         return;
       }
 
-      // Trigger the queue processor in the background to send the queued email
-      try {
-        supabase.functions.invoke('process-email-queue')
-          .then(({ data, error }) => {
-            if (error) {
-              console.warn('[Email Worker] Returned error:', error.message || error);
-            } else {
-              console.log('[Email Worker] Queue processing triggered successfully.', data);
-            }
-          })
-          .catch((err: any) => {
-            console.warn('[Email Worker] Unreachable:', err.message || err);
-          });
-      } catch (emailErr) {
-        console.warn('[Email Worker] Trigger invocation failed:', emailErr);
-      }
+      // ERROR 3: Removed browser-side process-email-queue invocation.
+      // Email queue processing is now handled server-side by the pg_net
+      // trigger (auto_process_email_queue_fn) on email_queue INSERT.
 
       const ticket: Registration = {
         id: regData.id,

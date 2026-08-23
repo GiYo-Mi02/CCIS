@@ -1,4 +1,5 @@
--- Final cleanup migration. Apply after the numbered SQL scripts and all prior migrations.
+-- Account deletion hardening. All prerequisites are created by the canonical
+-- versioned baseline; archived numbered scripts are not required.
 BEGIN;
 
 DO $$
@@ -11,7 +12,7 @@ BEGIN
      OR to_regclass('public.conversations') IS NULL
      OR to_regclass('public.concerns') IS NULL
      OR to_regclass('public.messages') IS NULL THEN
-    RAISE EXCEPTION 'secure_account_deletion requires the numbered schema scripts to be applied first';
+    RAISE EXCEPTION 'secure_account_deletion requires the canonical baseline migration';
   END IF;
 END;
 $$;
@@ -47,7 +48,7 @@ CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = ''
 AS $$
 BEGIN
   IF EXISTS (
@@ -89,7 +90,7 @@ RETURNS BOOLEAN
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
-SET search_path = public
+SET search_path = ''
 AS $$
   SELECT EXISTS (
     SELECT 1
@@ -107,7 +108,7 @@ RETURNS TABLE (user_id UUID)
 LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
-SET search_path = public
+SET search_path = ''
 AS $$
 BEGIN
   IF public.get_user_role() <> 'devcom_head' THEN
@@ -132,7 +133,7 @@ RETURNS TABLE (user_id UUID)
 LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
-SET search_path = public, auth
+SET search_path = ''
 AS $$
 BEGIN
   IF public.get_user_role() <> 'devcom_head' THEN
@@ -169,7 +170,7 @@ CREATE OR REPLACE FUNCTION public.prevent_profile_admin_field_changes()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = ''
 AS $$
 BEGIN
   IF auth.uid() = OLD.id AND (

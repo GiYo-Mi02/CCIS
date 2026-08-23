@@ -1,11 +1,11 @@
-name: Typecheck
+name: Validation
 
 on:
   push:
   pull_request:
 
 jobs:
-  typecheck:
+  application:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -17,5 +17,35 @@ jobs:
       - uses: denoland/setup-deno@v1
         with:
           deno-version: v2.x
-      - run: npm run lint
-      - run: npm run lint:edge
+      - name: Type-check application
+        run: npm run lint
+      - name: Run unit and static security-contract tests
+        run: npm test
+      - name: Build production bundle
+        run: npm run build
+      - name: Type-check Edge Functions
+        run: npm run lint:edge
+
+  database:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Start minimal local Supabase stack
+        run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor
+      - name: Replay migrations from a clean database
+        run: supabase db reset
+      - name: Run database security contracts
+        env:
+          SUPABASE_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+        run: npm run test:db
+      - name: Stop local Supabase stack
+        if: always()
+        run: supabase stop --no-backup

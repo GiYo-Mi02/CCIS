@@ -1,14 +1,17 @@
-// Supabase Edge Function: Authenticated Ticket Email Dispatcher
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
+import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.108.2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+const MAX_BODY_BYTES = 2_048;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-function escapeHtml(str: string): string {
-  return str
+const json = (status: number, body: Record<string, unknown>, headers: Record<string, string> = {}) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json", ...headers },
+  });
+
+function escapeHtml(value: string): string {
+  return value
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
@@ -16,197 +19,137 @@ function escapeHtml(str: string): string {
     .replace(/'/g, "&#039;");
 }
 
+async function readRegistrationId(req: Request): Promise<string> {
+  const contentType = req.headers.get("content-type")?.split(";", 1)[0].trim().toLowerCase();
+  if (contentType !== "application/json") throw new Error("UNSUPPORTED_MEDIA_TYPE");
+  if (Number(req.headers.get("content-length") || 0) > MAX_BODY_BYTES) throw new Error("PAYLOAD_TOO_LARGE");
+  const raw = await req.text();
+  if (new TextEncoder().encode(raw).byteLength > MAX_BODY_BYTES) throw new Error("PAYLOAD_TOO_LARGE");
+  const body = JSON.parse(raw) as { registrationId?: unknown };
+  if (typeof body.registrationId !== "string" || !UUID_RE.test(body.registrationId)) {
+    throw new Error("INVALID_REGISTRATION_ID");
+  }
+  return body.registrationId;
+}
+
 serve(async (req: Request) => {
-  // Handle CORS preflight
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
-
   const requestId = crypto.randomUUID();
+  const corsOrigin = Deno.env.get("APP_ORIGIN") || "*";
+  const corsHeaders = {
+    "Access-Control-Allow-Origin": corsOrigin,
+    "Access-Control-Allow-Headers": "authorization, content-type, x-client-info, apikey",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+  };
 
-  try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Unauthorized: Missing Authorization header." }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
-      );
-    }
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
+  if (req.method !== "POST") return json(405, { success: false, error: "METHOD_NOT_ALLOWED" }, { ...corsHeaders, Allow: "POST" });
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
-    const supabaseSecretKey = Deno.env.get("SUPABASE_SECRET_KEY") || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-
-    if (!supabaseUrl || !supabaseAnonKey) {
-      throw new Error("Missing Supabase configuration.");
-    }
-
-    // Client authenticated with the caller's JWT
-    const supabaseUserClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-
-    const { data: { user: callerUser }, error: userError } = await supabaseUserClient.auth.getUser();
-    if (userError || !callerUser) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Unauthorized: Invalid token." }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
-      );
-    }
-
-    const payload = await req.json();
-    const { registrationId } = payload;
-
-    if (!registrationId || typeof registrationId !== "string") {
-      return new Response(
-        JSON.stringify({ success: false, error: "Missing or invalid registrationId parameter." }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
-      );
-    }
-
-    // Service-level client to securely verify registration data in database
-    const supabaseAdmin = createClient(supabaseUrl, supabaseSecretKey || supabaseAnonKey);
-
-    const { data: reg, error: regErr } = await supabaseAdmin
-      .from("event_registrations")
-      .select("id, profile_id, status, events(title, event_date, location), profiles(id, full_name, email, student_number, program, section, role)")
-      .eq("id", registrationId)
-      .maybeSingle();
-
-    if (regErr || !reg) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Registration record not found." }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 404 }
-      );
-    }
-
-    // Check caller identity: must be the registrant or an officer/devcom_head
-    const { data: callerProfile } = await supabaseAdmin
-      .from("profiles")
-      .select("role")
-      .eq("id", callerUser.id)
-      .single();
-
-    const isAuthorized =
-      reg.profile_id === callerUser.id ||
-      ["devcom_head", "officer", "comm_registration"].includes(callerProfile?.role || "");
-
-    if (!isAuthorized) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Forbidden: You cannot access this ticket." }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 }
-      );
-    }
-
-    const recipientEmail = (reg.profiles as any)?.email;
-    const recipientName = escapeHtml((reg.profiles as any)?.full_name || "Student");
-    const eventTitle = escapeHtml((reg.events as any)?.title || "CCIS Event");
-    const section = escapeHtml((reg.profiles as any)?.section || "N/A");
-    const college = escapeHtml((reg.profiles as any)?.program || "CCIS");
-
-    if (!recipientEmail) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Registrant has no valid email address." }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
-      );
-    }
-
-    const resendApiKey = Deno.env.get("RESEND_API_KEY");
-    if (!resendApiKey) {
-      console.log(`[send-ticket-email:${requestId}] No RESEND_API_KEY configured. Ticket email queued in database instead.`);
-      return new Response(
-        JSON.stringify({ success: true, simulated: true, message: "Ticket processed successfully." }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
-      );
-    }
-
-    const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(registrationId)}`;
-
-    const htmlBody = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <style>
-          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #FAF7EA; color: #1A3C2E; margin: 0; padding: 40px 20px; }
-          .card { max-width: 550px; background: #ffffff; border-radius: 24px; border: 1px solid #e2e8f0; overflow: hidden; margin: 0 auto; box-shadow: 0 4px 12px rgba(26,60,46,0.05); }
-          .header { background-color: #1A3C2E; color: #ffffff; padding: 30px; text-align: center; }
-          .header h1 { margin: 0; font-size: 20px; font-weight: 900; letter-spacing: 1px; }
-          .subheader { color: #F5B400; font-size: 10px; text-transform: uppercase; letter-spacing: 2px; margin-top: 5px; font-weight: bold; }
-          .body { padding: 30px; }
-          .event-title { font-size: 24px; font-weight: 900; color: #1A3C2E; margin: 0 0 20px 0; text-align: center; }
-          .details-grid { width: 100%; border-collapse: collapse; margin-bottom: 25px; }
-          .details-grid td { padding: 10px 0; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
-          .label { color: #64748b; font-weight: 500; width: 40%; }
-          .value { font-weight: 700; color: #1A3C2E; text-align: right; }
-          .qr-section { text-align: center; background-color: #f8fafc; border-radius: 16px; padding: 25px; margin-top: 20px; border: 1px dashed #cbd5e1; }
-          .qr-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #64748b; margin-bottom: 15px; font-weight: bold; }
-          .qr-image { background-color: #ffffff; padding: 10px; border-radius: 12px; display: inline-block; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-          .footer { text-align: center; font-size: 11px; color: #64748b; margin-top: 30px; line-height: 1.5; }
-        </style>
-      </head>
-      <body>
-        <div class="card">
-          <div class="header">
-            <div class="subheader">Official Entry Boarding Pass</div>
-            <h1>CCIS STUDENT COUNCIL</h1>
-          </div>
-          <div class="body">
-            <div class="event-title">${eventTitle}</div>
-            <table class="details-grid">
-              <tr><td class="label">Attendee Name</td><td class="value">${recipientName}</td></tr>
-              <tr><td class="label">Section</td><td class="value">${section.toUpperCase()}</td></tr>
-              <tr><td class="label">Branch (Program)</td><td class="value">${college}</td></tr>
-              <tr><td class="label">Ticket Reference ID</td><td class="value" style="font-family: monospace; font-size: 11px;">${registrationId}</td></tr>
-            </table>
-            <div class="qr-section">
-              <div class="qr-title">Scan QR code at event entry</div>
-              <div class="qr-image">
-                <img src="${qrImageUrl}" width="180" height="180" alt="Ticket QR Verification Code" style="display: block;" />
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="footer">
-          This is an automated boarding pass issued by the CCIS Student Council.<br>
-          Do not share this QR code. Present it clearly on your mobile device at the registration desk.
-        </div>
-      </body>
-      </html>
-    `;
-
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${resendApiKey}`,
-      },
-      body: JSON.stringify({
-        from: "CCIS Student Council <tickets@ccis-council.org>",
-        to: recipientEmail,
-        subject: `[Boarding Pass] ${eventTitle} — ${recipientName}`,
-        html: htmlBody,
-      }),
-    });
-
-    if (!res.ok) {
-      const errText = await res.text();
-      console.error(`[send-ticket-email:${requestId}] Resend API error:`, errText);
-      return new Response(
-        JSON.stringify({ success: false, error: "Failed to dispatch email via delivery service." }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 502 }
-      );
-    }
-
-    return new Response(
-      JSON.stringify({ success: true, message: "Ticket email sent successfully." }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
-    );
-  } catch (err: any) {
-    console.error(`[send-ticket-email:${requestId}] Internal server error:`, err);
-    return new Response(
-      JSON.stringify({ success: false, error: "An error occurred while processing the ticket email." }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
-    );
+  const authorization = req.headers.get("authorization");
+  if (!authorization?.startsWith("Bearer ")) {
+    return json(401, { success: false, error: "UNAUTHORIZED" }, corsHeaders);
   }
+
+  let registrationId: string;
+  try {
+    registrationId = await readRegistrationId(req);
+  } catch (error) {
+    const code = error instanceof Error ? error.message : "INVALID_REQUEST";
+    const status = code === "PAYLOAD_TOO_LARGE" ? 413 : code === "UNSUPPORTED_MEDIA_TYPE" ? 415 : 400;
+    return json(status, { success: false, error: code }, corsHeaders);
+  }
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SECRET_KEY") || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseUrl || !anonKey || !serviceRoleKey) {
+    console.error(`[ticket-email:${requestId}] configuration_error`);
+    return json(503, { success: false, error: "SERVICE_NOT_CONFIGURED" }, corsHeaders);
+  }
+
+  const callerClient = createClient(supabaseUrl, anonKey, {
+    global: { headers: { Authorization: authorization } },
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const { data: authData, error: authError } = await callerClient.auth.getUser();
+  if (authError || !authData.user) return json(401, { success: false, error: "UNAUTHORIZED" }, corsHeaders);
+
+  const admin = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const { data: retryAfter, error: rateError } = await admin.rpc("consume_edge_rate_limit", {
+    p_operation: "ticket_email",
+    p_subject: authData.user.id,
+    p_limit: 3,
+    p_window_seconds: 3600,
+  });
+  if (rateError) return json(500, { success: false, error: "RATE_LIMIT_CHECK_FAILED" }, corsHeaders);
+  if (Number(retryAfter) > 0) {
+    return json(429, { success: false, error: "RATE_LIMITED" }, {
+      ...corsHeaders,
+      "Retry-After": String(retryAfter),
+    });
+  }
+
+  const { data: registration, error: registrationError } = await admin
+    .from("event_registrations")
+    .select("id, profile_id, status, events(title), profiles(full_name, email, program, section)")
+    .eq("id", registrationId)
+    .maybeSingle();
+  if (registrationError || !registration) return json(404, { success: false, error: "REGISTRATION_NOT_FOUND" }, corsHeaders);
+
+  const { data: callerProfile } = await admin
+    .from("profiles")
+    .select("role")
+    .eq("id", authData.user.id)
+    .maybeSingle();
+  const isStaff = ["devcom_head", "comm_registration"].includes(callerProfile?.role || "");
+  if (registration.profile_id !== authData.user.id && !isStaff) {
+    return json(403, { success: false, error: "FORBIDDEN" }, corsHeaders);
+  }
+
+  const profile = registration.profiles as unknown as {
+    full_name?: string; email?: string; program?: string; section?: string;
+  } | null;
+  const event = registration.events as unknown as { title?: string } | null;
+  if (!profile?.email) return json(400, { success: false, error: "RECIPIENT_EMAIL_MISSING" }, corsHeaders);
+
+  const logicalKey = `ticket:${registration.id}`;
+  const html = `<!doctype html><html><body style="font-family:Arial,sans-serif;background:#FAF7EA;color:#123524;padding:32px">
+    <main style="max-width:560px;margin:auto;background:#fff;border:1px solid rgba(18,53,36,.22);border-radius:20px;padding:28px">
+      <p style="color:#FFBC00;font-weight:bold;text-transform:uppercase;letter-spacing:2px">Official participant pass</p>
+      <h1>${escapeHtml(event?.title || "CCIS Event")}</h1>
+      <p><strong>Heron:</strong> ${escapeHtml(profile.full_name || "Student")}<br>
+      <strong>Program / section:</strong> ${escapeHtml(profile.program || "CCIS")} / ${escapeHtml(profile.section || "N/A")}<br>
+      <strong>Ticket reference:</strong> <code>${registration.id}</code></p>
+      <p>Open your CCIS Portal account to display the scannable ticket. Do not share this reference.</p>
+    </main></body></html>`;
+
+  const { error: insertError } = await admin.from("email_queue").insert({
+    profile_id: registration.profile_id,
+    recipient_email: profile.email,
+    email_type: "ticket",
+    subject: `[CCIS SC] Participant pass — ${event?.title || "CCIS Event"}`,
+    html_body: html,
+    logical_key: logicalKey,
+    provider_idempotency_key: `ticket-${registration.id}`,
+  });
+
+  if (insertError && insertError.code !== "23505") {
+    console.error(`[ticket-email:${requestId}] queue_failed code=${insertError.code || "UNKNOWN"}`);
+    return json(500, { success: false, error: "QUEUE_FAILED" }, corsHeaders);
+  }
+
+  const { data: queued } = await admin
+    .from("email_queue")
+    .select("id, status, created_at")
+    .eq("logical_key", logicalKey)
+    .single();
+
+  console.log(`[ticket-email:${requestId}] registration=${registration.id} state=${queued?.status || "queued"}`);
+  return json(200, {
+    success: true,
+    queued: !insertError,
+    status: queued?.status || "pending",
+    queueId: queued?.id,
+  }, corsHeaders);
 });

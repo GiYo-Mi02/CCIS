@@ -4,7 +4,7 @@ CREATE OR REPLACE FUNCTION public.get_dashboard_unread_counts()
 RETURNS TABLE (conversation_id UUID, unread_count BIGINT)
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = ''
 AS $$
 BEGIN
   IF public.get_user_role() NOT IN ('devcom_head', 'officer') THEN

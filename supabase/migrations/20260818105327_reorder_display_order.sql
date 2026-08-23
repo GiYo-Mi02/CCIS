@@ -7,7 +7,7 @@ CREATE OR REPLACE FUNCTION public.swap_officer_order(
 RETURNS VOID
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = ''
 AS $$
 DECLARE
   v_officer public.officers%ROWTYPE;
@@ -88,7 +88,7 @@ CREATE OR REPLACE FUNCTION public.swap_faq_order(
 RETURNS VOID
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = ''
 AS $$
 DECLARE
   v_faq public.faqs%ROWTYPE;

@@ -1,0 +1,17 @@
+# ============================================================
+# HTTP Security Headers — Netlify / Cloudflare Pages
+# ============================================================
+# WARNING 18: frame-ancestors and X-Frame-Options cannot be
+# enforced via <meta> tags — browsers ignore them per spec.
+# These must be set as real HTTP response headers.
+#
+# For Vercel deployments, equivalent headers are in vercel.json.
+# ============================================================
+
+/*
+  X-Frame-Options: DENY
+  Content-Security-Policy: default-src 'self'; script-src 'self'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; img-src 'self' data: blob: https://lh3.googleusercontent.com https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.ipify.org; frame-ancestors 'none'; base-uri 'self'; form-action 'self';
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(self), microphone=(), geolocation=(), payment=()
+  Strict-Transport-Security: max-age=63072000; includeSubDomains; preload

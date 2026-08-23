@@ -406,14 +406,6 @@ export default function UserManager() {
                                   </span>
                                 </>
                               )}
-                              {user.last_ip && (
-                                <>
-                                  <span className="hidden sm:inline text-stone-300">•</span>
-                                  <span className="font-mono font-semibold text-rose-600 bg-rose-50 border border-rose-100 px-1.5 py-0.2 rounded" title="Last recorded IP address">
-                                    IP: {user.last_ip}
-                                  </span>
-                                </>
-                              )}
                             </div>
                           </div>
                         </div>
