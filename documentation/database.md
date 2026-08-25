@@ -63,7 +63,7 @@ Draft or restricted media belongs in the private `ccis-private-drafts` bucket an
 
 ## Email processing
 
-`pg_cron` invokes the queue worker once per minute using a dedicated secret stored in Vault. The browser cannot invoke the worker. Configuration and invocation failures are recorded in `internal.email_worker_invocations` without storing recipient data or provider response bodies.
+`pg_cron` invokes the queue worker once per minute using a dedicated secret stored in Vault. The browser cannot invoke the worker. `internal.reconcile_email_worker_invocations()` records redacted `pg_net` success, HTTP failure, and timeout outcomes; `internal.email_worker_alerts` exposes failed worker calls and pending emails older than 15 minutes to the service-role monitoring path.
 
 Content publishing writes one `internal.email_outbox` row in the source transaction. The worker expands recipients in bounded batches, preventing subscriber fan-out from slowing or rolling back the originating content write.
 

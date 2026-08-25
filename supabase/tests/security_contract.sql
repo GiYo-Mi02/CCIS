@@ -56,6 +56,16 @@ BEGIN
     RAISE EXCEPTION 'ensure_conversation() is not an authenticated idempotent upsert';
   END IF;
 
+  IF to_regprocedure('internal.reconcile_email_worker_invocations()') IS NULL
+     OR NOT has_function_privilege('service_role', 'internal.reconcile_email_worker_invocations()', 'EXECUTE')
+     OR to_regclass('internal.email_worker_alerts') IS NULL THEN
+    RAISE EXCEPTION 'email worker outcome reconciliation is missing';
+  END IF;
+  IF pg_get_functiondef('internal.reconcile_email_worker_invocations()'::regprocedure) NOT LIKE '%net._http_response%'
+     OR pg_get_functiondef('internal.reconcile_email_worker_invocations()'::regprocedure) NOT LIKE '%HTTP_TIMEOUT%' THEN
+    RAISE EXCEPTION 'email worker outcomes are not reconciled from pg_net responses';
+  END IF;
+
   IF to_regprocedure('public.dequeue_emails(integer)') IS NOT NULL THEN
     RAISE EXCEPTION 'Obsolete dequeue_emails(integer) overload still exists';
   END IF;
