@@ -31,6 +31,29 @@ interface EventOption {
   event_date: string;
 }
 
+interface AttendanceProfile {
+  id: string;
+  student_number: string | null;
+  full_name: string | null;
+  program: string | null;
+  section: string | null;
+  status: string;
+  banned: boolean;
+  attendance_qr_code: string | null;
+}
+
+interface EventRegistrationScan {
+  id: string;
+  status: string;
+  attended_at: string | null;
+  attendance_origin: string | null;
+  event_title: string;
+  full_name: string | null;
+  student_number: string | null;
+  program: string | null;
+  section: string | null;
+}
+
 const COOLDOWN_MS = 2000; // 2 second cooldown between scans
 const AUTO_DISMISS_SUCCESS_MS = 3500; // auto-dismiss success/warning after 3.5s
 const AUTO_DISMISS_ERROR_MS = 5000; // auto-dismiss error after 5s
@@ -353,36 +376,15 @@ export default function TicketScanner() {
           profile_id: parts[2]
         };
       } else if (trimmedId.startsWith('CCIS-PASS-') || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trimmedId)) {
-        // Match by secure pass token in database
-        const { data: matchedProf } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('attendance_qr_code', trimmedId)
-          .maybeSingle();
-
-        if (matchedProf) {
-          audienceData = {
-            profile_id: matchedProf.id,
-            student_id: matchedProf.student_number,
-            name: matchedProf.full_name,
-            program: matchedProf.program,
-            section: matchedProf.section,
-            token: matchedProf.attendance_qr_code
-          };
-        }
+        audienceData = { token: trimmedId };
       }
 
       if (audienceData) {
-        let profQuery = supabase.from('profiles').select('*');
-        if (audienceData.profile_id) {
-          profQuery = profQuery.eq('id', audienceData.profile_id);
-        } else if (audienceData.student_id) {
-          profQuery = profQuery.eq('student_number', audienceData.student_id);
-        } else if (audienceData.token) {
-          profQuery = profQuery.eq('attendance_qr_code', audienceData.token);
-        }
-
-        const { data: stProfile, error: profErr } = await profQuery.maybeSingle();
+        const identifier = audienceData.profile_id || audienceData.student_id || audienceData.token;
+        const { data: profileData, error: profErr } = await supabase.rpc('lookup_attendance_profile', {
+          p_identifier: identifier,
+        }).maybeSingle();
+        const stProfile = profileData as AttendanceProfile | null;
         if (profErr || !stProfile) {
           playSound('error');
           const errorResult: ScanResult = {
@@ -521,11 +523,10 @@ export default function TicketScanner() {
       }
 
       // 2. Otherwise check specific Event Registration
-      const { data: reg, error } = await supabase
-        .from('event_registrations')
-        .select('*, events(title), profiles(full_name, student_number, program, section)')
-        .eq('id', trimmedId)
+      const { data: registrationData, error } = await supabase
+        .rpc('lookup_event_registration', { p_registration_id: trimmedId })
         .maybeSingle();
+      const reg = registrationData as EventRegistrationScan | null;
 
       if (error) {
         console.error('Ticket scan query error:', error.message);
@@ -552,13 +553,12 @@ export default function TicketScanner() {
         return;
       }
 
-      const profile = reg.profiles as any;
-      const eventTitle = reg.events?.title || 'Event';
+      const eventTitle = reg.event_title || 'Event';
       const studentData = {
-        name: profile?.full_name || 'Student',
-        studentNumber: profile?.student_number || '—',
-        section: profile?.section || '—',
-        program: profile?.program || 'CCIS',
+        name: reg.full_name || 'Student',
+        studentNumber: reg.student_number || '—',
+        section: reg.section || '—',
+        program: reg.program || 'CCIS',
         eventTitle,
         registrationStatus: reg.attendance_origin === 'walk_in' ? 'Walk-in / Non-registrant' as const : 'Registrant' as const,
       };
