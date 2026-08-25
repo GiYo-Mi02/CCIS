@@ -9,23 +9,10 @@ SELECT set_config(
 
 DO $protected_update$
 DECLARE
-  v_rows INTEGER;
 BEGIN
-  BEGIN
-    UPDATE public.messages
-    SET content = 'unauthorized content',
-        sender_id = gen_random_uuid(),
-        sender_role = 'admin',
-        conversation_id = gen_random_uuid()
-    WHERE false;
-
-    GET DIAGNOSTICS v_rows = ROW_COUNT;
-    IF v_rows <> 0 THEN
-      RAISE EXCEPTION 'direct protected-column message UPDATE was allowed';
-    END IF;
-  EXCEPTION
-    WHEN insufficient_privilege THEN NULL;
-  END;
+  IF has_table_privilege('authenticated', 'public.messages', 'UPDATE') THEN
+    RAISE EXCEPTION 'authenticated users retain direct message UPDATE privilege';
+  END IF;
 END;
 $protected_update$;
 
