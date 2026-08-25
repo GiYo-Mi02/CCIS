@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import fs from 'fs';
 import nodemailer from 'nodemailer';
+import { resolveSupabaseSecretKey } from './supabase/functions/_shared/supabase-keys.js';
 
 // Read env variables from .env.local
 let env = {};
@@ -18,8 +19,9 @@ try {
   console.error('[Email Worker] Failed to parse .env.local:', err.message);
 }
 
-const supabaseUrl = env['VITE_SUPABASE_URL'] || process.env.VITE_SUPABASE_URL;
-const supabaseKey = env['SUPABASE_SECRET_KEY'] || process.env.SUPABASE_SECRET_KEY;
+const readEnvironment = (name) => env[name] || process.env[name];
+const supabaseUrl = readEnvironment('VITE_SUPABASE_URL') || readEnvironment('SUPABASE_URL');
+const supabaseKey = resolveSupabaseSecretKey(readEnvironment);
 
 // SMTP configuration
 const smtpHost = env['SMTP_HOST'] || process.env.SMTP_HOST || 'smtp.gmail.com';
@@ -29,7 +31,8 @@ const smtpPass = env['SMTP_PASS'] || process.env.SMTP_PASS;
 const smtpFrom = env['SMTP_FROM'] || process.env.SMTP_FROM || `"CCIS Student Council" <${smtpUser || ''}>`;
 
 if (!supabaseUrl || !supabaseKey) {
-  console.error('[Email Worker] Missing VITE_SUPABASE_URL or SUPABASE_SECRET_KEY credentials.');
+  console.error('[Email Worker] Missing Supabase URL or a server-only Supabase secret key.');
+  console.error('[Email Worker] For local use, set SUPABASE_SECRET_KEY in .env.local.');
   process.exit(1);
 }
 

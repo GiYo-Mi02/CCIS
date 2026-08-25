@@ -15,6 +15,7 @@ interface ScanResult {
     program: string;
     eventTitle: string;
     attendedAt?: string;
+    registrationStatus?: 'Registrant' | 'Walk-in / Non-registrant';
   };
 }
 
@@ -75,46 +76,62 @@ export default function TicketScanner() {
     fetchEvents();
   }, []);
 
-  // Discover back cameras strictly
+  // Discover every available camera. Laptop webcams are normally user-facing,
+  // so they must not be excluded in favour of phone-style rear cameras.
   const refreshCameras = useCallback(async () => {
     try {
       const devices = await Html5Qrcode.getCameras();
       if (devices && devices.length > 0) {
-        // Filter out front/selfie/user cameras
-        const backOnly = devices.filter(d => 
-          !d.label.toLowerCase().includes('front') && 
-          !d.label.toLowerCase().includes('user') && 
-          !d.label.toLowerCase().includes('selfie')
-        );
-        const activeList = backOnly.length > 0 ? backOnly : devices;
-        setCameras(activeList);
+        setCameras(devices);
 
-        const preferredBack = activeList.find(d => 
+        const preferredBack = devices.find(d =>
           d.label.toLowerCase().includes('back') || 
           d.label.toLowerCase().includes('environment') || 
-          d.label.toLowerCase().includes('rear') ||
-          d.label.toLowerCase().includes('0')
-        ) || activeList[0];
+          d.label.toLowerCase().includes('rear')
+        );
 
-        if (preferredBack && !selectedCameraId) {
-          setSelectedCameraId(preferredBack.id);
-        }
+        // Preserve an existing selection; otherwise prefer a rear camera on
+        // mobile and the first available (usually integrated) webcam on laptops.
+        setSelectedCameraId(currentId =>
+          devices.some(device => device.id === currentId)
+            ? currentId
+            : (preferredBack || devices[0]).id
+        );
+      } else {
+        setCameras([]);
+        setSelectedCameraId('');
       }
+      return devices || [];
     } catch (err) {
       console.warn('Camera enumeration note:', err);
+      setCameras([]);
+      return [];
     }
-  }, [selectedCameraId]);
+  }, []);
 
   useEffect(() => {
     refreshCameras();
+    const mediaDevices = navigator.mediaDevices;
+    const handleDeviceChange = () => refreshCameras();
+    mediaDevices?.addEventListener?.('devicechange', handleDeviceChange);
+
     return () => {
+      mediaDevices?.removeEventListener?.('devicechange', handleDeviceChange);
       stopScanning();
       if (autoDismissTimerRef.current) clearTimeout(autoDismissTimerRef.current);
     };
   }, [refreshCameras]);
 
   const startScanning = async (overrideCameraId?: string) => {
-    setResult({ status: 'scanning', message: 'Back camera active. Position QR code inside the frame.' });
+    if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+      setResult({
+        status: 'error',
+        message: 'Camera access requires HTTPS or localhost. Open the admin portal using a secure URL and try again.'
+      });
+      return;
+    }
+
+    setResult({ status: 'scanning', message: 'Opening camera…' });
     setIsScanning(true);
     processingRef.current = false;
     cooldownRef.current = false;
@@ -134,7 +151,13 @@ export default function TicketScanner() {
       const html5QrCode = new Html5Qrcode(scannerId);
       html5QrCodeRef.current = html5QrCode;
 
-      const camToUse = overrideCameraId || selectedCameraId;
+      // Re-enumerate from the click event so the browser can prompt for camera
+      // permission and newly connected laptop webcams become available.
+      const detectedCameras = await refreshCameras();
+      const requestedCameraId = overrideCameraId || selectedCameraId;
+      const camToUse = detectedCameras.some(camera => camera.id === requestedCameraId)
+        ? requestedCameraId
+        : detectedCameras[0]?.id;
       
       const scanCallbacks = {
         onSuccess: async (decodedText: string) => {
@@ -165,7 +188,8 @@ export default function TicketScanner() {
         }
       };
 
-      // Strictly start the back / environment camera
+      // Prefer the selected device. If none is enumerated yet, try a rear
+      // camera first (phones), then a user-facing camera (laptops).
       let startError: any = null;
       if (camToUse) {
         try {
@@ -185,10 +209,20 @@ export default function TicketScanner() {
       }
 
       if (startError) {
+        try {
+          await html5QrCode.start({ facingMode: "user" }, qrConfig, scanCallbacks.onSuccess, scanCallbacks.onError);
+          startError = null;
+        } catch (errUser) {
+          startError = errUser;
+        }
+      }
+
+      if (startError) {
         throw startError;
       }
 
-      // Once back camera is active, refresh the enumerated device list
+      setIsScanning(true);
+      setResult({ status: 'scanning', message: 'Camera active. Position the QR code inside the frame.' });
       refreshCameras();
     } catch (err: any) {
       console.error('Failed to start back camera scanner:', err);
@@ -198,7 +232,7 @@ export default function TicketScanner() {
         status: 'error',
         message: isPermissionErr
           ? 'Camera permission blocked. Click the lock/tune icon in your browser address bar to allow Camera access.'
-          : `Camera error: ${err.message || 'Unable to open back camera'}. Ensure no other app is using the lens or upload QR photo below.`
+          : `Camera error: ${err.message || 'No usable camera was detected'}. Ensure the webcam is enabled and no other app is using it, then try again.`
       });
     }
   };
@@ -397,6 +431,7 @@ export default function TicketScanner() {
         // VALIDATION CHECK 3: Record Attendance in Database for Selected Event
         const targetEvent = events.find(e => e.id === selectedEventId);
         const eventTitle = targetEvent ? targetEvent.title : 'General Audience Attendance';
+        let attendanceResult: { is_event_registrant?: boolean } | null = null;
 
         if (selectedEventId) {
           const attendanceToken = stProfile.attendance_qr_code;
@@ -419,13 +454,18 @@ export default function TicketScanner() {
           const attendance = attendanceData as {
             was_already_attended: boolean;
             attended_at: string | null;
+            is_event_registrant: boolean;
+            attendance_origin: 'registered' | 'walk_in';
           } | null;
+          attendanceResult = attendance;
 
           if (attendanceErr || !attendance) {
             playSound('error');
             const errorResult: ScanResult = {
               status: 'error',
-              message: 'Unable to record audience attendance. Please try again.'
+              message: attendanceErr?.message?.includes('query returned no rows')
+                ? 'Invalid universal QR: this pass is not assigned to an active approved student.'
+                : 'Unable to record audience attendance. Please try again.'
             };
             setResult(errorResult);
             addToLog(trimmedId, errorResult);
@@ -444,7 +484,8 @@ export default function TicketScanner() {
                 section: stProfile.section || audienceData.section || '—',
                 program: stProfile.program || audienceData.program || 'CCIS',
                 eventTitle,
-                attendedAt: attendance.attended_at ? new Date(attendance.attended_at).toLocaleTimeString() : 'Previously'
+                attendedAt: attendance.attended_at ? new Date(attendance.attended_at).toLocaleTimeString() : 'Previously',
+                registrationStatus: attendance.is_event_registrant ? 'Registrant' : 'Walk-in / Non-registrant'
               }
             };
             setResult(warningResult);
@@ -464,7 +505,12 @@ export default function TicketScanner() {
             studentNumber: stProfile.student_number || audienceData.student_id || '—',
             section: stProfile.section || audienceData.section || '—',
             program: stProfile.program || audienceData.program || 'CCIS',
-            eventTitle
+            eventTitle,
+            registrationStatus: selectedEventId
+              ? (attendanceResult?.is_event_registrant
+                  ? 'Registrant'
+                  : 'Walk-in / Non-registrant')
+              : undefined
           }
         };
         setResult(successResult);
@@ -514,6 +560,7 @@ export default function TicketScanner() {
         section: profile?.section || '—',
         program: profile?.program || 'CCIS',
         eventTitle,
+        registrationStatus: reg.attendance_origin === 'walk_in' ? 'Walk-in / Non-registrant' as const : 'Registrant' as const,
       };
 
       if (reg.status === 'attended') {
@@ -533,7 +580,7 @@ export default function TicketScanner() {
         // Mark as attended
         const { error: updateErr } = await supabase
           .from('event_registrations')
-          .update({ status: 'attended' })
+          .update({ status: 'attended', attended_at: new Date().toISOString() })
           .eq('id', trimmedId);
 
         if (updateErr) {
@@ -657,10 +704,10 @@ export default function TicketScanner() {
               onChange={(e) => handleCameraChange(e.target.value)}
               className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs outline-none text-[#222B26] font-semibold"
             >
-              <option value="">Auto-Detect Back Camera</option>
+              <option value="">Auto-detect camera</option>
               {cameras.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.label || `Back Camera ${cameras.indexOf(c) + 1}`}
+                  {c.label || `Camera ${cameras.indexOf(c) + 1}`}
                 </option>
               ))}
             </select>
@@ -680,7 +727,7 @@ export default function TicketScanner() {
               }`}
             >
               <Camera size={14} />
-              <span>{isScanning ? 'Stop Camera' : 'Start Back Camera'}</span>
+              <span>{isScanning ? 'Stop Camera' : 'Start Camera'}</span>
             </button>
           </div>
 
@@ -869,6 +916,14 @@ export default function TicketScanner() {
                     <div className="pt-2 border-t border-gray-200 flex items-center justify-between text-[9px] text-amber-700 font-mono">
                       <span>CHECKED IN AT:</span>
                       <span>{result.student.attendedAt}</span>
+                    </div>
+                  )}
+                  {result.student.registrationStatus && (
+                    <div className="pt-2 border-t border-gray-200 flex items-center justify-between text-[9px] font-mono">
+                      <span className="text-gray-500">EVENT REGISTRATION:</span>
+                      <span className={result.student.registrationStatus === 'Registrant' ? 'text-emerald-700 font-bold' : 'text-amber-700 font-bold'}>
+                        {result.student.registrationStatus}
+                      </span>
                     </div>
                   )}
                 </div>

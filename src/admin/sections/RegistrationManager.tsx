@@ -203,13 +203,14 @@ export default function RegistrationManager() {
     };
     const csvRow = (values: unknown[]) => values.map(csvCell).join(',');
     const csv = [
-      csvRow(['Name', 'Email', 'Student Number', 'Section', 'Event', 'Status', 'Registered At']),
+      csvRow(['Name', 'Email', 'Student Number', 'Section', 'Event', 'Registration Type', 'Status', 'Registered At']),
       ...toExport.map(r => csvRow([
         r.profiles?.full_name,
         r.profiles?.email,
         r.profiles?.student_number,
         r.profiles?.section,
         r.events?.title,
+        r.attendance_origin === 'walk_in' ? 'Walk-in / Non-registrant' : 'Registrant',
         r.status === 'confirmed' || r.status === 'pending' ? 'Not Attended' : r.status === 'attended' ? 'Attended' : r.status,
         r.registered_at,
       ])),
@@ -361,6 +362,7 @@ export default function RegistrationManager() {
                     <th className="text-left px-4 py-3 font-bold text-[10px] uppercase tracking-wider text-gray-400">Email</th>
                     <th className="text-left px-4 py-3 font-bold text-[10px] uppercase tracking-wider text-gray-400">Section</th>
                     <th className="text-left px-4 py-3 font-bold text-[10px] uppercase tracking-wider text-gray-400">Event</th>
+                    <th className="text-left px-4 py-3 font-bold text-[10px] uppercase tracking-wider text-gray-400">Registration</th>
                     <th className="text-left px-4 py-3 font-bold text-[10px] uppercase tracking-wider text-gray-400">Status</th>
                     <th className="text-left px-4 py-3 font-bold text-[10px] uppercase tracking-wider text-gray-400">Registered</th>
                     <th className="text-right px-5 py-3 font-bold text-[10px] uppercase tracking-wider text-gray-400">Actions</th>
@@ -379,6 +381,12 @@ export default function RegistrationManager() {
                         <td className="px-4 py-3 text-gray-500 font-mono text-xs">{reg.profiles?.email || ''}</td>
                         <td className="px-4 py-3 text-gray-500 font-mono text-xs">{reg.profiles?.section || '—'}</td>
                         <td className="px-4 py-3 text-gray-500 text-xs">{reg.events?.title || 'Event'}</td>
+                        <td className="px-4 py-3">
+                          <StatusBadge
+                            variant={reg.attendance_origin === 'walk_in' ? 'warning' : 'success'}
+                            label={reg.attendance_origin === 'walk_in' ? 'Walk-in / Non-registrant' : 'Registrant'}
+                          />
+                        </td>
                         <td className="px-4 py-3"><StatusBadge variant={badge.variant} label={badge.label} /></td>
                         <td className="px-4 py-3 text-gray-400 font-mono text-xs">
                           {new Date(reg.registered_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
@@ -418,6 +426,7 @@ export default function RegistrationManager() {
               { label: 'Student Number', value: selectedReg.profiles?.student_number || '—' },
               { label: 'Section', value: selectedReg.profiles?.section || '—' },
               { label: 'Event', value: selectedReg.events?.title || 'Event' },
+              { label: 'Registration', value: selectedReg.attendance_origin === 'walk_in' ? 'Walk-in / Non-registrant' : 'Registrant' },
               { label: 'Event Date', value: selectedReg.events?.event_date || '' },
               { label: 'Registered At', value: new Date(selectedReg.registered_at).toLocaleString() },
               { label: 'Status', value: selectedReg.status === 'confirmed' || selectedReg.status === 'pending' ? 'Not Attended' : selectedReg.status === 'attended' ? 'Attended' : selectedReg.status },

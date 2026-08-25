@@ -17,6 +17,7 @@ const MessagesPage = lazy(() => import('./pages/MessagesPage'));
 const GalleryPage = lazy(() => import('./pages/GalleryPage'));
 const BukasKabanPage = lazy(() => import('./pages/BukasKabanPage'));
 const PatchPage = lazy(() => import('./pages/PatchPage'));
+const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
 import { useAuth } from './context/AuthContext';
@@ -28,18 +29,21 @@ interface AppProps {
 }
 
 export default function App({ onAdminSwitch }: AppProps) {
-  const [activeTab, setActiveTab] = useState<string>('home');
+  const [activeTab, setActiveTab] = useState<string>(() => window.location.pathname === '/privacy' ? 'privacy' : 'home');
   const [infoSubTab, setInfoSubTab] = useState<'umak' | 'college' | 'org'>('umak');
   const [preselectedEventId, setPreselectedEventId] = useState<string | null>(null);
   const { user, profile, setEmailPreferences, isPending, isUnverified, isAdmin, loading } = useAuth();
 
   const isUmakTheme = activeTab === 'info' && infoSubTab === 'umak';
 
-  // Sanitize URL back to root clean URL (no subpath slashes)
+  // Privacy is a linkable public page; other legacy views remain tab-based.
   useEffect(() => {
-    if (window.location.pathname !== '/' && window.location.pathname !== '') {
+    if (!['/', '', '/privacy'].includes(window.location.pathname)) {
       window.history.replaceState(null, '', '/');
     }
+    const handlePopState = () => setActiveTab(window.location.pathname === '/privacy' ? 'privacy' : 'home');
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
   // Multi-route smooth scroll coordinator (e.g. for scrolling to contact desks)
@@ -77,6 +81,10 @@ export default function App({ onAdminSwitch }: AppProps) {
       return;
     }
     setActiveTab(tab);
+    const targetPath = tab === 'privacy' ? '/privacy' : '/';
+    if (window.location.pathname !== targetPath) {
+      window.history.pushState(null, '', targetPath);
+    }
     if (tab === 'registration' && eventId) {
       setPreselectedEventId(eventId);
     } else if (tab !== 'registration') {
@@ -87,7 +95,7 @@ export default function App({ onAdminSwitch }: AppProps) {
 
 
   // Full-screen pages (no navbar/footer)
-  if (activeTab === 'login' || (user && !isAdmin && (!profile || !profile.profile_complete || (isPending && !isUnverified)))) {
+  if (activeTab === 'login' || (activeTab !== 'privacy' && user && !isAdmin && (!profile || !profile.profile_complete || (isPending && !isUnverified)))) {
     return (
       <Suspense fallback={<FullPageSkeleton />}>
         <AuthPage onNavigate={handleNavigate} />
@@ -213,6 +221,12 @@ export default function App({ onAdminSwitch }: AppProps) {
           {activeTab === 'patch' && (
             <div className="animate-fade-in">
               <PatchPage isAdmin={isAdmin} />
+            </div>
+          )}
+
+          {activeTab === 'privacy' && (
+            <div className="animate-fade-in">
+              <PrivacyPolicyPage onNavigate={handleNavigate} />
             </div>
           )}
 

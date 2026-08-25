@@ -34,6 +34,7 @@
         "npm:html5-qrcode@^2.3.8",
         "npm:lucide-react@0.546",
         "npm:motion@^12.23.24",
+        "npm:nodemailer@9.0.5",
         "npm:pdfjs-dist@^3.11.174",
         "npm:pg@^8.22.0",
         "npm:qrcode.react@^4.2.0",

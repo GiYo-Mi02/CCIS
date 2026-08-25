@@ -155,6 +155,15 @@ export default function Footer({ onNavClick, onAdminSwitch, isUmakTheme = false 
             © 2026 CCIS Student Council. All Rights Reserved.
           </span>
           <div className="flex items-center gap-4">
+            <button
+              onClick={() => {
+                onNavClick('privacy');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="hover:text-[#F5B400] hover:underline transition-colors"
+            >
+              Privacy Policy
+            </button>
             <span className="flex items-center gap-1">
               Built with <Heart size={10} className="fill-rose-600 text-rose-600 animate-pulse" /> by CCIS Student Council
             </span>

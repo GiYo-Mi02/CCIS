@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.108.2";
+import { resolveSupabasePublishableKey, resolveSupabaseSecretKey } from "../_shared/supabase-keys.js";
 
 const MAX_BODY_BYTES = 2_048;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -59,8 +60,8 @@ serve(async (req: Request) => {
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
-  const serviceRoleKey = Deno.env.get("SUPABASE_SECRET_KEY") || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const anonKey = resolveSupabasePublishableKey((name) => Deno.env.get(name));
+  const serviceRoleKey = resolveSupabaseSecretKey((name) => Deno.env.get(name));
   if (!supabaseUrl || !anonKey || !serviceRoleKey) {
     console.error(`[ticket-email:${requestId}] configuration_error`);
     return json(503, { success: false, error: "SERVICE_NOT_CONFIGURED" }, corsHeaders);
