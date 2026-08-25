@@ -9,4 +9,5 @@ coverage/
 k6_load_test.js
 k6_diagnostic.json
 supabase/.temp/
+supabase/.branches/
 .temp/
