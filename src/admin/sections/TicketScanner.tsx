@@ -570,7 +570,7 @@ export default function TicketScanner() {
           message: 'Already Checked In! This ticket has already been used for entry.',
           student: {
             ...studentData,
-            attendedAt: reg.updated_at ? new Date(reg.updated_at).toLocaleTimeString() : 'Previously'
+            attendedAt: reg.attended_at ? new Date(reg.attended_at).toLocaleTimeString() : 'Previously'
           }
         };
         setResult(warningResult);
