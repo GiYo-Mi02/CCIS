@@ -46,6 +46,16 @@ $$;
 
 DO $$
 BEGIN
+  IF to_regprocedure('public.ensure_conversation()') IS NULL
+     OR NOT has_function_privilege('authenticated', 'public.ensure_conversation()', 'EXECUTE')
+     OR has_function_privilege('anon', 'public.ensure_conversation()', 'EXECUTE') THEN
+    RAISE EXCEPTION 'ensure_conversation() must be authenticated-only';
+  END IF;
+  IF pg_get_functiondef('public.ensure_conversation()'::regprocedure) NOT LIKE '%auth.uid()%'
+     OR pg_get_functiondef('public.ensure_conversation()'::regprocedure) NOT LIKE '%ON CONFLICT (profile_id) DO NOTHING%' THEN
+    RAISE EXCEPTION 'ensure_conversation() is not an authenticated idempotent upsert';
+  END IF;
+
   IF to_regprocedure('public.dequeue_emails(integer)') IS NOT NULL THEN
     RAISE EXCEPTION 'Obsolete dequeue_emails(integer) overload still exists';
   END IF;

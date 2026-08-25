@@ -15,3 +15,8 @@ test('ticket scanner keeps camera discovery stable and supports laptop webcams',
   assert.match(scannerSource, /addEventListener\?\.\('devicechange'/);
   assert.doesNotMatch(scannerSource, /\}, \[selectedCameraId\]\);/);
 });
+
+test('ticket scanner uses the atomic registration check-in RPC', () => {
+  assert.match(scannerSource, /\.rpc\('check_in_event_registration'/);
+  assert.doesNotMatch(scannerSource, /\.from\('event_registrations'\)/);
+});

@@ -52,6 +52,7 @@ interface EventRegistrationScan {
   student_number: string | null;
   program: string | null;
   section: string | null;
+  was_already_attended: boolean;
 }
 
 const COOLDOWN_MS = 2000; // 2 second cooldown between scans
@@ -522,9 +523,9 @@ export default function TicketScanner() {
         return;
       }
 
-      // 2. Otherwise check specific Event Registration
+      // 2. Otherwise check in a specific Event Registration atomically.
       const { data: registrationData, error } = await supabase
-        .rpc('lookup_event_registration', { p_registration_id: trimmedId })
+        .rpc('check_in_event_registration', { p_registration_id: trimmedId })
         .maybeSingle();
       const reg = registrationData as EventRegistrationScan | null;
 
@@ -563,7 +564,7 @@ export default function TicketScanner() {
         registrationStatus: reg.attendance_origin === 'walk_in' ? 'Walk-in / Non-registrant' as const : 'Registrant' as const,
       };
 
-      if (reg.status === 'attended') {
+      if (reg.was_already_attended) {
         playSound('warning');
         const warningResult: ScanResult = {
           status: 'warning',
@@ -577,25 +578,6 @@ export default function TicketScanner() {
         addToLog(trimmedId, warningResult);
         scheduleAutoDismiss(AUTO_DISMISS_SUCCESS_MS);
       } else {
-        // Mark as attended
-        const { error: updateErr } = await supabase
-          .from('event_registrations')
-          .update({ status: 'attended', attended_at: new Date().toISOString() })
-          .eq('id', trimmedId);
-
-        if (updateErr) {
-          console.error('Attendance status update error:', updateErr.message);
-          playSound('error');
-          const errorResult: ScanResult = {
-            status: 'error',
-            message: 'Failed to update attendance record. Please try again.'
-          };
-          setResult(errorResult);
-          addToLog(trimmedId, errorResult);
-          scheduleAutoDismiss(AUTO_DISMISS_ERROR_MS);
-          return;
-        }
-
         playSound('success');
         setScanCount(prev => prev + 1);
         const successResult: ScanResult = {

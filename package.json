@@ -14,8 +14,9 @@
     "test:gallery-rls": "psql \"$SUPABASE_DB_URL\" --set ON_ERROR_STOP=1 --file supabase/tests/gallery_rls.sql",
     "test:messages-rls": "psql \"$SUPABASE_DB_URL\" --set ON_ERROR_STOP=1 --file supabase/tests/messages_rls.sql",
     "test:attendance-rpc": "psql \"$SUPABASE_DB_URL\" --set ON_ERROR_STOP=1 --file supabase/tests/attendance_rpc.sql",
+    "test:registration-checkin-rpc": "bash supabase/tests/registration_checkin_concurrency.sh",
     "test:security-contract": "psql \"$SUPABASE_DB_URL\" --set ON_ERROR_STOP=1 --file supabase/tests/security_contract.sql",
-    "test:db": "npm run test:security-contract && npm run test:gallery-rls && npm run test:messages-rls && npm run test:attendance-rpc",
+    "test:db": "npm run test:security-contract && npm run test:gallery-rls && npm run test:messages-rls && npm run test:attendance-rpc && npm run test:registration-checkin-rpc",
     "test:all": "npm run lint && npm run test && npm run build",
     "validate": "npm run test:all && npm run lint:edge"
   },
