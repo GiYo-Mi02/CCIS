@@ -38,6 +38,22 @@ test('Edge Functions enforce POST and bounded request bodies', () => {
   }
 });
 
+test('Edge Functions resolve migrated Supabase API key maps', () => {
+  const sharedSource = readFileSync(join(root, 'supabase', 'functions', '_shared', 'supabase-keys.js'), 'utf8');
+  assert.match(sharedSource, /SUPABASE_SECRET_KEYS/);
+  assert.match(sharedSource, /SUPABASE_PUBLISHABLE_KEYS/);
+
+  for (const name of ['process-email-queue', 'send-ticket-email', 'delete-user']) {
+    const source = readFileSync(join(root, 'supabase', 'functions', name, 'index.ts'), 'utf8');
+    assert.match(source, /resolveSupabaseSecretKey/);
+  }
+
+  const config = readFileSync(join(root, 'supabase', 'config.toml'), 'utf8');
+  assert.match(config, /\[functions\.process-email-queue\]\s+verify_jwt\s*=\s*false/);
+  assert.match(config, /\[functions\.send-ticket-email\]\s+verify_jwt\s*=\s*true/);
+  assert.match(config, /\[functions\.delete-user\]\s+verify_jwt\s*=\s*true/);
+});
+
 test('browser code cannot invoke the internal email worker', () => {
   const sourceFiles = readdirSync(join(root, 'src'), { recursive: true })
     .filter((entry): entry is string => typeof entry === 'string' && /\.(?:ts|tsx)$/.test(entry));

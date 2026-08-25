@@ -27,17 +27,20 @@ Create a file named [`.env.local`](file:///c:/Users/gio%20joshua%20gonzales/OneD
   
   # Credentials below are required for the background Email Worker (if run locally)
   SUPABASE_SECRET_KEY=your-supabase-secret-key
-  RESEND_API_KEY=re_your_secret_resend_api_key
-  SENDER_EMAIL=umakccissc@umak.edu.ph
+  SMTP_HOST=smtp.gmail.com
+  SMTP_PORT=587
+  SMTP_USER=your-smtp-user
+  SMTP_PASS=your-smtp-app-password
+  SMTP_FROM="CCIS Student Council <your-smtp-user>"
   ```
 
 ### Step 4: Run the Development Server
 ```bash
 npm run dev
 ```
-This boots up the Vite development server (usually on `http://localhost:3000`) and concurrently starts the background email processing worker.
+This boots up the Vite development server (usually on `http://localhost:3000`) and concurrently starts the local background email processing worker. If its server-only key is missing, Vite stays available and the coordinator reports that local email delivery is disabled.
 
-The browser uses only the publishable key. Never put `SUPABASE_SECRET_KEY` in a `VITE_*` variable or expose it to browser code. Before deploying, set `SUPABASE_SECRET_KEY` for the local worker and Edge Function, remove the old service-role variable from those environments, and set `VITE_SUPABASE_PUBLISHABLE_KEY` in the browser deployment. Existing Supabase secrets are not rotated by this repository change.
+The browser uses only the publishable key. Never put `SUPABASE_SECRET_KEY` in a `VITE_*` variable or expose it to browser code. Copy a dedicated `sb_secret_...` key from **Supabase Dashboard > Settings > API Keys** into the ignored local file only when the local SMTP worker is needed. Hosted Edge Functions read the platform-provided `SUPABASE_SECRET_KEYS` JSON map instead. Existing Supabase secrets are not rotated by repository changes.
 
 ---
 
@@ -45,8 +48,8 @@ The browser uses only the publishable key. Never put `SUPABASE_SECRET_KEY` in a 
 
 ### How it Works
 When a student registers, a database trigger inserts an email task queue record. 
-1. **Edge Route**: If edge functions are active, Supabase processes the task immediately.
-2. **Local Daemon Fallback**: The script `email-worker.js` (started by `npm run dev`) acts as a fallback checker. It polls the database every 10 seconds for unsent registrations, generates visual HTML tickets, dispatches them via the **Resend API**, and marks the database queue record as `sent`.
+1. **Hosted Route**: Supabase Cron invokes `process-email-queue` once per minute using matching `email_worker_secret` values in Vault and the Edge Function environment. The hosted worker delivers through Resend.
+2. **Local Daemon Fallback**: The script `email_worker.js` (started by `npm run dev`) polls the queue every 5 seconds and delivers through the locally configured SMTP account. It is optional for ordinary frontend development.
 
 ### Troubleshooting Email Delivery
 If students report they are not receiving boarding passes:

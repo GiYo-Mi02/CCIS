@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.108.2";
+import { resolveSupabaseSecretKey } from "../_shared/supabase-keys.js";
 
 const JSON_HEADERS = { "Content-Type": "application/json" };
 const MAX_BODY_BYTES = 1_024;
@@ -73,7 +74,7 @@ serve(async (req: Request) => {
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const serviceRoleKey = Deno.env.get("SUPABASE_SECRET_KEY") || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const serviceRoleKey = resolveSupabaseSecretKey((name) => Deno.env.get(name));
   const workerSecret = Deno.env.get("EMAIL_WORKER_SECRET");
   const resendApiKey = Deno.env.get("RESEND_API_KEY");
   const fromEmail = Deno.env.get("EMAIL_FROM") || "CCIS Student Council <notifications@ccis-council.org>";
