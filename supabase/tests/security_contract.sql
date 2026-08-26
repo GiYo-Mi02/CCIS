@@ -56,6 +56,18 @@ BEGIN
     RAISE EXCEPTION 'ensure_conversation() is not an authenticated idempotent upsert';
   END IF;
 
+  IF pg_get_functiondef('public.mark_messages_read_by_admin(uuid[])'::regprocedure)
+     LIKE '%ggiojoshua2006@gmail.com%' THEN
+    RAISE EXCEPTION 'message-read authorization bypasses database roles';
+  END IF;
+
+  IF to_regprocedure('public.record_client_error_event(uuid,text,text)') IS NULL
+     OR has_function_privilege('anon', 'public.record_client_error_event(uuid,text,text)', 'EXECUTE')
+     OR has_function_privilege('authenticated', 'public.record_client_error_event(uuid,text,text)', 'EXECUTE')
+     OR NOT has_function_privilege('service_role', 'public.record_client_error_event(uuid,text,text)', 'EXECUTE') THEN
+    RAISE EXCEPTION 'client error reporting must be service-role-only';
+  END IF;
+
   IF to_regprocedure('internal.reconcile_email_worker_invocations()') IS NULL
      OR NOT has_function_privilege('service_role', 'internal.reconcile_email_worker_invocations()', 'EXECUTE')
      OR to_regprocedure('internal.enqueue_email_worker_alerts()') IS NULL
