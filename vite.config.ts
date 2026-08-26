@@ -4,7 +4,12 @@ import path from 'path';
 import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
+  const release = process.env.VITE_APP_RELEASE || process.env.VERCEL_GIT_COMMIT_SHA || 'local';
+
   return {
+    define: {
+      'import.meta.env.VITE_APP_RELEASE': JSON.stringify(release),
+    },
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
