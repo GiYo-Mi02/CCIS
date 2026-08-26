@@ -29,7 +29,7 @@ test('legacy dequeue overload and anonymous gallery policy are absent from migra
 });
 
 test('Edge Functions enforce POST and bounded request bodies', () => {
-  for (const name of ['process-email-queue', 'send-ticket-email', 'delete-user']) {
+  for (const name of ['process-email-queue', 'send-ticket-email', 'delete-user', 'report-client-error']) {
     const source = readFileSync(join(root, 'supabase', 'functions', name, 'index.ts'), 'utf8');
     assert.match(source, /req\.method\s*!==\s*["']POST["']/);
     assert.match(source, /MAX_BODY_BYTES/);
@@ -52,6 +52,14 @@ test('Edge Functions resolve migrated Supabase API key maps', () => {
   assert.match(config, /\[functions\.process-email-queue\]\s+verify_jwt\s*=\s*false/);
   assert.match(config, /\[functions\.send-ticket-email\]\s+verify_jwt\s*=\s*true/);
   assert.match(config, /\[functions\.delete-user\]\s+verify_jwt\s*=\s*true/);
+  assert.match(config, /\[functions\.report-client-error\]\s+verify_jwt\s*=\s*false/);
+});
+
+test('the error boundary reports only a redacted reference event', () => {
+  const source = readFileSync(join(root, 'src', 'components', 'ErrorBoundary.tsx'), 'utf8');
+  assert.match(source, /functions\.invoke\('report-client-error'/);
+  assert.match(source, /referenceId/);
+  assert.doesNotMatch(source, /error\.message/);
 });
 
 test('browser code cannot invoke the internal email worker', () => {
