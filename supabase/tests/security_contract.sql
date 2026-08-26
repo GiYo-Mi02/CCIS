@@ -58,6 +58,7 @@ BEGIN
 
   IF to_regprocedure('internal.reconcile_email_worker_invocations()') IS NULL
      OR NOT has_function_privilege('service_role', 'internal.reconcile_email_worker_invocations()', 'EXECUTE')
+     OR to_regprocedure('internal.enqueue_email_worker_alerts()') IS NULL
      OR to_regclass('internal.email_worker_alerts') IS NULL THEN
     RAISE EXCEPTION 'email worker outcome reconciliation is missing';
   END IF;
