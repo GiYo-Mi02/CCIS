@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FileText, Plus, X, Edit, Trash2, Loader2, Download, AlertTriangle, CheckCircle2, Info, Eye } from 'lucide-react';
-import * as pdfjsLib from 'pdfjs-dist';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { supabase } from '../lib/supabase';
 
@@ -287,6 +286,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
       }
       
       try {
+        const pdfjsLib = await import('pdfjs-dist');
         pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
         
         loadingTask = pdfjsLib.getDocument({ url: selectedModalReport.pdfUrl });
@@ -387,6 +387,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
   const renderPdfThumbnail = async (file: File): Promise<Blob> => {
     return new Promise(async (resolve, reject) => {
       try {
+        const pdfjsLib = await import('pdfjs-dist');
         pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
         const fileReader = new FileReader();

@@ -1,21 +1,22 @@
-import React, { useState } from 'react';
+import React, { lazy, Suspense, useState } from 'react';
 import { AdminProvider, useAdmin } from './AdminContext';
 import AdminLogin from './AdminLogin';
 import AdminSidebar from './components/AdminSidebar';
 import AdminTopbar from './components/AdminTopbar';
 import ToastContainer from './components/Toast';
-import Dashboard from './sections/Dashboard';
-import AnnouncementsManager from './sections/AnnouncementsManager';
-import RegistrationManager from './sections/RegistrationManager';
-import TicketScanner from './sections/TicketScanner';
-import OfficersManager from './sections/OfficersManager';
-import MessagesInbox from './sections/MessagesInbox';
-import EventCalendar from './sections/EventCalendar';
-import SettingsRoles from './sections/SettingsRoles';
-import UserManager from './sections/UserManager';
-import FaqManager from './sections/FaqManager';
-import VerificationManager from './sections/VerificationManager';
 import { useAuth } from '../context/AuthContext';
+
+const Dashboard = lazy(() => import('./sections/Dashboard'));
+const AnnouncementsManager = lazy(() => import('./sections/AnnouncementsManager'));
+const RegistrationManager = lazy(() => import('./sections/RegistrationManager'));
+const TicketScanner = lazy(() => import('./sections/TicketScanner'));
+const OfficersManager = lazy(() => import('./sections/OfficersManager'));
+const MessagesInbox = lazy(() => import('./sections/MessagesInbox'));
+const EventCalendar = lazy(() => import('./sections/EventCalendar'));
+const SettingsRoles = lazy(() => import('./sections/SettingsRoles'));
+const UserManager = lazy(() => import('./sections/UserManager'));
+const FaqManager = lazy(() => import('./sections/FaqManager'));
+const VerificationManager = lazy(() => import('./sections/VerificationManager'));
 
 interface AdminAppProps {
   onExitAdmin: () => void;
@@ -124,7 +125,9 @@ function AdminAppInner({ onExitAdmin }: AdminAppProps) {
 
         {/* Page content */}
         <main className="flex-1 p-4 md:p-6 overflow-y-auto admin-scrollbar">
-          {renderSection()}
+          <Suspense fallback={<div className="p-8 text-sm text-[#5E6E64]">Loading section...</div>}>
+            {renderSection()}
+          </Suspense>
         </main>
       </div>
 

@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { lazy, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { EventRegistration, Conversation, Message } from '../types/database';
 import { Registration } from '../types';
-import html2canvas from 'html2canvas-pro';
-import { QRCodeCanvas } from 'qrcode.react';
 import {
   User, Mail, GraduationCap, Hash, Calendar, LogOut,
   Ticket, AlertCircle, CheckCircle2, Clock, ChevronDown, Shield, Layers,
   Download, Printer, X, Lock, MapPin, AlertTriangle, QrCode, RefreshCw, Sparkles, Check
 } from 'lucide-react';
 import CouncilSeal from '../components/CouncilSeal';
+
+const QRCodeCanvas = lazy(() => import('qrcode.react').then(({ QRCodeCanvas }) => ({ default: QRCodeCanvas })));
 
 interface AccountPageProps {
   onNavigate?: (tab: string) => void;
@@ -403,6 +403,7 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
     setPassDownloadLoading(true);
     try {
       // Ensure canvas elements are converted to high-DPI images before html2canvas capture
+      const { default: html2canvas } = await import('html2canvas-pro');
       const canvas = await html2canvas(element, {
         scale: 3,
         useCORS: true,
@@ -1248,6 +1249,7 @@ function TicketDashboard({ registration }: { registration: Registration; key?: s
       // Wait a tick to ensure QR code canvas is fully rendered
       await new Promise(resolve => setTimeout(resolve, 200));
       
+      const { default: html2canvas } = await import('html2canvas-pro');
       const canvas = await html2canvas(element, {
         backgroundColor: '#FAF7EA',
         useCORS: true,

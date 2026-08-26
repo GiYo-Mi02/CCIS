@@ -1,14 +1,7 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import NavBar from './components/NavBar';
 import Hero from './components/Hero';
-import Announcements from './components/Announcements';
-import InfoHub from './components/InfoHub';
-import RegistrationSection from './components/Registration';
-import PublicEventCalendar, { UpcomingEventsList } from './components/PublicEventCalendar';
-import FaqSection from './components/FaqSection';
-import DeveloperDedication from './components/DeveloperDedication';
 import Footer from './components/Footer';
-import LoadingScreen from './components/LoadingScreen';
 import { FullPageSkeleton } from './components/common/Skeleton';
 
 const AuthPage = lazy(() => import('./pages/AuthPage'));
@@ -19,6 +12,14 @@ const BukasKabanPage = lazy(() => import('./pages/BukasKabanPage'));
 const PatchPage = lazy(() => import('./pages/PatchPage'));
 const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
+const InfoHub = lazy(() => import('./components/InfoHub'));
+const LoadingScreen = lazy(() => import('./components/LoadingScreen'));
+const Announcements = lazy(() => import('./components/Announcements'));
+const PublicEventCalendar = lazy(() => import('./components/PublicEventCalendar'));
+const UpcomingEventsList = lazy(() => import('./components/PublicEventCalendar').then(({ UpcomingEventsList }) => ({ default: UpcomingEventsList })));
+const FaqSection = lazy(() => import('./components/FaqSection'));
+const DeveloperDedication = lazy(() => import('./components/DeveloperDedication'));
+const RegistrationSection = lazy(() => import('./components/Registration'));
 
 import { useAuth } from './context/AuthContext';
 import SubscriptionPreferenceModal from './components/SubscriptionPreferenceModal';
@@ -112,7 +113,9 @@ export default function App({ onAdminSwitch }: AppProps) {
       )}
 
       {/* GSAP Loading Screen overlay */}
-      <LoadingScreen />
+      <Suspense fallback={null}>
+        <LoadingScreen />
+      </Suspense>
 
       {/* 1. Header Navigation Bar */}
       <NavBar activeTab={activeTab} setActiveTab={handleNavigate} isUmakTheme={isUmakTheme} />
@@ -128,7 +131,9 @@ export default function App({ onAdminSwitch }: AppProps) {
             />
             
             {/* Announcements Board Quick Strip */}
-            <Announcements previewMode={true} onViewAllClick={handleAnnouncementsRoute} />
+            <Suspense fallback={null}>
+              <Announcements previewMode={true} onViewAllClick={handleAnnouncementsRoute} />
+            </Suspense>
             
             {/* Academic & Council Calendar (Timetable) */}
             <section className="py-16 px-4 max-w-7xl mx-auto sm:px-6 lg:px-8 border-b border-[#1A3C2E]/10" id="event-calendar">
@@ -160,21 +165,29 @@ export default function App({ onAdminSwitch }: AppProps) {
                     </div>
                   </div>
 
-                  <UpcomingEventsList onNavigate={handleNavigate} />
+                  <Suspense fallback={null}>
+                    <UpcomingEventsList onNavigate={handleNavigate} />
+                  </Suspense>
                 </div>
 
                 <div className="lg:col-span-7 bg-white p-6 md:p-8 rounded-3xl border border-zinc-100 shadow-sm">
-                  <PublicEventCalendar onNavigate={handleNavigate} />
+                  <Suspense fallback={null}>
+                    <PublicEventCalendar onNavigate={handleNavigate} />
+                  </Suspense>
                 </div>
 
               </div>
             </section>
             
             {/* Developer dedication section */}
-            <DeveloperDedication />
+            <Suspense fallback={null}>
+              <DeveloperDedication />
+            </Suspense>
             
             {/* Common FAQ collapsible stack */}
-            <FaqSection />
+            <Suspense fallback={null}>
+              <FaqSection />
+            </Suspense>
           </div>
         )}
 
