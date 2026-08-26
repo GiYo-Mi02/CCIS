@@ -1,5 +1,6 @@
-import React, { ErrorInfo, ReactNode } from 'react';
+import React, { ReactNode } from 'react';
 import { RefreshCw, AlertTriangle } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 interface Props {
   children?: ReactNode;
@@ -7,14 +8,14 @@ interface Props {
 
 interface State {
   hasError: boolean;
-  error: Error | null;
+  referenceId: string | null;
 }
 
 export default class ErrorBoundary extends React.Component<Props, State> {
   props: Props;
   state: State = {
     hasError: false,
-    error: null,
+    referenceId: null,
   };
 
   constructor(props: Props) {
@@ -22,12 +23,19 @@ export default class ErrorBoundary extends React.Component<Props, State> {
     this.props = props;
   }
 
-  public static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
+  public static getDerivedStateFromError(): State {
+    return { hasError: true, referenceId: crypto.randomUUID() };
   }
 
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('[CCIS ErrorBoundary] Caught runtime exception:', error, errorInfo);
+  public componentDidCatch() {
+    if (!this.state.referenceId) return;
+    void supabase.functions.invoke('report-client-error', {
+      body: {
+        referenceId: this.state.referenceId,
+        route: window.location.pathname,
+        release: import.meta.env.VITE_APP_RELEASE,
+      },
+    }).catch(() => undefined);
   }
 
   private handleReload = () => {
@@ -37,31 +45,27 @@ export default class ErrorBoundary extends React.Component<Props, State> {
   public render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-[#FAF7EA] flex items-center justify-center p-4 font-sans text-stone-800">
-          <div className="max-w-md w-full bg-white p-8 md:p-10 rounded-3xl border border-rose-200 shadow-2xl text-center space-y-6 animate-fade-in">
+        <div className="min-h-screen bg-[#FAF7EA] flex items-center justify-center p-4 font-sans text-stone-800" role="alert">
+          <div className="max-w-md w-full bg-white p-8 md:p-10 rounded-3xl border border-[#123524]/25 shadow-2xl text-center space-y-6 animate-fade-in">
             <div className="w-16 h-16 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center mx-auto border border-rose-100 shadow-sm">
               <AlertTriangle size={32} />
             </div>
 
             <div className="space-y-2">
               <span className="font-mono text-xs uppercase tracking-widest text-rose-600 font-bold block">
-                System Runtime Exception
+                Temporary Service Issue
               </span>
               <h2 className="text-2xl font-black text-[#1A3C2E]">
                 Something went wrong
               </h2>
               <p className="text-xs text-stone-500 leading-relaxed">
-                An unexpected system error occurred while rendering this module. Your data remains safe.
+                Please refresh and try again. If the issue continues, share this reference with the CCIS Student Council.
               </p>
             </div>
 
-            {this.state.error && (
-              <div className="bg-stone-50 border border-stone-200 p-3 rounded-xl text-left overflow-x-auto max-h-32">
-                <code className="text-[11px] font-mono text-rose-800 break-all">
-                  {this.state.error.message}
-                </code>
-              </div>
-            )}
+            <p className="bg-stone-50 border border-[#123524]/25 p-3 rounded-xl text-[11px] font-mono text-[#123524] break-all">
+              Reference ID: {this.state.referenceId}
+            </p>
 
             <div className="pt-2 flex flex-col gap-2">
               <button
