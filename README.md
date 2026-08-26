@@ -78,6 +78,20 @@ graph TD
    * **Resend API**: Handles SMTP dispatch of dynamic HTML boarding passes.
    * **QR Code Server API**: Dynamically renders ticket IDs into visual matrix codes embedded directly in the boarding pass.
 
+### Optional: Email Worker Alerts
+
+The scheduled email worker records failures in the database. To also receive an alert outside the worker itself, configure an external webhook URL in Supabase Vault after applying the database migrations:
+
+```sql
+SELECT vault.create_secret(
+  '<ALERT_WEBHOOK_URL>',
+  'email_worker_alert_webhook_url',
+  'External worker-alert webhook'
+);
+```
+
+Use a Slack, Discord, or incident-management webhook that accepts JSON. This is optional: without it, worker failures remain visible in the database but do not create an external notification. Never commit the webhook URL.
+
 ---
 
 ## 🛠️ 2. Technology Stack
