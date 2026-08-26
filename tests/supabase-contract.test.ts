@@ -62,6 +62,23 @@ test('the error boundary reports only a redacted reference event', () => {
   assert.doesNotMatch(source, /error\.message/);
 });
 
+test('client error reports use a bounded global rate limit', () => {
+  const source = readFileSync(join(root, 'supabase', 'functions', 'report-client-error', 'index.ts'), 'utf8');
+  assert.match(source, /p_subject:\s*"global"/);
+  assert.match(source, /p_limit:\s*10/);
+  assert.match(source, /p_window_seconds:\s*3600/);
+  assert.doesNotMatch(source, /x-forwarded-for|cf-connecting-ip|x-real-ip/);
+});
+
+test('email worker alerts use an independent webhook', () => {
+  const source = migrationFiles
+    .map((file) => readFileSync(join(migrationsDir, file), 'utf8'))
+    .join('\n');
+  assert.match(source, /internal\.notify_email_worker_alerts/);
+  assert.match(source, /email_worker_alert_webhook_url/);
+  assert.match(source, /net\.http_post/);
+});
+
 test('browser code cannot invoke the internal email worker', () => {
   const sourceFiles = readdirSync(join(root, 'src'), { recursive: true })
     .filter((entry): entry is string => typeof entry === 'string' && /\.(?:ts|tsx)$/.test(entry));

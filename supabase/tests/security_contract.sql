@@ -69,9 +69,13 @@ BEGIN
   END IF;
 
   IF to_regprocedure('internal.reconcile_email_worker_invocations()') IS NULL
-     OR NOT has_function_privilege('service_role', 'internal.reconcile_email_worker_invocations()', 'EXECUTE')
-     OR to_regprocedure('internal.enqueue_email_worker_alerts()') IS NULL
-     OR to_regclass('internal.email_worker_alerts') IS NULL THEN
+      OR NOT has_function_privilege('service_role', 'internal.reconcile_email_worker_invocations()', 'EXECUTE')
+      OR to_regprocedure('internal.enqueue_email_worker_alerts()') IS NULL
+      OR to_regprocedure('internal.notify_email_worker_alerts()') IS NULL
+      OR NOT has_function_privilege('service_role', 'internal.notify_email_worker_alerts()', 'EXECUTE')
+      OR has_function_privilege('anon', 'internal.notify_email_worker_alerts()', 'EXECUTE')
+      OR has_function_privilege('authenticated', 'internal.notify_email_worker_alerts()', 'EXECUTE')
+      OR to_regclass('internal.email_worker_alerts') IS NULL THEN
     RAISE EXCEPTION 'email worker outcome reconciliation is missing';
   END IF;
   IF pg_get_functiondef('internal.reconcile_email_worker_invocations()'::regprocedure) NOT LIKE '%net._http_response%'

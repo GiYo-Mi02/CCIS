@@ -30,15 +30,6 @@ async function readErrorEvent(req: Request) {
   return body as { referenceId: string; route: string; release: string };
 }
 
-async function requestSubject(req: Request) {
-  const source = req.headers.get("cf-connecting-ip")
-    || req.headers.get("x-forwarded-for")?.split(",", 1)[0]
-    || req.headers.get("x-real-ip")
-    || "unknown";
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(source));
-  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
 serve(async (req: Request) => {
   const corsHeaders = {
     "Access-Control-Allow-Origin": Deno.env.get("APP_ORIGIN") || "*",
@@ -69,9 +60,9 @@ serve(async (req: Request) => {
   });
   const { data: retryAfter, error: rateError } = await admin.rpc("consume_edge_rate_limit", {
     p_operation: "client_error_event",
-    p_subject: await requestSubject(req),
-    p_limit: 8,
-    p_window_seconds: 60,
+    p_subject: "global",
+    p_limit: 10,
+    p_window_seconds: 3600,
   });
   if (rateError) return json(500, { error: "RATE_LIMIT_CHECK_FAILED" }, corsHeaders);
   if (Number(retryAfter) > 0) {

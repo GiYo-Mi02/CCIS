@@ -10,6 +10,8 @@
 -- 3. Configure the identical secret on the Edge Function:
 --      supabase secrets set EMAIL_WORKER_SECRET=<same-random-secret>
 -- 4. Configure RESEND_API_KEY, EMAIL_FROM, and APP_ORIGIN as Edge secrets.
+-- 5. Configure an external webhook so worker failures alert independently:
+--      SELECT vault.create_secret('<ALERT_WEBHOOK_URL>', 'email_worker_alert_webhook_url', 'External worker-alert webhook');
 -- ============================================================
 
 DO $$
