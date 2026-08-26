@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FileText, Plus, X, Edit, Trash2, Loader2, Download, AlertTriangle, CheckCircle2, Info, Eye } from 'lucide-react';
+import * as pdfjsLib from 'pdfjs-dist';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { supabase } from '../lib/supabase';
 
@@ -286,12 +287,9 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
       }
       
       try {
-        const pdfjsLib = await import('pdfjs-dist');
         pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
         
-        loadingTask = pdfjsLib.getDocument({
-          url: selectedModalReport.pdfUrl,
-        });
+        loadingTask = pdfjsLib.getDocument({ url: selectedModalReport.pdfUrl });
         const pdf = await loadingTask.promise;
         setPdfTotalPages(pdf.numPages);
         
@@ -300,9 +298,6 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
         
         const canvas = canvasRef.current;
         if (!canvas) return;
-        
-        const context = canvas.getContext('2d');
-        if (!context) return;
         
         // Scale to fit the container width
         const containerWidth = canvas.parentElement?.clientWidth || 360;
@@ -316,7 +311,6 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
         
         await page.render({
           canvas,
-          canvasContext: context,
           viewport: viewport
         }).promise;
       } catch (err) {
@@ -391,7 +385,6 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
 
   // Client-side PDF page to canvas render function
   const renderPdfThumbnail = async (file: File): Promise<Blob> => {
-    const pdfjsLib = await import('pdfjs-dist');
     return new Promise(async (resolve, reject) => {
       try {
         pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
@@ -401,9 +394,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
           try {
             const arrayBuffer = this.result as ArrayBuffer;
             const typedarray = new Uint8Array(arrayBuffer);
-            const loadingTask = pdfjsLib.getDocument({
-              data: typedarray,
-            });
+            const loadingTask = pdfjsLib.getDocument({ data: typedarray });
             const pdf = await loadingTask.promise;
 
             if (pdf.numPages === 0) {
@@ -415,18 +406,11 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
             // Scale for optimal rendering resolution (1.2 scale fits preview card)
             const viewport = page.getViewport({ scale: 1.2 });
             const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
-
-            if (!context) {
-              throw new Error('Failed to create canvas context.');
-            }
-
             canvas.width = viewport.width;
             canvas.height = viewport.height;
 
             const renderContext = {
               canvas,
-              canvasContext: context,
               viewport: viewport
             };
 

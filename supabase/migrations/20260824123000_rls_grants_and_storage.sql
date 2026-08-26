@@ -51,9 +51,7 @@ CREATE POLICY profiles_select_owner_or_staff ON public.profiles
 FOR SELECT TO authenticated
 USING (
   id = auth.uid()
-  OR public.get_user_role() IN (
-    'devcom_head', 'officer', 'comm_content', 'comm_registration', 'comm_photobooth'
-  )
+  OR public.get_user_role() IN ('devcom_head', 'officer')
 );
 
 -- Only the DevCom head receives direct profile UPDATE access. Student edits and
@@ -79,7 +77,10 @@ WITH CHECK (public.get_user_role() = 'devcom_head');
 
 CREATE POLICY faqs_public_read ON public.faqs
 FOR SELECT TO anon, authenticated
-USING (is_active OR public.get_user_role() IN ('devcom_head', 'comm_content'));
+USING (is_active);
+CREATE POLICY faqs_staff_read ON public.faqs
+FOR SELECT TO authenticated
+USING (public.get_user_role() IN ('devcom_head', 'comm_content'));
 CREATE POLICY faqs_content_write ON public.faqs
 FOR ALL TO authenticated
 USING (public.get_user_role() IN ('devcom_head', 'comm_content'))
@@ -87,7 +88,10 @@ WITH CHECK (public.get_user_role() IN ('devcom_head', 'comm_content'));
 
 CREATE POLICY announcements_public_read ON public.announcements
 FOR SELECT TO anon, authenticated
-USING (status = 'published' OR public.get_user_role() IN ('devcom_head', 'comm_content'));
+USING (status = 'published');
+CREATE POLICY announcements_staff_read ON public.announcements
+FOR SELECT TO authenticated
+USING (public.get_user_role() IN ('devcom_head', 'comm_content'));
 CREATE POLICY announcements_content_write ON public.announcements
 FOR ALL TO authenticated
 USING (public.get_user_role() IN ('devcom_head', 'comm_content'))
@@ -119,7 +123,10 @@ USING (public.get_user_role() IN ('devcom_head', 'comm_registration'));
 
 CREATE POLICY themes_active_public_read ON public.theme_settings
 FOR SELECT TO anon, authenticated
-USING (is_active OR public.get_user_role() = 'devcom_head');
+USING (is_active);
+CREATE POLICY themes_staff_read ON public.theme_settings
+FOR SELECT TO authenticated
+USING (public.get_user_role() = 'devcom_head');
 CREATE POLICY themes_devcom_write ON public.theme_settings
 FOR ALL TO authenticated
 USING (public.get_user_role() = 'devcom_head')

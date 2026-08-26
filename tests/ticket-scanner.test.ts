@@ -16,8 +16,7 @@ test('ticket scanner keeps camera discovery stable and supports laptop webcams',
   assert.doesNotMatch(scannerSource, /\}, \[selectedCameraId\]\);/);
 });
 
-test('ticket scanner resolves private student data only through scoped RPCs', () => {
-  assert.doesNotMatch(scannerSource, /from\('profiles'\)/);
-  assert.match(scannerSource, /rpc\('resolve_attendance_pass'/);
-  assert.match(scannerSource, /rpc\('check_in_registration'/);
+test('ticket scanner uses the atomic registration check-in RPC', () => {
+  assert.match(scannerSource, /\.rpc\('check_in_event_registration'/);
+  assert.doesNotMatch(scannerSource, /\.from\('event_registrations'\)/);
 });

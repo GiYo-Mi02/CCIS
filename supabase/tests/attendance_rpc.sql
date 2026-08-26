@@ -51,6 +51,29 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'approved student attendance-pass trigger is missing';
   END IF;
+
+  IF NOT has_function_privilege(
+    'authenticated',
+    'public.check_in_event_registration(uuid)',
+    'EXECUTE'
+  ) OR has_function_privilege(
+    'anon',
+    'public.check_in_event_registration(uuid)',
+    'EXECUTE'
+  ) THEN
+    RAISE EXCEPTION 'registration check-in RPC has an invalid grant';
+  END IF;
+
+  SELECT pg_get_functiondef(oid)
+  INTO v_definition
+  FROM pg_proc
+  WHERE oid = 'public.check_in_event_registration(uuid)'::regprocedure;
+
+  IF v_definition NOT LIKE '%FOR UPDATE%'
+     OR v_definition NOT LIKE '%was_already_attended%'
+     OR v_definition NOT LIKE '%SET status = ''attended'', attended_at = now()%' THEN
+    RAISE EXCEPTION 'registration check-in RPC is not an atomic attendance transition';
+  END IF;
 END;
 $attendance_contract$;
 

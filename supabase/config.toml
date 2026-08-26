@@ -1,7 +1,20 @@
 project_id = "ccis-website"
 
+[api]
+port = 55321
+
 [db]
 major_version = 17
+port = 55322
+
+[studio]
+port = 55323
+
+[local_smtp]
+port = 55324
+
+[analytics]
+port = 55327
 
 # Supabase Edge Function configuration.
 # The scheduled worker uses a dedicated X-Queue-Worker-Secret and performs its

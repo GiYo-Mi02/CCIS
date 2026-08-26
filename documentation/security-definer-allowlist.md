@@ -27,6 +27,9 @@ This allowlist documents every `public` SECURITY DEFINER function intentionally 
 
 - `register_for_event(uuid, uuid)` — registers the caller, or an authorized registration coordinator, while enforcing capacity and queueing one ticket email.
 - `check_in_audience(uuid, text)` — validates a server-issued attendance token and atomically records event attendance.
+- `lookup_attendance_profile(text)` — returns the scanner's minimum profile projection after verifying the caller's scanner role.
+- `lookup_event_registration(uuid)` — returns the scanner's minimum event-registration projection after verifying the caller's scanner role.
+- `check_in_event_registration(uuid)` — atomically checks in an event registration after verifying the caller's scanner role.
 - `resolve_attendance_pass(text)` — returns only the identity fields required by the scanner; it never returns the reusable token.
 - `check_in_registration(uuid)` — validates a registration ticket and atomically records attendance.
 - `list_pending_verifications(text, integer, integer)` — returns the minimum pending-verification projection to DevCom and registration coordinators.

@@ -247,8 +247,7 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
         return;
       }
 
-      // Email queue processing is handled asynchronously by the scheduled
-      // server-side worker after registration commits.
+      // Email queue processing is handled server-side by the scheduled worker.
 
       const ticket: Registration = {
         id: regData.id,

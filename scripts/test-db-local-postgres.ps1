@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
   [string]$PostgresBin = 'C:\Program Files\PostgreSQL\18\bin',
+  [string]$GitBash = 'C:\Program Files\Git\bin\bash.exe',
   [ValidateRange(1024, 65535)]
   [int]$Port = 55432
 )
@@ -16,6 +17,9 @@ foreach ($executable in @($initdb, $pgCtl, $psql)) {
   if (-not (Test-Path -LiteralPath $executable -PathType Leaf)) {
     throw "Required PostgreSQL executable was not found: $executable"
   }
+}
+if (-not (Test-Path -LiteralPath $GitBash -PathType Leaf)) {
+  throw "Git Bash is required for the registration concurrency test: $GitBash"
 }
 
 $tempRoot = [System.IO.Path]::GetFullPath([System.IO.Path]::GetTempPath())
@@ -51,7 +55,10 @@ try {
 
   foreach ($migration in $migrations) {
     if ($migration.Name -eq '20260824124000_scheduled_email_worker.sql') {
-      Write-Host "Skipping $($migration.Name): it requires Supabase-only pg_net, pg_cron, and Vault extensions."
+      Write-Host "Applying local substitute for $($migration.Name) (pg_net, pg_cron, and Vault are Supabase-only)."
+      $localWorkerBootstrap = Join-Path $repoRoot 'supabase\tests\local_scheduled_email_worker_bootstrap.sql'
+      & $psql $databaseUrl --set ON_ERROR_STOP=1 --file $localWorkerBootstrap
+      if ($LASTEXITCODE -ne 0) { throw 'Local scheduled email worker bootstrap failed' }
       continue
     }
 
@@ -75,6 +82,26 @@ try {
     Write-Host "Running $testName"
     & $psql $databaseUrl --set ON_ERROR_STOP=1 --file $testPath
     if ($LASTEXITCODE -ne 0) { throw "Database test failed: $testName" }
+  }
+
+  Write-Host 'Running registration_checkin_concurrency.sh'
+  $previousDatabaseUrl = $env:SUPABASE_DB_URL
+  $previousPath = $env:PATH
+  try {
+    $env:SUPABASE_DB_URL = $databaseUrl
+    $env:PATH = "$PostgresBin;$previousPath"
+    Push-Location $repoRoot
+    try {
+      & $GitBash 'supabase/tests/registration_checkin_concurrency.sh'
+      if ($LASTEXITCODE -ne 0) { throw 'Registration check-in concurrency test failed' }
+    }
+    finally {
+      Pop-Location
+    }
+  }
+  finally {
+    $env:SUPABASE_DB_URL = $previousDatabaseUrl
+    $env:PATH = $previousPath
   }
 
   Write-Host 'Local PostgreSQL migration replay and SQL behavior tests passed.'

@@ -33,8 +33,9 @@ test('registration screens use scoped RPCs instead of unrestricted profile reads
   const verification = read('src', 'admin', 'sections', 'VerificationManager.tsx');
 
   assert.match(registration, /rpc\('list_registration_admin_rows'/);
-  assert.match(scanner, /rpc\('resolve_attendance_pass'/);
-  assert.match(scanner, /rpc\('check_in_registration'/);
+  assert.match(scanner, /rpc\('lookup_attendance_profile'/);
+  assert.match(scanner, /rpc\('check_in_audience'/);
+  assert.match(scanner, /rpc\('check_in_event_registration'/);
   assert.match(verification, /rpc\('list_pending_verifications'/);
 
   for (const source of [registration, scanner, verification]) {

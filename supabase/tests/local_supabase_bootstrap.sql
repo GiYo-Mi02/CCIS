@@ -79,7 +79,15 @@ ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
 
 CREATE TABLE vault.decrypted_secrets (
   name TEXT PRIMARY KEY,
-  decrypted_secret TEXT
+  decrypted_secret TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE net._http_response (
+  id BIGINT PRIMARY KEY,
+  status_code INTEGER,
+  timed_out BOOLEAN NOT NULL DEFAULT false,
+  created TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE OR REPLACE FUNCTION net.http_post(
@@ -99,4 +107,3 @@ $$;
 GRANT USAGE ON SCHEMA auth, storage TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION auth.jwt(), auth.uid(), auth.role()
   TO anon, authenticated, service_role;
-

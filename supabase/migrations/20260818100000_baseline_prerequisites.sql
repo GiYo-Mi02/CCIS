@@ -70,8 +70,8 @@ AS $$
   SELECT role FROM public.profiles WHERE id = auth.uid();
 $$;
 
-REVOKE ALL ON FUNCTION public.get_user_role() FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.get_user_role() TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.get_user_role() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.get_user_role() TO anon, authenticated, service_role;
 
 CREATE TABLE IF NOT EXISTS public.officers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

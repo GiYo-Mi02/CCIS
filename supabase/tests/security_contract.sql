@@ -60,6 +60,7 @@ BEGIN
       'admin_reject_user',
       'activate_theme',
       'check_in_audience',
+      'check_in_event_registration',
       'check_in_registration',
       'ensure_conversation',
       'ensure_user_profile',
@@ -71,6 +72,8 @@ BEGIN
       'list_pending_account_deletions',
       'list_pending_verifications',
       'list_registration_admin_rows',
+      'lookup_attendance_profile',
+      'lookup_event_registration',
       'mark_conversation_messages_read_by_student',
       'mark_messages_read_by_admin',
       'record_privacy_consent',
@@ -92,6 +95,30 @@ $$;
 
 DO $$
 BEGIN
+  IF to_regprocedure('public.ensure_conversation()') IS NULL
+     OR NOT has_function_privilege('authenticated', 'public.ensure_conversation()', 'EXECUTE')
+     OR has_function_privilege('anon', 'public.ensure_conversation()', 'EXECUTE') THEN
+    RAISE EXCEPTION 'ensure_conversation() must be authenticated-only';
+  END IF;
+  IF pg_get_functiondef('public.ensure_conversation()'::regprocedure) NOT LIKE '%auth.uid()%'
+     OR pg_get_functiondef('public.ensure_conversation()'::regprocedure) NOT LIKE '%ON CONFLICT (profile_id) DO NOTHING%' THEN
+    RAISE EXCEPTION 'ensure_conversation() is not an authenticated idempotent upsert';
+  END IF;
+
+  IF to_regprocedure('internal.reconcile_email_worker_invocations()') IS NULL
+     OR NOT has_function_privilege('service_role', 'internal.reconcile_email_worker_invocations()', 'EXECUTE')
+     OR to_regclass('internal.email_worker_alerts') IS NULL THEN
+    RAISE EXCEPTION 'email worker outcome reconciliation is missing';
+  END IF;
+  IF pg_get_functiondef('internal.reconcile_email_worker_invocations()'::regprocedure) NOT LIKE '%net._http_response%'
+     OR pg_get_functiondef('internal.reconcile_email_worker_invocations()'::regprocedure) NOT LIKE '%HTTP_TIMEOUT%' THEN
+    RAISE EXCEPTION 'email worker outcomes are not reconciled from pg_net responses';
+  END IF;
+END;
+$$;
+
+DO $$
+BEGIN
   IF to_regprocedure('public.dequeue_emails(integer)') IS NOT NULL THEN
     RAISE EXCEPTION 'Obsolete dequeue_emails(integer) overload still exists';
   END IF;
@@ -103,8 +130,6 @@ BEGIN
      OR has_function_privilege('authenticated', 'public.queue_announcement_emails_fn()', 'EXECUTE')
      OR has_function_privilege('anon', 'public.queue_event_emails_fn()', 'EXECUTE')
      OR has_function_privilege('authenticated', 'public.queue_event_emails_fn()', 'EXECUTE')
-     OR has_function_privilege('anon', 'public.auto_process_email_queue_fn()', 'EXECUTE')
-     OR has_function_privilege('authenticated', 'public.auto_process_email_queue_fn()', 'EXECUTE')
      OR has_function_privilege('anon', 'public.handle_new_user()', 'EXECUTE')
      OR has_function_privilege('authenticated', 'public.handle_new_user()', 'EXECUTE') THEN
     RAISE EXCEPTION 'A trigger-only function is callable by an API role';
@@ -173,12 +198,18 @@ DO $$
 BEGIN
   IF has_function_privilege('anon', 'public.list_pending_verifications(text,integer,integer)', 'EXECUTE')
      OR has_function_privilege('anon', 'public.list_registration_admin_rows(text,uuid,integer,integer)', 'EXECUTE')
+     OR has_function_privilege('anon', 'public.lookup_attendance_profile(text)', 'EXECUTE')
+     OR has_function_privilege('anon', 'public.lookup_event_registration(uuid)', 'EXECUTE')
+     OR has_function_privilege('anon', 'public.check_in_event_registration(uuid)', 'EXECUTE')
      OR has_function_privilege('anon', 'public.resolve_attendance_pass(text)', 'EXECUTE')
      OR has_function_privilege('anon', 'public.check_in_registration(uuid)', 'EXECUTE') THEN
     RAISE EXCEPTION 'A scoped registration RPC is callable anonymously';
   END IF;
   IF NOT has_function_privilege('authenticated', 'public.list_pending_verifications(text,integer,integer)', 'EXECUTE')
      OR NOT has_function_privilege('authenticated', 'public.list_registration_admin_rows(text,uuid,integer,integer)', 'EXECUTE')
+     OR NOT has_function_privilege('authenticated', 'public.lookup_attendance_profile(text)', 'EXECUTE')
+     OR NOT has_function_privilege('authenticated', 'public.lookup_event_registration(uuid)', 'EXECUTE')
+     OR NOT has_function_privilege('authenticated', 'public.check_in_event_registration(uuid)', 'EXECUTE')
      OR NOT has_function_privilege('authenticated', 'public.resolve_attendance_pass(text)', 'EXECUTE')
      OR NOT has_function_privilege('authenticated', 'public.check_in_registration(uuid)', 'EXECUTE') THEN
     RAISE EXCEPTION 'A scoped registration RPC is unavailable to authenticated callers';

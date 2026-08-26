@@ -911,8 +911,15 @@ USING (
   )
 );
 
--- auto_process_email_queue_fn is invoked only by the email_queue trigger. It
--- must not remain directly executable through PostgREST's authenticated role.
-REVOKE ALL ON FUNCTION public.auto_process_email_queue_fn() FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION public.auto_process_email_queue_fn()
-  FROM anon, authenticated;
+-- Older migration sequences retain this trigger helper, while the scheduled
+-- worker migration removes it. Keep the hardening compatible with both clean
+-- replay paths.
+DO $$
+BEGIN
+  IF to_regprocedure('public.auto_process_email_queue_fn()') IS NOT NULL THEN
+    REVOKE ALL ON FUNCTION public.auto_process_email_queue_fn() FROM PUBLIC;
+    REVOKE EXECUTE ON FUNCTION public.auto_process_email_queue_fn()
+      FROM anon, authenticated;
+  END IF;
+END;
+$$;
