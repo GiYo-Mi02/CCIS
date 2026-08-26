@@ -247,9 +247,8 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
         return;
       }
 
-      // ERROR 3: Removed browser-side process-email-queue invocation.
-      // Email queue processing is now handled server-side by the pg_net
-      // trigger (auto_process_email_queue_fn) on email_queue INSERT.
+      // Email queue processing is handled asynchronously by the scheduled
+      // server-side worker after registration commits.
 
       const ticket: Registration = {
         id: regData.id,

@@ -2,6 +2,8 @@
 
 Welcome to the official developer hand-off and system documentation for the **College of Computing and Information Sciences (CCIS) Student Council Centralized Platform**.
 
+Release controls: [Production release checklist](production-release-checklist.md) · [SECURITY DEFINER RPC allowlist](security-definer-allowlist.md)
+
 This platform was built to consolidate all operations of the CCIS Student Council into a single high-performance web app. It is designed to scale across academic terms, automate repetitive task pipelines (such as student event verification and ticket dispatch), and maintain transparent records of student concerns and financial audits.
 
 ---

@@ -335,59 +335,57 @@ export default function TicketScanner() {
     setResult({ status: 'processing', message: 'Validating ticket credentials against database...' });
 
     try {
-      // 1. Check if Audience Attendance QR Pass (JSON, prefix, token, or student ID)
-      let audienceData: any = null;
+      // 1. Resolve a server-issued audience pass without granting this role
+      // direct access to private profile rows or reusable QR credentials.
+      let audienceToken: string | null = null;
       if (trimmedId.startsWith('{') && trimmedId.endsWith('}')) {
         try {
           const parsed = JSON.parse(trimmedId);
           if (parsed.type === 'CCIS_AUDIENCE_PASS') {
-            audienceData = parsed;
+            audienceToken = typeof parsed.token === 'string'
+              ? parsed.token
+              : typeof parsed.attendance_qr_code === 'string'
+                ? parsed.attendance_qr_code
+                : null;
           }
         } catch {
           // not JSON, fallback
         }
       } else if (trimmedId.startsWith('CCIS-AUDIENCE:')) {
-        const parts = trimmedId.split(':');
-        audienceData = {
-          student_id: parts[1],
-          profile_id: parts[2]
+        playSound('error');
+        const errorResult: ScanResult = {
+          status: 'error',
+          message: 'Legacy audience passes are no longer accepted. Ask the student to open the current QR pass in their account.'
         };
+        setResult(errorResult);
+        addToLog(trimmedId, errorResult);
+        scheduleAutoDismiss(AUTO_DISMISS_ERROR_MS);
+        return;
       } else if (trimmedId.startsWith('CCIS-PASS-') || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trimmedId)) {
-        // Match by secure pass token in database
-        const { data: matchedProf } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('attendance_qr_code', trimmedId)
-          .maybeSingle();
-
-        if (matchedProf) {
-          audienceData = {
-            profile_id: matchedProf.id,
-            student_id: matchedProf.student_number,
-            name: matchedProf.full_name,
-            program: matchedProf.program,
-            section: matchedProf.section,
-            token: matchedProf.attendance_qr_code
-          };
-        }
+        audienceToken = trimmedId;
       }
 
-      if (audienceData) {
-        let profQuery = supabase.from('profiles').select('*');
-        if (audienceData.profile_id) {
-          profQuery = profQuery.eq('id', audienceData.profile_id);
-        } else if (audienceData.student_id) {
-          profQuery = profQuery.eq('student_number', audienceData.student_id);
-        } else if (audienceData.token) {
-          profQuery = profQuery.eq('attendance_qr_code', audienceData.token);
-        }
+      if (audienceToken) {
+        const { data, error: profileError } = await supabase
+          .rpc('resolve_attendance_pass', { p_attendance_token: audienceToken })
+          .maybeSingle();
+        const stProfile = data as {
+          profile_id: string;
+          full_name: string | null;
+          student_number: string | null;
+          program: string | null;
+          section: string | null;
+          status: string;
+          banned: boolean;
+        } | null;
 
-        const { data: stProfile, error: profErr } = await profQuery.maybeSingle();
-        if (profErr || !stProfile) {
+        // A UUID may be a participant ticket instead. A prefixed attendance
+        // credential, however, must resolve here.
+        if (profileError || (!stProfile && audienceToken.startsWith('CCIS-PASS-'))) {
           playSound('error');
           const errorResult: ScanResult = {
             status: 'error',
-            message: 'Unrecognized Student Pass! No profile record found in the database.'
+            message: 'Unrecognized student pass. No matching server-issued credential was found.'
           };
           setResult(errorResult);
           addToLog(trimmedId, errorResult);
@@ -395,17 +393,16 @@ export default function TicketScanner() {
           return;
         }
 
-        // VALIDATION CHECK 1: Profile Approval Status
-        if (stProfile.status !== 'approved') {
+        if (stProfile && stProfile.status !== 'approved') {
           playSound('warning');
           const warningResult: ScanResult = {
             status: 'warning',
             message: `Student Pass Inactive: Profile status is '${stProfile.status || 'pending'}'. Must be approved by admin.`,
             student: {
-              name: stProfile.full_name || audienceData.name || 'Student',
-              studentNumber: stProfile.student_number || audienceData.student_id || '—',
-              section: stProfile.section || audienceData.section || '—',
-              program: stProfile.program || audienceData.program || 'CCIS',
+              name: stProfile.full_name || 'Student',
+              studentNumber: stProfile.student_number || '—',
+              section: stProfile.section || '—',
+              program: stProfile.program || 'CCIS',
               eventTitle: 'Audience Pass Verification (Pending)'
             }
           };
@@ -415,8 +412,7 @@ export default function TicketScanner() {
           return;
         }
 
-        // VALIDATION CHECK 2: Banned Check
-        if (stProfile.banned) {
+        if (stProfile?.banned) {
           playSound('error');
           const errorResult: ScanResult = {
             status: 'error',
@@ -428,104 +424,108 @@ export default function TicketScanner() {
           return;
         }
 
-        // VALIDATION CHECK 3: Record Attendance in Database for Selected Event
-        const targetEvent = events.find(e => e.id === selectedEventId);
-        const eventTitle = targetEvent ? targetEvent.title : 'General Audience Attendance';
-        let attendanceResult: { is_event_registrant?: boolean } | null = null;
+        if (stProfile) {
+          const targetEvent = events.find(e => e.id === selectedEventId);
+          const eventTitle = targetEvent ? targetEvent.title : 'Audience Pass Verification';
+          let attendanceResult: { is_event_registrant?: boolean } | null = null;
 
-        if (selectedEventId) {
-          const attendanceToken = stProfile.attendance_qr_code;
-          if (!attendanceToken) {
-            playSound('error');
-            const errorResult: ScanResult = {
-              status: 'error',
-              message: 'This profile does not have a valid audience attendance token.'
-            };
-            setResult(errorResult);
-            addToLog(trimmedId, errorResult);
-            scheduleAutoDismiss(AUTO_DISMISS_ERROR_MS);
-            return;
+          if (selectedEventId) {
+            const { data: attendanceData, error: attendanceErr } = await supabase.rpc('check_in_audience', {
+              p_event_id: selectedEventId,
+              p_attendance_token: audienceToken,
+            }).single();
+            const attendance = attendanceData as {
+              was_already_attended: boolean;
+              attended_at: string | null;
+              is_event_registrant: boolean;
+              attendance_origin: 'registered' | 'walk_in';
+            } | null;
+            attendanceResult = attendance;
+
+            if (attendanceErr || !attendance) {
+              playSound('error');
+              const errorResult: ScanResult = {
+                status: 'error',
+                message: 'Unable to record audience attendance. Please try again.'
+              };
+              setResult(errorResult);
+              addToLog(trimmedId, errorResult);
+              scheduleAutoDismiss(AUTO_DISMISS_ERROR_MS);
+              return;
+            }
+
+            if (attendance.was_already_attended) {
+              playSound('warning');
+              const warningResult: ScanResult = {
+                status: 'warning',
+                message: 'Already Checked In! Audience pass already scanned for this event.',
+                student: {
+                  name: stProfile.full_name || 'Student',
+                  studentNumber: stProfile.student_number || '—',
+                  section: stProfile.section || '—',
+                  program: stProfile.program || 'CCIS',
+                  eventTitle,
+                  attendedAt: attendance.attended_at ? new Date(attendance.attended_at).toLocaleTimeString() : 'Previously',
+                  registrationStatus: attendance.is_event_registrant ? 'Registrant' : 'Walk-in / Non-registrant'
+                }
+              };
+              setResult(warningResult);
+              addToLog(trimmedId, warningResult);
+              scheduleAutoDismiss(AUTO_DISMISS_SUCCESS_MS);
+              return;
+            }
           }
 
-          const { data: attendanceData, error: attendanceErr } = await supabase.rpc('check_in_audience', {
-            p_event_id: selectedEventId,
-            p_attendance_token: attendanceToken,
-          }).single();
-          const attendance = attendanceData as {
-            was_already_attended: boolean;
-            attended_at: string | null;
-            is_event_registrant: boolean;
-            attendance_origin: 'registered' | 'walk_in';
-          } | null;
-          attendanceResult = attendance;
-
-          if (attendanceErr || !attendance) {
-            playSound('error');
-            const errorResult: ScanResult = {
-              status: 'error',
-              message: attendanceErr?.message?.includes('query returned no rows')
-                ? 'Invalid universal QR: this pass is not assigned to an active approved student.'
-                : 'Unable to record audience attendance. Please try again.'
-            };
-            setResult(errorResult);
-            addToLog(trimmedId, errorResult);
-            scheduleAutoDismiss(AUTO_DISMISS_ERROR_MS);
-            return;
-          }
-
-          if (attendance.was_already_attended) {
-            playSound('warning');
-            const warningResult: ScanResult = {
-              status: 'warning',
-              message: 'Already Checked In! Audience pass already scanned for this event.',
-              student: {
-                name: stProfile.full_name || audienceData.name || 'Student',
-                studentNumber: stProfile.student_number || audienceData.student_id || '—',
-                section: stProfile.section || audienceData.section || '—',
-                program: stProfile.program || audienceData.program || 'CCIS',
-                eventTitle,
-                attendedAt: attendance.attended_at ? new Date(attendance.attended_at).toLocaleTimeString() : 'Previously',
-                registrationStatus: attendance.is_event_registrant ? 'Registrant' : 'Walk-in / Non-registrant'
-              }
-            };
-            setResult(warningResult);
-            addToLog(trimmedId, warningResult);
-            scheduleAutoDismiss(AUTO_DISMISS_SUCCESS_MS);
-            return;
-          }
+          playSound('success');
+          if (selectedEventId) setScanCount(prev => prev + 1);
+          const successResult: ScanResult = {
+            status: 'success',
+            message: selectedEventId
+              ? 'Audience Attendance Verified! Check-in logged in database.'
+              : 'Audience pass verified. Select an event to record attendance.',
+            student: {
+              name: stProfile.full_name || 'Student',
+              studentNumber: stProfile.student_number || '—',
+              section: stProfile.section || '—',
+              program: stProfile.program || 'CCIS',
+              eventTitle,
+              registrationStatus: selectedEventId
+                ? (attendanceResult?.is_event_registrant ? 'Registrant' : 'Walk-in / Non-registrant')
+                : undefined
+            }
+          };
+          setResult(successResult);
+          addToLog(trimmedId, successResult);
+          showToast(`Audience pass verified for ${stProfile.full_name || 'Student'}`, 'success');
+          scheduleAutoDismiss(AUTO_DISMISS_SUCCESS_MS);
+          return;
         }
-
-        playSound('success');
-        setScanCount(prev => prev + 1);
-        const successResult: ScanResult = {
-          status: 'success',
-          message: 'Audience Attendance Verified! Check-in logged in database.',
-          student: {
-            name: stProfile.full_name || audienceData.name || 'Student',
-            studentNumber: stProfile.student_number || audienceData.student_id || '—',
-            section: stProfile.section || audienceData.section || '—',
-            program: stProfile.program || audienceData.program || 'CCIS',
-            eventTitle,
-            registrationStatus: selectedEventId
-              ? (attendanceResult?.is_event_registrant
-                  ? 'Registrant'
-                  : 'Walk-in / Non-registrant')
-              : undefined
-          }
-        };
-        setResult(successResult);
-        addToLog(trimmedId, successResult);
-        showToast(`Audience attendance confirmed for ${stProfile.full_name || 'Student'}`, 'success');
-        scheduleAutoDismiss(AUTO_DISMISS_SUCCESS_MS);
-        return;
       }
 
       // 2. Otherwise check specific Event Registration
-      const { data: reg, error } = await supabase
-        .from('event_registrations')
-        .select('*, events(title), profiles(full_name, student_number, program, section)')
-        .eq('id', trimmedId)
-        .maybeSingle();
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trimmedId)) {
+        playSound('error');
+        const errorResult: ScanResult = {
+          status: 'error',
+          message: 'Invalid ticket. The scanned value is not a recognized CCIS credential.'
+        };
+        setResult(errorResult);
+        addToLog(trimmedId, errorResult);
+        scheduleAutoDismiss(AUTO_DISMISS_ERROR_MS);
+        return;
+      }
+
+      const { data, error } = await supabase.rpc('check_in_registration', {
+        p_registration_id: trimmedId,
+      });
+      const reg = data as {
+        status: string;
+        attended_at: string | null;
+        attendance_origin: 'registered' | 'walk_in';
+        was_already_attended: boolean;
+        profiles: { full_name: string | null; student_number: string | null; program: string | null; section: string | null } | null;
+        events: { title: string } | null;
+      } | null;
 
       if (error) {
         console.error('Ticket scan query error:', error.message);
@@ -563,39 +563,20 @@ export default function TicketScanner() {
         registrationStatus: reg.attendance_origin === 'walk_in' ? 'Walk-in / Non-registrant' as const : 'Registrant' as const,
       };
 
-      if (reg.status === 'attended') {
+      if (reg.was_already_attended) {
         playSound('warning');
         const warningResult: ScanResult = {
           status: 'warning',
           message: 'Already Checked In! This ticket has already been used for entry.',
           student: {
             ...studentData,
-            attendedAt: reg.updated_at ? new Date(reg.updated_at).toLocaleTimeString() : 'Previously'
+            attendedAt: reg.attended_at ? new Date(reg.attended_at).toLocaleTimeString() : 'Previously'
           }
         };
         setResult(warningResult);
         addToLog(trimmedId, warningResult);
         scheduleAutoDismiss(AUTO_DISMISS_SUCCESS_MS);
       } else {
-        // Mark as attended
-        const { error: updateErr } = await supabase
-          .from('event_registrations')
-          .update({ status: 'attended', attended_at: new Date().toISOString() })
-          .eq('id', trimmedId);
-
-        if (updateErr) {
-          console.error('Attendance status update error:', updateErr.message);
-          playSound('error');
-          const errorResult: ScanResult = {
-            status: 'error',
-            message: 'Failed to update attendance record. Please try again.'
-          };
-          setResult(errorResult);
-          addToLog(trimmedId, errorResult);
-          scheduleAutoDismiss(AUTO_DISMISS_ERROR_MS);
-          return;
-        }
-
         playSound('success');
         setScanCount(prev => prev + 1);
         const successResult: ScanResult = {

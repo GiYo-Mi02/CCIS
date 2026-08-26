@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FileText, Plus, X, Edit, Trash2, Loader2, Download, AlertTriangle, CheckCircle2, Info, Eye } from 'lucide-react';
-import * as pdfjsLib from 'pdfjs-dist';
-import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.js?url';
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { supabase } from '../lib/supabase';
 
 // ============================================================
@@ -287,9 +286,12 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
       }
       
       try {
+        const pdfjsLib = await import('pdfjs-dist');
         pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
         
-        loadingTask = pdfjsLib.getDocument(selectedModalReport.pdfUrl);
+        loadingTask = pdfjsLib.getDocument({
+          url: selectedModalReport.pdfUrl,
+        });
         const pdf = await loadingTask.promise;
         setPdfTotalPages(pdf.numPages);
         
@@ -313,6 +315,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
         canvas.height = viewport.height;
         
         await page.render({
+          canvas,
           canvasContext: context,
           viewport: viewport
         }).promise;
@@ -388,6 +391,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
 
   // Client-side PDF page to canvas render function
   const renderPdfThumbnail = async (file: File): Promise<Blob> => {
+    const pdfjsLib = await import('pdfjs-dist');
     return new Promise(async (resolve, reject) => {
       try {
         pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
@@ -397,7 +401,9 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
           try {
             const arrayBuffer = this.result as ArrayBuffer;
             const typedarray = new Uint8Array(arrayBuffer);
-            const loadingTask = pdfjsLib.getDocument({ data: typedarray });
+            const loadingTask = pdfjsLib.getDocument({
+              data: typedarray,
+            });
             const pdf = await loadingTask.promise;
 
             if (pdf.numPages === 0) {
@@ -419,6 +425,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
             canvas.height = viewport.height;
 
             const renderContext = {
+              canvas,
               canvasContext: context,
               viewport: viewport
             };
