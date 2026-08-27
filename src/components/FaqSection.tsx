@@ -61,33 +61,33 @@ export default function FaqSection() {
             return (
               <div
                 key={item.id}
-                className={`bg-white rounded-xl border transition-all duration-300 shadow-sm overflow-hidden ${
+                className={`overflow-hidden rounded-xl border-y border-l-4 border-r-0 bg-white shadow-sm transition-all duration-300 ${
                   isOpen 
-                    ? 'border-l-4 border-l-[#F5B400] border-t-zinc-200 border-r-zinc-200 border-b-zinc-200' 
-                    : 'border-l-4 border-l-[#1A3C2E] border-t-zinc-100 border-r-zinc-100 border-b-zinc-100'
+                    ? 'border-l-[#FFBC00] border-y-zinc-200'
+                    : 'border-l-[#123524] border-y-zinc-100'
                 }`}
                 id={`faq-accordion-item-${item.id}`}
               >
                 <button
                   onClick={() => toggleFaq(item.id)}
-                  className="w-full flex items-center justify-between p-5 text-left text-sm md:text-base font-bold text-[#1A3C2E] hover:text-[#F5B400] transition-colors focus:outline-none"
+                  className="flex w-full items-start justify-between gap-3 p-4 text-left text-sm font-bold text-[#123524] transition-colors hover:text-[#FFBC00] focus:outline-none sm:items-center sm:p-5 md:text-base"
                   aria-expanded={isOpen}
                 >
-                  <span className="flex items-center gap-3">
-                    <HelpCircle size={18} className="text-[#F5B400] flex-shrink-0" />
+                  <span className="flex min-w-0 items-start gap-3 leading-relaxed sm:items-center">
+                    <HelpCircle size={18} className="mt-0.5 flex-shrink-0 text-[#FFBC00] sm:mt-0" />
                     {item.question}
                   </span>
-                  <span className="p-1 rounded-full bg-zinc-50 border border-zinc-100 text-[#1A3C2E]">
+                  <span className="shrink-0 rounded-full bg-[#FAF7EA] p-1.5 text-[#123524]">
                     {isOpen ? <Minus size={15} /> : <Plus size={15} />}
                   </span>
                 </button>
 
                 <div
-                  className={`transition-all duration-300 ease-in-out border-t border-zinc-100/50 ${
-                    isOpen ? 'max-h-96 opacity-100 p-5 bg-zinc-50/50' : 'max-h-0 opacity-0 overflow-hidden'
+                  className={`border-t border-zinc-100/50 transition-all duration-300 ease-in-out ${
+                    isOpen ? 'max-h-96 bg-zinc-50/50 p-4 opacity-100 sm:p-5' : 'max-h-0 overflow-hidden opacity-0'
                   }`}
                 >
-                  <p className="text-stone-600 text-sm md:text-base leading-relaxed pl-1">
+                  <p className="pl-1 text-sm leading-relaxed text-stone-600 md:text-base">
                     {item.answer}
                   </p>
                 </div>

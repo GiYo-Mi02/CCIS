@@ -9,6 +9,11 @@ const calendar = readFileSync(
 );
 const hero = readFileSync(new URL('../src/components/Hero.tsx', import.meta.url), 'utf8');
 const infoHub = readFileSync(new URL('../src/components/InfoHub.tsx', import.meta.url), 'utf8');
+const developerDedication = readFileSync(
+  new URL('../src/components/DeveloperDedication.tsx', import.meta.url),
+  'utf8',
+);
+const faq = readFileSync(new URL('../src/components/FaqSection.tsx', import.meta.url), 'utf8');
 
 test('public calendar uses solid semantic category blocks', () => {
   assert.match(app, /General Event Activity/);
@@ -38,4 +43,30 @@ test('Info Hub exposes a branded More Orgs menu with official logos', () => {
   assert.match(infoHub, /accent: '#00FFFF'/);
   assert.match(infoHub, /title: 'Social Responsibility'/);
   assert.match(infoHub, /Choose an official CCIS organization/);
+});
+
+test('developer cards retain their modal and the modal uses a responsive photo-content split', () => {
+  assert.match(developerDedication, /setSelectedDev\(LEAD_DEVELOPER\)/);
+  assert.match(developerDedication, /setSelectedDev\(QA_DEVELOPER\)/);
+  assert.match(developerDedication, /Click to view details/);
+  assert.match(developerDedication, /createPortal/);
+  assert.match(
+    developerDedication,
+    /grid-cols-1[^\n]*md:grid-cols-\[minmax\(17rem,0\.8fr\)_minmax\(0,1\.7fr\)\]/,
+  );
+  assert.match(developerDedication, /selectedDev\.photoUrl[\s\S]*selectedDev\.bio[\s\S]*Key Contributions/);
+  assert.match(developerDedication, /min-h-\[17rem\][^\n]*sm:min-h-\[22rem\] md:min-h-full/);
+});
+
+test('organization navigation wraps without category labels or left accent borders', () => {
+  assert.match(infoHub, /flex max-w-full flex-wrap items-center/);
+  assert.doesNotMatch(infoHub, /overflow-x-auto/);
+  assert.doesNotMatch(infoHub, /borderLeftColor|borderLeftWidth/);
+  assert.doesNotMatch(infoHub, /Mother Organization|Local Academic Organization/);
+});
+
+test('FAQ cards omit the right edge and keep mobile controls compact', () => {
+  assert.match(faq, /border-y border-l-4 border-r-0/);
+  assert.match(faq, /p-4[^\n]*sm:p-5/);
+  assert.doesNotMatch(faq, /border-r-zinc/);
 });

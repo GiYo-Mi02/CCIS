@@ -16,7 +16,6 @@ interface StudentOrgMeta {
   dbOrgName: string;
   name: string;
   shortName: string;
-  category: string;
   logo: string;
   tagline: string;
   missionQuote: string;
@@ -37,7 +36,6 @@ const STUDENT_ORGS: StudentOrgMeta[] = [
     dbOrgName: 'Student Council',
     name: 'CCIS Student Council',
     shortName: 'Student Council',
-    category: 'Mother Organization',
     logo: '/images/ccis_logo.jpg',
     tagline: 'Code, Create, Connect',
     description: 'The supreme student governing body of the College of Computing and Information Sciences.',
@@ -61,7 +59,6 @@ const STUDENT_ORGS: StudentOrgMeta[] = [
     dbOrgName: 'Computer Society',
     name: 'Computer Society',
     shortName: 'ComSoc',
-    category: 'Local Academic Organization',
     logo: '/images/Computer-Society.png',
     tagline: 'Debug, Develop, Deploy',
     description: 'The official academic organization focused on software engineering, competitive programming, and modern development workflows.',
@@ -85,7 +82,6 @@ const STUDENT_ORGS: StudentOrgMeta[] = [
     dbOrgName: 'Society of Innovative Computing',
     name: 'Society of Innovative Computing',
     shortName: 'UMak SIC',
-    category: 'Local Academic Organization',
     logo: '/images/SIC_logo.jpg',
     tagline: 'Innovate. Collaborate. Grow.',
     description: 'A peer-driven CCIS organization developing computing knowledge, skills, and experience through mentorship, collaborative projects, research, and continuous learning.',
@@ -408,9 +404,6 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
 
             {activeInfoTab === 'org' && (
               <div className="animate-fade-in">
-                <span className="font-sans font-semibold text-xs uppercase tracking-wider text-[#57534E]">
-                  {selectedOrg.category}
-                </span>
                 <h2 className="font-sans font-black text-3xl md:text-5xl text-[#1A3C2E] leading-tight">
                   {selectedOrg.name}
                 </h2>
@@ -426,9 +419,9 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
             />
           </div>
 
-          {/* Right: Logos in a Row (One Row Only Pagination Cluster) */}
-          <div ref={orgMenuRef} className="relative shrink-0 self-start lg:self-center max-w-full">
-            <div className="flex flex-nowrap items-center gap-1.5 sm:gap-2.5 bg-white p-2 sm:p-2.5 rounded-lg border border-[#d0d5e8] shadow-xs max-w-full overflow-x-auto">
+          {/* Right: Responsive organization navigation cluster */}
+          <div ref={orgMenuRef} className="relative w-full max-w-full self-start lg:w-auto lg:shrink-0 lg:self-center">
+            <div className="flex max-w-full flex-wrap items-center gap-1.5 rounded-lg border border-[#d0d5e8] bg-white p-2 shadow-xs sm:gap-2.5 sm:p-2.5 lg:flex-nowrap">
               {/* 1. UMak Logo Button */}
               <div
                 onClick={() => handleTabSelect('umak')}
@@ -527,9 +520,7 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
                             : 'border-[#123524]/15 bg-white hover:border-[#123524]/45 hover:bg-stone-50'
                         }`}
                         style={{
-                          borderColor: isSelected ? org.theme.primary : undefined,
-                          borderLeftColor: org.theme.primary,
-                          borderLeftWidth: '4px'
+                          borderColor: isSelected ? org.theme.primary : undefined
                         }}
                       >
                         <span
@@ -540,12 +531,6 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
                         </span>
                         <span className="min-w-0 flex-1">
                           <span className="font-marcellus text-sm text-[#123524] block leading-tight">{org.name}</span>
-                          <span
-                            className="text-[9px] font-bold uppercase tracking-wider block mt-0.5"
-                            style={{ color: org.theme.heading }}
-                          >
-                            {org.category}
-                          </span>
                           <span className="text-[10px] text-stone-500 block mt-1 truncate">{org.tagline}</span>
                         </span>
                         <CheckCircle2

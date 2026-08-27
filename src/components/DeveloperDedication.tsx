@@ -28,7 +28,7 @@ const LEAD_DEVELOPER: Developer = {
   initials: "GJ",
   department: "ENGINEERING",
   quote: "Designed and engineered the core portal architecture with passion.",
-  email: "giojoshua.gonzales@example.com",
+  email: "ggonzales.k12254495@umak.edu.ph",
   github: "https://github.com/GiYo-Mi02",
   linkedin: "#",
   // ==========================================================================
@@ -256,99 +256,115 @@ export default function DeveloperDedication() {
       {/* PORTFOLIO MODAL (Rendered at Root using Portal to avoid animated stacking context bugs) */}
       {selectedDev && createPortal(
         <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-[9999] flex items-center justify-center p-4 animate-fade-in font-sans"
+          className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto bg-black/70 p-3 font-sans backdrop-blur-xs animate-fade-in sm:items-center sm:p-4"
           onClick={() => setSelectedDev(null)}
         >
           <div 
-            className="bg-[#123524] text-[#FAF7EA] max-w-xl w-full rounded-3xl p-6 md:p-8 relative shadow-2xl border border-white/10 overflow-hidden shadow-[0_0_50px_rgba(245,180,0,0.15)] flex flex-col gap-6"
+            className="relative my-auto grid max-h-[calc(100svh-1.5rem)] w-full max-w-5xl grid-cols-1 overflow-y-auto rounded-3xl border border-white/10 bg-[#123524] text-[#FAF7EA] shadow-2xl shadow-[0_0_50px_rgba(255,188,0,0.15)] md:max-h-[min(90svh,52rem)] md:grid-cols-[minmax(17rem,0.8fr)_minmax(0,1.7fr)] md:overflow-hidden"
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="developer-modal-title"
           >
-            {/* Modal Ambient Glow Overlay */}
-            <div className="absolute top-0 right-0 -mt-16 -mr-16 w-48 h-48 bg-[#F5B400]/5 rounded-full blur-3xl pointer-events-none" />
-            
             {/* Close Button */}
             <button 
               onClick={() => setSelectedDev(null)}
-              className="absolute top-4 right-4 p-2 rounded-full bg-white/5 border border-white/10 text-stone-300 hover:text-white hover:bg-white/10 transition-colors"
+              className="absolute right-3 top-3 z-20 rounded-full border border-white/20 bg-[#07130F]/80 p-2 text-stone-200 shadow-lg backdrop-blur-sm transition-colors hover:bg-white/15 hover:text-white sm:right-4 sm:top-4"
               aria-label="Close Modal"
             >
               <X size={18} />
             </button>
 
-            {/* Header Content inside Modal */}
-            <div className="flex items-center gap-4 border-b border-white/10 pb-5">
+            {/* Portrait: top on mobile, left on medium and larger screens */}
+            <div className="relative min-h-[17rem] overflow-hidden bg-[#07130F] sm:min-h-[22rem] md:min-h-full">
               {selectedDev.photoUrl ? (
-                <div className="w-16 h-16 rounded-2xl overflow-hidden border border-[#F5B400]/30 shrink-0">
-                  <img src={selectedDev.photoUrl} alt={selectedDev.name} className="w-full h-full object-cover" />
-                </div>
+                <img
+                  src={selectedDev.photoUrl}
+                  alt={`${selectedDev.name}, ${selectedDev.role}`}
+                  className="absolute inset-0 h-full w-full object-cover object-center"
+                />
               ) : (
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#1A3C2E] to-[#123524] flex items-center justify-center text-[#F5B400] font-serif text-2xl font-bold shadow-inner relative border border-[#F5B400]/30 shrink-0">
+                <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#1A3C2E] to-[#07130F] font-serif text-6xl font-black text-[#FFBC00]">
                   {selectedDev.initials}
                 </div>
               )}
-              <div>
-                <h3 className="font-sans font-black text-xl text-[#F5B400]">{selectedDev.name}</h3>
-                <p className="text-xs font-mono font-bold text-stone-300 uppercase tracking-wider flex items-center gap-1.5 mt-0.5">
-                  {selectedDev.department === 'ENGINEERING' ? <Code size={12} /> : <ShieldCheck size={12} />}
-                  {selectedDev.role}
+              <div className="absolute inset-0 bg-gradient-to-t from-[#07130F]/90 via-transparent to-transparent" />
+              <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6">
+                <span className="inline-flex items-center gap-2 rounded-full border border-[#FFBC00]/30 bg-[#123524]/90 px-3 py-1.5 font-mono text-[10px] font-black uppercase tracking-[0.16em] text-[#FFBC00] backdrop-blur-sm">
+                  {selectedDev.department === 'ENGINEERING' ? <Code size={13} /> : <ShieldCheck size={13} />}
+                  {selectedDev.department}
+                </span>
+              </div>
+            </div>
+
+            {/* Description and contributions */}
+            <div className="relative min-w-0 p-5 sm:p-7 md:max-h-[min(90svh,52rem)] md:overflow-y-auto lg:p-9">
+              <div className="pointer-events-none absolute right-0 top-0 h-48 w-48 -translate-y-1/3 translate-x-1/3 rounded-full bg-[#FFBC00]/5 blur-3xl" />
+
+              <div className="border-b border-white/10 pb-5 pr-10 sm:pb-6">
+                <span className="font-mono text-[10px] font-black uppercase tracking-[0.18em] text-[#FFBC00]">{selectedDev.role}</span>
+                <h3 id="developer-modal-title" className="mt-1 font-serif text-2xl font-black leading-tight text-white sm:text-3xl">
+                  {selectedDev.name}
+                </h3>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {selectedDev.tags.map(tag => (
+                    <span key={tag} className="rounded-full bg-white/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#FAF7EA]">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-6 space-y-4">
+                {selectedDev.quote && (
+                  <blockquote className="border-l-4 border-[#FFBC00] pl-4 text-sm italic leading-relaxed text-stone-200 sm:text-base">
+                    “{selectedDev.quote}”
+                  </blockquote>
+                )}
+                <p className="text-sm leading-7 text-stone-300 sm:text-base">
+                {selectedDev.bio}
                 </p>
               </div>
-            </div>
 
-            {/* Bio & Quote */}
-            <div className="space-y-4">
-              {selectedDev.quote && (
-                <div className="border-l-4 border-[#F5B400] pl-4 italic text-stone-300 text-sm md:text-base leading-relaxed">
-                  "{selectedDev.quote}"
-                </div>
-              )}
-              <p className="text-stone-300 text-sm leading-relaxed">
-                {selectedDev.bio}
-              </p>
-            </div>
-
-            {/* Key Contributions */}
-            <div className="space-y-3">
-              <span className="block text-[10px] font-mono font-black text-[#F5B400] uppercase tracking-wider">Key Contributions</span>
-              <div className="grid grid-cols-1 gap-2.5">
+              <div className="mt-7 space-y-3">
+                <span className="block font-mono text-[10px] font-black uppercase tracking-[0.18em] text-[#FFBC00]">Key Contributions</span>
+                <div className="grid grid-cols-1 gap-2.5 xl:grid-cols-2">
                 {selectedDev.contributions.map((contrib, idx) => (
-                  <div key={idx} className="flex gap-3 bg-white/5 p-3 rounded-xl border border-white/5 hover:border-white/10 transition-colors items-start">
-                    <CheckCircle2 size={16} className="text-[#F5B400] shrink-0 mt-0.5" />
-                    <span className="text-xs text-stone-200 leading-relaxed font-sans">{contrib}</span>
+                    <div key={idx} className="flex items-start gap-3 rounded-xl border border-white/5 bg-white/5 p-3 transition-colors hover:border-white/15">
+                      <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-[#FFBC00]" />
+                      <span className="font-sans text-xs leading-relaxed text-stone-200">{contrib}</span>
                   </div>
                 ))}
+                </div>
+              </div>
+
+              <div className="mt-7 flex flex-col gap-4 border-t border-white/10 pt-5 sm:flex-row sm:items-center sm:justify-between">
+                <a
+                  href={`mailto:${selectedDev.email}`}
+                  className="flex min-w-0 items-center gap-2 break-all font-mono text-[11px] text-stone-300 transition-colors hover:text-[#FFBC00]"
+                >
+                  <Mail size={14} className="shrink-0" /> {selectedDev.email}
+                </a>
+                <div className="flex items-center gap-3">
+                  <a
+                    href={selectedDev.github}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center rounded-xl border border-white/10 bg-white/5 p-2 text-stone-300 shadow-sm transition-all hover:border-[#FFBC00] hover:bg-white/10 hover:text-[#FFBC00]"
+                    aria-label="GitHub Profile"
+                  >
+                    <Github size={14} />
+                  </a>
+                  <a
+                    href={selectedDev.linkedin}
+                    className="flex items-center justify-center rounded-xl border border-white/10 bg-white/5 p-2 text-stone-300 shadow-sm transition-all hover:border-[#FFBC00] hover:bg-white/10 hover:text-[#FFBC00]"
+                    aria-label="LinkedIn Profile"
+                  >
+                    <Linkedin size={14} />
+                  </a>
+                </div>
               </div>
             </div>
-
-            {/* Contact / Social links */}
-            <div className="flex items-center justify-between border-t border-white/10 pt-5 mt-2">
-              <a
-                href={`mailto:${selectedDev.email}`}
-                className="font-mono text-xs text-stone-300 hover:text-[#F5B400] transition-colors flex items-center gap-2"
-              >
-                <Mail size={14} /> {selectedDev.email}
-              </a>
-              
-              <div className="flex items-center gap-3">
-                <a
-                  href={selectedDev.github}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-2 rounded-xl bg-white/5 border border-white/10 text-stone-300 hover:text-[#F5B400] hover:bg-white/10 hover:border-[#F5B400] transition-all flex items-center justify-center shadow-sm"
-                  aria-label="GitHub Profile"
-                >
-                  <Github size={14} />
-                </a>
-                <a
-                  href={selectedDev.linkedin}
-                  className="p-2 rounded-xl bg-white/5 border border-white/10 text-stone-300 hover:text-[#F5B400] hover:bg-white/10 hover:border-[#F5B400] transition-all flex items-center justify-center shadow-sm"
-                  aria-label="LinkedIn Profile"
-                >
-                  <Linkedin size={14} />
-                </a>
-              </div>
-            </div>
-
           </div>
         </div>,
         document.body

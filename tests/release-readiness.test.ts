@@ -101,6 +101,15 @@ test('release configuration is pinned and excludes the retired IP service', () =
   assert.doesNotMatch(headers, /api\.ipify\.org/);
 });
 
+test('all deployment policies allow approved Patch video sources', () => {
+  const policies = [read('index.html'), read('vercel.json'), read('public', '_headers')];
+  const approvedMediaSources = /media-src 'self' blob: https:\/\/\*\.supabase\.co https:\/\/res\.cloudinary\.com;/;
+
+  for (const policy of policies) {
+    assert.match(policy, approvedMediaSources);
+  }
+});
+
 test('legacy queue rows without leases are quarantined and cannot auto-retry', () => {
   const migration = read(
     'supabase',
