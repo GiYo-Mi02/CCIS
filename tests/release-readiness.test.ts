@@ -44,6 +44,52 @@ test('registration screens use scoped RPCs instead of unrestricted profile reads
   }
 });
 
+test('verification RPC repair and admin notification badge stay aligned', () => {
+  const repairMigration = read(
+    'supabase',
+    'migrations',
+    '20260826031821_repair_pending_verification_rpc.sql',
+  );
+  const verification = read('src', 'admin', 'sections', 'VerificationManager.tsx');
+  const sidebar = read('src', 'admin', 'components', 'AdminSidebar.tsx');
+
+  assert.match(repairMigration, /CREATE OR REPLACE FUNCTION public\.list_pending_verifications\(/);
+  assert.match(repairMigration, /SECURITY DEFINER[\s\S]*SET search_path = ''/);
+  assert.match(repairMigration, /public\.get_user_role\(\)[\s\S]*comm_registration/);
+  assert.match(repairMigration, /REVOKE ALL ON FUNCTION[\s\S]*FROM PUBLIC, anon/);
+  assert.match(repairMigration, /GRANT EXECUTE ON FUNCTION[\s\S]*TO authenticated/);
+  assert.match(repairMigration, /NOTIFY pgrst, 'reload schema'/);
+
+  assert.match(sidebar, /rpc\('list_pending_verifications'/);
+  assert.match(sidebar, /pendingVerifications/);
+  assert.match(sidebar, /admin-verification-count-changed/);
+  assert.match(verification, /dispatchEvent\(new Event\('admin-verification-count-changed'\)\)/);
+});
+
+test('registration RPC repair is scoped and admin reads retry invalid sessions once', () => {
+  const repairMigration = read(
+    'supabase',
+    'migrations',
+    '20260826050836_repair_registration_admin_rpc.sql',
+  );
+  const registration = read('src', 'admin', 'sections', 'RegistrationManager.tsx');
+  const scanner = read('src', 'admin', 'sections', 'TicketScanner.tsx');
+  const requestHelper = read('src', 'lib', 'supabaseRequest.ts');
+
+  assert.match(repairMigration, /CREATE OR REPLACE FUNCTION public\.list_registration_admin_rows\(/);
+  assert.match(repairMigration, /SECURITY DEFINER[\s\S]*SET search_path = ''/);
+  assert.match(repairMigration, /public\.get_user_role\(\)[\s\S]*comm_registration/);
+  assert.match(repairMigration, /REVOKE ALL ON FUNCTION[\s\S]*FROM PUBLIC, anon/);
+  assert.match(repairMigration, /GRANT EXECUTE ON FUNCTION[\s\S]*TO authenticated/);
+  assert.match(repairMigration, /NOTIFY pgrst, 'reload schema'/);
+
+  assert.match(requestHelper, /PGRST301/);
+  assert.match(requestHelper, /PGRST303/);
+  assert.match(requestHelper, /supabase\.auth\.refreshSession\(\)/);
+  assert.match(registration, /withSessionRefreshRetry/);
+  assert.match(scanner, /withSessionRefreshRetry/);
+});
+
 test('release configuration is pinned and excludes the retired IP service', () => {
   const workflow = read('.github', 'workflows', 'typecheck.yml');
   const vercel = read('vercel.json');

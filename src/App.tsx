@@ -10,6 +10,7 @@ import DeveloperDedication from './components/DeveloperDedication';
 import Footer from './components/Footer';
 import LoadingScreen from './components/LoadingScreen';
 import { FullPageSkeleton } from './components/common/Skeleton';
+import { CalendarDays, Zap } from 'lucide-react';
 
 const AuthPage = lazy(() => import('./pages/AuthPage'));
 const AccountPage = lazy(() => import('./pages/AccountPage'));
@@ -144,18 +145,22 @@ export default function App({ onAdminSwitch }: AppProps) {
                   </p>
                   
                   <div className="space-y-3 font-sans">
-                    <div className="flex items-center gap-3 bg-white p-3 rounded-xl border border-zinc-100">
-                      <span className="w-3.5 h-3.5 rounded-full bg-[#123524] flex-shrink-0" />
+                    <div className="flex items-center gap-3 bg-[#123524] p-4 rounded-2xl border border-[#123524] shadow-sm text-white">
+                      <span className="w-9 h-9 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center flex-shrink-0">
+                        <CalendarDays size={18} aria-hidden="true" />
+                      </span>
                       <div>
-                        <span className="block font-bold text-sm text-[#123524]">General Event Activity</span>
-                        <span className="text-xs text-[#5E6E64]">Assemblies, sport volunteer calls, tutorials</span>
+                        <span className="block font-bold text-sm text-white">General Event Activity</span>
+                        <span className="text-xs text-white/70">Assemblies, sport volunteer calls, tutorials</span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 bg-white p-3 rounded-xl border border-zinc-100">
-                      <span className="w-3.5 h-3.5 rounded-full bg-[#FFBC00] flex-shrink-0" />
+                    <div className="flex items-center gap-3 bg-[#FFBC00] p-4 rounded-2xl border border-[#FFBC00] shadow-sm text-[#123524]">
+                      <span className="w-9 h-9 rounded-xl bg-[#123524]/10 border border-[#123524]/20 flex items-center justify-center flex-shrink-0">
+                        <Zap size={18} aria-hidden="true" />
+                      </span>
                       <div>
                         <span className="block font-bold text-sm text-[#123524]">Priority Academic / Deadline Event</span>
-                        <span className="text-xs text-[#5E6E64]">Midterms, high-priority submission dates</span>
+                        <span className="text-xs text-[#123524]/75">Midterms, high-priority submission dates</span>
                       </div>
                     </div>
                   </div>

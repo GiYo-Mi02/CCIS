@@ -8,6 +8,7 @@ import Modal from '../components/Modal';
 import EmptyState from '../components/EmptyState';
 import Pagination from '../components/Pagination';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import { withSessionRefreshRetry } from '../../lib/supabaseRequest';
 
 export default function RegistrationManager() {
   const { showToast } = useAdmin();
@@ -34,19 +35,24 @@ export default function RegistrationManager() {
     try {
       // 1. Fetch events list once
       if (events.length === 0) {
-        const { data: eventsData } = await supabase.from('events').select('id, title').order('event_date');
+        const { data: eventsData, error: eventsError } = await withSessionRefreshRetry(() =>
+          supabase.from('events').select('id, title').order('event_date')
+        );
+        if (eventsError) throw eventsError;
         if (eventsData) setEvents(eventsData as EventItem[]);
       }
 
       // 2. Fetch the purpose-limited registration projection and aggregate
       // counts from a role-checked server function.
       const offset = (page - 1) * pageSize;
-      const { data, error } = await supabase.rpc('list_registration_admin_rows', {
-        p_search: search.trim() || null,
-        p_event_id: eventFilter === 'ALL' ? null : eventFilter,
-        p_limit: pageSize,
-        p_offset: offset,
-      });
+      const { data, error } = await withSessionRefreshRetry(() =>
+        supabase.rpc('list_registration_admin_rows', {
+          p_search: search.trim() || null,
+          p_event_id: eventFilter === 'ALL' ? null : eventFilter,
+          p_limit: pageSize,
+          p_offset: offset,
+        })
+      );
 
       if (error) throw error;
 
@@ -72,7 +78,7 @@ export default function RegistrationManager() {
       setRegistrations(result?.rows || []);
     } catch (err: any) {
       console.error(err);
-      showToast('An unexpected error occurred', 'error');
+      showToast('Failed to load registrations: ' + (err?.message || 'Unknown error'), 'error');
     } finally {
       setLoading(false);
     }

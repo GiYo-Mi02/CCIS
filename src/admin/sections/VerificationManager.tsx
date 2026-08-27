@@ -90,6 +90,8 @@ export default function VerificationManager() {
 
       // Remove from view list
       setPendingUsers(prev => prev.filter(u => u.id !== user.id));
+      setTotalCount(prev => Math.max(0, prev - 1));
+      window.dispatchEvent(new Event('admin-verification-count-changed'));
     } catch (err: any) {
       showToast('Approval action failed: ' + err.message, 'error');
     } finally {
@@ -126,6 +128,8 @@ export default function VerificationManager() {
 
       // Remove from view list
       setPendingUsers(prev => prev.filter(u => u.id !== rejectingUser.id));
+      setTotalCount(prev => Math.max(0, prev - 1));
+      window.dispatchEvent(new Event('admin-verification-count-changed'));
       setRejectingUser(null);
     } catch (err: any) {
       showToast('Rejection action failed: ' + err.message, 'error');

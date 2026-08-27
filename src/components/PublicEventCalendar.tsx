@@ -89,8 +89,8 @@ export function UpcomingEventsList({ onNavigate }: UpcomingEventsListProps) {
                 ) : (
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border shadow-xs transition-colors duration-300 ${
                     evt.category === 'priority' 
-                      ? 'bg-[#FFBC00]/15 border-[#FFBC00]/30 text-[#8F6A00]' 
-                      : 'bg-[#123524]/10 border-[#123524]/20 text-[#123524]'
+                      ? 'bg-[#FFBC00] border-[#FFBC00] text-[#123524]'
+                      : 'bg-[#123524] border-[#123524] text-white'
                   }`}>
                     {evt.category === 'priority' ? <Zap size={20} className="animate-pulse" /> : <CalendarDays size={20} />}
                   </div>
@@ -489,8 +489,8 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
                           key={evt.id}
                           className={`text-[9px] px-1.5 py-0.5 rounded font-sans truncate font-bold text-left w-full border transition-all duration-300 group-hover:scale-[1.02] ${
                             evt.category === 'priority'
-                              ? 'bg-[#FFBC00]/15 text-[#8F6A00] border-[#FFBC00]/30'
-                              : 'bg-[#123524]/10 text-[#123524] border-[#123524]/20'
+                              ? 'bg-[#FFBC00] text-[#123524] border-[#FFBC00]'
+                              : 'bg-[#123524] text-white border-[#123524]'
                           }`}
                           title={evt.title}
                         >

@@ -3,6 +3,7 @@ import { Camera, AlertTriangle, CheckCircle, XCircle, RefreshCw, Send, ShieldAle
 import { Html5Qrcode, CameraDevice } from 'html5-qrcode';
 import { supabase } from '../../lib/supabase';
 import { postgrestEquals } from '../../lib/postgrest';
+import { withSessionRefreshRetry } from '../../lib/supabaseRequest';
 import { useAdmin } from '../AdminContext';
 
 interface ScanResult {
@@ -84,17 +85,21 @@ export default function TicketScanner() {
   // Fetch active events list on mount
   useEffect(() => {
     const fetchEvents = async () => {
-      const { data, error } = await supabase
-        .from('events')
-        .select('id, title, event_date')
-        .order('event_date', { ascending: false })
-        .limit(20);
+      const { data, error } = await withSessionRefreshRetry(() =>
+        supabase
+          .from('events')
+          .select('id, title, event_date')
+          .order('event_date', { ascending: false })
+          .limit(20)
+      );
       
       if (!error && data) {
         setEvents(data);
         if (data.length > 0) {
           setSelectedEventId(data[0].id);
         }
+      } else if (error) {
+        showToast('Failed to load scanner events: ' + error.message, 'error');
       }
     };
     fetchEvents();
