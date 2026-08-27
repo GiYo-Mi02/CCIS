@@ -27,6 +27,7 @@
         "npm:@types/react@^19.2.18",
         "npm:@vitejs/plugin-react@^5.0.4",
         "npm:autoprefixer@^10.4.21",
+        "npm:deno@2.9.5",
         "npm:dotenv@^17.2.3",
         "npm:esbuild@0.25",
         "npm:gsap@^3.15.0",

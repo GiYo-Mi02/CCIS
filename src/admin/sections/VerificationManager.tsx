@@ -9,7 +9,6 @@ import { Profile } from '../../types/database';
 // Email HTML is now generated server-side by admin RPCs
 import Pagination from '../components/Pagination';
 import EmptyState from '../components/EmptyState';
-import { postgrestIlike } from '../../lib/postgrest';
 
 export default function VerificationManager() {
   const { showToast } = useAdmin();
@@ -44,33 +43,21 @@ export default function VerificationManager() {
   const fetchPendingUsers = async () => {
     setLoading(true);
     try {
-      const from = (currentPage - 1) * PAGE_SIZE;
-      const to = from + PAGE_SIZE - 1;
-
-      let query = supabase
-        .from('profiles')
-        .select('*', { count: 'exact' })
-        .eq('status', 'pending')
-        .eq('profile_complete', true);
-
-      if (debouncedSearch.trim()) {
-        const searchFilter = postgrestIlike(debouncedSearch);
-        query = query.or(
-          `full_name.ilike.${searchFilter},email.ilike.${searchFilter},student_number.ilike.${searchFilter}`
-        );
-      }
-
-      const { data, count, error } = await query
-        .order('submitted_at', { ascending: false })
-        .range(from, to);
+      const offset = (currentPage - 1) * PAGE_SIZE;
+      const { data, error } = await supabase.rpc('list_pending_verifications', {
+        p_search: debouncedSearch.trim() || null,
+        p_limit: PAGE_SIZE,
+        p_offset: offset,
+      });
 
       if (error) throw error;
 
-      if (data) {
-        setPendingUsers(data as Profile[]);
-        setTotalCount(count || 0);
-        setTotalPages(Math.ceil((count || 0) / PAGE_SIZE));
-      }
+      const result = data as { rows?: Profile[]; total?: number } | null;
+      const rows = result?.rows || [];
+      const count = Number(result?.total || 0);
+      setPendingUsers(rows);
+      setTotalCount(count);
+      setTotalPages(Math.max(1, Math.ceil(count / PAGE_SIZE)));
     } catch (err: any) {
       showToast('Failed to load pending verifications: ' + err.message, 'error');
     } finally {
@@ -103,6 +90,8 @@ export default function VerificationManager() {
 
       // Remove from view list
       setPendingUsers(prev => prev.filter(u => u.id !== user.id));
+      setTotalCount(prev => Math.max(0, prev - 1));
+      window.dispatchEvent(new Event('admin-verification-count-changed'));
     } catch (err: any) {
       showToast('Approval action failed: ' + err.message, 'error');
     } finally {
@@ -139,6 +128,8 @@ export default function VerificationManager() {
 
       // Remove from view list
       setPendingUsers(prev => prev.filter(u => u.id !== rejectingUser.id));
+      setTotalCount(prev => Math.max(0, prev - 1));
+      window.dispatchEvent(new Event('admin-verification-count-changed'));
       setRejectingUser(null);
     } catch (err: any) {
       showToast('Rejection action failed: ' + err.message, 'error');

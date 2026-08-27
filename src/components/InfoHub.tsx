@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Shield, Sparkles, Code, BookOpen, Trophy, Palette, Calendar, 
   AlertCircle, CheckCircle2, List, ChevronDown, Award,
@@ -23,6 +23,12 @@ interface StudentOrgMeta {
   overview: string;
   description: string;
   functions: { title: string; desc: string }[];
+  theme: {
+    primary: string;
+    accent: string;
+    onPrimary: string;
+    heading: string;
+  };
 }
 
 const STUDENT_ORGS: StudentOrgMeta[] = [
@@ -42,7 +48,13 @@ const STUDENT_ORGS: StudentOrgMeta[] = [
       { title: 'Academic & Tech Enablement', desc: 'Organize college-wide academic tutorials, competitive bootcamps, and technical workshop series.' },
       { title: 'Welfare & Engagement', desc: 'Execute sportsfests, creative showcases, and student welfare initiatives.' },
       { title: 'Digital Governance', desc: 'Build, scale, and maintain digital platforms for automated event tracking and concerns resolution.' }
-    ]
+    ],
+    theme: {
+      primary: '#123524',
+      accent: '#FFBC00',
+      onPrimary: '#FFFFFF',
+      heading: '#123524'
+    }
   },
   {
     id: 'compsoc',
@@ -60,7 +72,39 @@ const STUDENT_ORGS: StudentOrgMeta[] = [
       { title: 'Peer-to-Peer Study', desc: 'Organize peer-to-peer programming study groups and coding hackathons.' },
       { title: 'Industry Networking', desc: 'Collaborate with industry professionals to offer guest lectures and career guidance.' },
       { title: 'Contest Preparation', desc: 'Support student developers in buildathons, hacking events, and algorithmic programming contests.' }
-    ]
+    ],
+    theme: {
+      primary: '#123524',
+      accent: '#FFBC00',
+      onPrimary: '#FFFFFF',
+      heading: '#123524'
+    }
+  },
+  {
+    id: 'sic',
+    dbOrgName: 'Society of Innovative Computing',
+    name: 'Society of Innovative Computing',
+    shortName: 'UMak SIC',
+    category: 'Local Academic Organization',
+    logo: '/images/SIC_logo.jpg',
+    tagline: 'Innovate. Collaborate. Grow.',
+    description: 'A peer-driven CCIS organization developing computing knowledge, skills, and experience through mentorship, collaborative projects, research, and continuous learning.',
+    missionQuote: '"Students grow best through one another."',
+    overview: 'UMak Society of Innovative Computing (UMak SIC) is a student-led academic and professional organization under the College of Computing and Information Sciences (CCIS) at the University of Makati. Founded on the belief that students grow best through one another, SIC creates a peer-driven environment where computing knowledge, skills, and experience are developed in ways that are hands-on, research-oriented, and innovative—through mentorship, collaborative projects, and a culture of continuous learning. SIC assists and equips not just competent students but collaborative innovators ready to make a meaningful mark in the computing field.',
+    functions: [
+      { title: 'Innovation', desc: 'Pursue creative, forward-thinking approaches that push the boundaries of computing science and technology.' },
+      { title: 'Collaboration', desc: 'Build a thriving, inclusive community through peer mentorship, shared learning, and collective effort across all levels.' },
+      { title: 'Excellence', desc: 'Commit to the highest standards in every project, program, research output, and professional interaction.' },
+      { title: 'Integrity', desc: 'Act with honesty, transparency, and accountability while respecting intellectual property and ethical responsibilities.' },
+      { title: 'Growth', desc: 'Embrace continuous learning and self-improvement, empowering every member to develop to their full potential.' },
+      { title: 'Social Responsibility', desc: 'Apply computing knowledge purposefully and ethically to create meaningful, lasting impact for the broader community.' }
+    ],
+    theme: {
+      primary: '#10B982',
+      accent: '#00FFFF',
+      onPrimary: '#052E2B',
+      heading: '#065F46'
+    }
   }
 ];
 
@@ -86,6 +130,8 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
   };
 
   const [selectedOrgId, setSelectedOrgId] = useState<string>('council');
+  const [isOrgMenuOpen, setIsOrgMenuOpen] = useState(false);
+  const orgMenuRef = useRef<HTMLDivElement>(null);
   const [selectedTerm, setSelectedTerm] = useState<string>('2026-2027');
   const [activeCommitteeTab, setActiveCommitteeTab] = useState<string>('');
   
@@ -134,6 +180,28 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
     fetchData();
   }, []);
 
+  useEffect(() => {
+    if (!isOrgMenuOpen) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!orgMenuRef.current?.contains(event.target as Node)) {
+        setIsOrgMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsOrgMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOrgMenuOpen]);
+
   const selectedOrg = STUDENT_ORGS.find(org => org.id === selectedOrgId) || STUDENT_ORGS[0];
 
   const getCommitteeIcon = (slug: string) => {
@@ -157,9 +225,9 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
   // Filter officers based on selected organization and term
   const filteredOfficers = officers.filter(o => 
     o.term === selectedTerm && 
-    (selectedOrg.id === 'compsoc' 
-      ? o.organization === 'Computer Society' 
-      : (o.organization === 'Student Council' || !o.organization))
+    (selectedOrg.id === 'council'
+      ? (o.organization === 'Student Council' || !o.organization)
+      : o.organization === selectedOrg.dbOrgName)
   );
 
   const execBoardRoles = ['chairperson', 'president', 'vice chairperson', 'vice president', 'secretary', 'treasurer', 'auditor', 'public information officer', 'pio', 'pro', 'public relations officer', 'business manager'];
@@ -352,78 +420,146 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
               </div>
             )}
 
-            <div className={`h-1 w-20 rounded-full mt-3 ${isUmak ? 'bg-[#f5ec3a]' : 'bg-[#F5B400]'}`} />
+            <div
+              className={`h-1 w-20 rounded-full mt-3 ${isUmak ? 'bg-[#f5ec3a]' : activeInfoTab === 'org' ? '' : 'bg-[#F5B400]'}`}
+              style={activeInfoTab === 'org' ? { backgroundColor: selectedOrg.theme.accent } : undefined}
+            />
           </div>
 
           {/* Right: Logos in a Row (One Row Only Pagination Cluster) */}
-          <div className="flex flex-nowrap items-center gap-1.5 sm:gap-2.5 bg-white p-2 sm:p-2.5 rounded-lg border border-[#d0d5e8] shadow-xs shrink-0 self-start lg:self-center max-w-full overflow-x-auto">
-            
-            {/* 1. UMak Logo Button */}
-            <div 
-              onClick={() => handleTabSelect('umak')}
-              className={`flex items-center gap-2 px-2.5 py-2 rounded-md transition-all cursor-pointer hover:bg-[#eaecf4] shrink-0 select-none ${
-                activeInfoTab === 'umak' ? 'border-2 border-[#111c4e] bg-[#eaecf4]' : 'border border-transparent'
-              }`}
-              id="pagination-btn-umak"
-              title="University of Makati"
-            >
-              <img src="/images/UMak_Logo.png" alt="UMak Logo" className="w-8 h-8 sm:w-9 sm:h-9 object-contain drop-shadow" />
-              <div className="text-left leading-tight">
-                <span className="block text-xs font-bold text-[#111c4e]">UMak</span>
-                <span className="block text-[9px] font-sans text-[#47528a] uppercase tracking-wider">University</span>
-              </div>
-            </div>
-
-            {/* 2. CCIS Logo Button */}
-            <div 
-              onClick={() => handleTabSelect('college')}
-              className={`flex items-center gap-2 px-2.5 py-2 rounded-md transition-all cursor-pointer hover:bg-stone-50 shrink-0 select-none ${
-                activeInfoTab === 'college' ? 'border-2 border-[#1A3C2E] bg-[#FAF7EA]' : 'border border-transparent'
-              }`}
-              id="pagination-btn-college"
-              title="College of Computing and Information Sciences"
-            >
-              <img src="/images/CCIS-Logo.png" alt="CCIS Logo" className="w-8 h-8 sm:w-9 sm:h-9 object-contain drop-shadow" />
-              <div className="text-left leading-tight">
-                <span className="block text-xs font-bold text-[#1A3C2E]">CCIS</span>
-                <span className="block text-[9px] font-sans text-stone-500 uppercase tracking-wider">College Seal</span>
-              </div>
-            </div>
-
-            {/* 3. Student Organization Dropdown Button */}
-            <div 
-              className={`relative flex items-center gap-2 px-2.5 py-2 rounded-md transition-all cursor-pointer hover:bg-stone-50 shrink-0 select-none ${
-                activeInfoTab === 'org' ? 'border-2 border-[#1A3C2E] bg-[#FAF7EA]' : 'border border-transparent'
-              }`}
-              id="pagination-btn-org"
-              title="Student Organization"
-            >
-              <img src={selectedOrg.logo} alt={selectedOrg.shortName} className="w-8 h-8 sm:w-9 sm:h-9 object-contain rounded-full bg-white p-0.5 shadow-xs" />
-              <div className="text-left leading-tight">
-                <span className="block text-xs font-bold text-[#1A3C2E] truncate max-w-[85px] sm:max-w-[100px]">{selectedOrg.shortName}</span>
-                <span className="block text-[9px] font-sans text-stone-500 uppercase tracking-wider">Student Org</span>
-              </div>
-              
-              {/* Native Dropdown Selector overlay for future >5 orgs */}
-              <select
-                value={activeInfoTab === 'org' ? selectedOrgId : ''}
-                onChange={(e) => {
-                  setSelectedOrgId(e.target.value);
-                  handleTabSelect('org');
-                }}
-                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                aria-label="Select Student Organization"
+          <div ref={orgMenuRef} className="relative shrink-0 self-start lg:self-center max-w-full">
+            <div className="flex flex-nowrap items-center gap-1.5 sm:gap-2.5 bg-white p-2 sm:p-2.5 rounded-lg border border-[#d0d5e8] shadow-xs max-w-full overflow-x-auto">
+              {/* 1. UMak Logo Button */}
+              <div
+                onClick={() => handleTabSelect('umak')}
+                className={`flex items-center gap-2 px-2.5 py-2 rounded-md transition-all cursor-pointer hover:bg-[#eaecf4] shrink-0 select-none ${
+                  activeInfoTab === 'umak' ? 'border-2 border-[#111c4e] bg-[#eaecf4]' : 'border border-transparent'
+                }`}
+                id="pagination-btn-umak"
+                title="University of Makati"
               >
-                <option value="" disabled>Select Student Org...</option>
-                {STUDENT_ORGS.map((org) => (
-                  <option key={org.id} value={org.id} className="text-stone-900 font-sans">
-                    {org.name} ({org.shortName})
-                  </option>
-                ))}
-              </select>
-              <ChevronDown size={13} className="text-stone-400 ml-0.5 shrink-0 pointer-events-none" />
+                <img src="/images/UMak_Logo.png" alt="UMak Logo" className="w-8 h-8 sm:w-9 sm:h-9 object-contain drop-shadow" />
+                <div className="text-left leading-tight">
+                  <span className="block text-xs font-bold text-[#111c4e]">UMak</span>
+                  <span className="block text-[9px] font-sans text-[#47528a] uppercase tracking-wider">University</span>
+                </div>
+              </div>
+
+              {/* 2. CCIS Logo Button */}
+              <div
+                onClick={() => handleTabSelect('college')}
+                className={`flex items-center gap-2 px-2.5 py-2 rounded-md transition-all cursor-pointer hover:bg-stone-50 shrink-0 select-none ${
+                  activeInfoTab === 'college' ? 'border-2 border-[#1A3C2E] bg-[#FAF7EA]' : 'border border-transparent'
+                }`}
+                id="pagination-btn-college"
+                title="College of Computing and Information Sciences"
+              >
+                <img src="/images/CCIS-Logo.png" alt="CCIS Logo" className="w-8 h-8 sm:w-9 sm:h-9 object-contain drop-shadow" />
+                <div className="text-left leading-tight">
+                  <span className="block text-xs font-bold text-[#1A3C2E]">CCIS</span>
+                  <span className="block text-[9px] font-sans text-stone-500 uppercase tracking-wider">College Seal</span>
+                </div>
+              </div>
+
+              {/* 3. Branded Student Organization Menu */}
+              <button
+                type="button"
+                onClick={() => setIsOrgMenuOpen(open => !open)}
+                className={`flex items-center gap-2 px-2.5 py-2 rounded-md transition-all cursor-pointer hover:bg-[#FAF7EA] shrink-0 select-none ${
+                  activeInfoTab === 'org' ? 'border-2 border-[#123524] bg-[#FAF7EA]' : 'border border-transparent'
+                }`}
+                id="pagination-btn-org"
+                aria-haspopup="menu"
+                aria-expanded={isOrgMenuOpen}
+                aria-controls="student-org-menu"
+                title="More student organizations"
+              >
+                <span className="flex -space-x-2" aria-hidden="true">
+                  {STUDENT_ORGS.map(org => (
+                    <img
+                      key={org.id}
+                      src={org.logo}
+                      alt=""
+                      className="w-8 h-8 sm:w-9 sm:h-9 object-contain rounded-full bg-white border-2 border-white shadow-xs"
+                    />
+                  ))}
+                </span>
+                <span className="text-left leading-tight">
+                  <span className="block text-xs font-bold text-[#123524]">More Orgs</span>
+                  <span className="block text-[9px] font-sans text-stone-500 uppercase tracking-wider">Student Organizations</span>
+                </span>
+                <ChevronDown
+                  size={14}
+                  className={`text-[#123524] ml-0.5 shrink-0 transition-transform ${isOrgMenuOpen ? 'rotate-180' : ''}`}
+                  aria-hidden="true"
+                />
+              </button>
             </div>
 
+            {isOrgMenuOpen && (
+              <div
+                id="student-org-menu"
+                role="menu"
+                aria-label="Student organizations"
+                className="absolute right-0 top-[calc(100%+0.75rem)] z-50 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-[#123524]/25 bg-white shadow-2xl animate-fade-in"
+              >
+                <div className="bg-[#123524] px-4 py-3 text-left">
+                  <span className="block font-marcellus text-sm text-white">Student Organizations</span>
+                  <span className="block text-[10px] uppercase tracking-wider text-white/65">Choose an official CCIS organization</span>
+                </div>
+                <div className="space-y-2 p-2">
+                  {STUDENT_ORGS.map(org => {
+                    const isSelected = activeInfoTab === 'org' && selectedOrgId === org.id;
+                    return (
+                      <button
+                        key={org.id}
+                        type="button"
+                        role="menuitem"
+                        aria-current={isSelected ? 'page' : undefined}
+                        onClick={() => {
+                          setSelectedOrgId(org.id);
+                          handleTabSelect('org');
+                          setIsOrgMenuOpen(false);
+                        }}
+                        className={`w-full rounded-xl border p-3 text-left transition-all cursor-pointer flex items-center gap-3 ${
+                          isSelected
+                            ? 'bg-[#FAF7EA] shadow-sm'
+                            : 'border-[#123524]/15 bg-white hover:border-[#123524]/45 hover:bg-stone-50'
+                        }`}
+                        style={{
+                          borderColor: isSelected ? org.theme.primary : undefined,
+                          borderLeftColor: org.theme.primary,
+                          borderLeftWidth: '4px'
+                        }}
+                      >
+                        <span
+                          className="w-12 h-12 rounded-xl border bg-white p-1 shadow-xs shrink-0 flex items-center justify-center overflow-hidden"
+                          style={{ borderColor: org.theme.accent }}
+                        >
+                          <img src={org.logo} alt={`${org.name} logo`} className="w-full h-full object-contain" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="font-marcellus text-sm text-[#123524] block leading-tight">{org.name}</span>
+                          <span
+                            className="text-[9px] font-bold uppercase tracking-wider block mt-0.5"
+                            style={{ color: org.theme.heading }}
+                          >
+                            {org.category}
+                          </span>
+                          <span className="text-[10px] text-stone-500 block mt-1 truncate">{org.tagline}</span>
+                        </span>
+                        <CheckCircle2
+                          size={18}
+                          className={isSelected ? 'shrink-0' : 'text-stone-200 shrink-0'}
+                          style={isSelected ? { color: org.theme.heading } : undefined}
+                          aria-hidden="true"
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -715,27 +851,82 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
           {/* ========================================================================= */}
           {activeInfoTab === 'org' && (
             <div className="space-y-6 animate-fade-in text-left">
+              <div
+                className="bg-white p-5 sm:p-6 rounded-2xl border shadow-xs flex flex-col sm:flex-row items-start sm:items-center gap-5"
+                style={{ borderColor: selectedOrg.theme.primary }}
+              >
+                <div
+                  className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-white p-2 border-2 shadow-sm shrink-0 flex items-center justify-center overflow-hidden"
+                  style={{ borderColor: selectedOrg.theme.accent }}
+                >
+                  <img
+                    src={selectedOrg.logo}
+                    alt={`${selectedOrg.name} logo`}
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                <div className="space-y-2 min-w-0">
+                  <span
+                    className="inline-flex px-3 py-1 rounded-full border text-[9px] font-bold uppercase tracking-wider"
+                    style={{
+                      backgroundColor: selectedOrg.theme.primary,
+                      borderColor: selectedOrg.theme.accent,
+                      color: selectedOrg.theme.onPrimary
+                    }}
+                  >
+                    {selectedOrg.shortName}
+                  </span>
+                  <h3 className="font-marcellus text-xl sm:text-2xl text-[#123524] leading-tight">
+                    Organization Profile
+                  </h3>
+                  <p className="text-stone-600 text-xs sm:text-sm leading-relaxed font-sans">
+                    {selectedOrg.description}
+                  </p>
+                </div>
+              </div>
+
               <p className="text-stone-800 text-base md:text-lg leading-relaxed font-sans">
                 {selectedOrg.overview}
               </p>
               
-              <div className="bg-[#1A3C2E] text-white p-5 rounded-2xl border border-[#1A3C2E]/30">
-                <blockquote className="font-sans text-sm sm:text-base italic text-[#FAF7EA] leading-relaxed">
+              <div
+                className="p-5 rounded-2xl border"
+                style={{
+                  backgroundColor: selectedOrg.theme.primary,
+                  borderColor: selectedOrg.theme.accent,
+                  color: selectedOrg.theme.onPrimary
+                }}
+              >
+                <blockquote className="font-sans text-sm sm:text-base italic leading-relaxed">
                   {selectedOrg.missionQuote}
                 </blockquote>
               </div>
 
-              <div className="bg-white p-6 rounded-2xl border border-[#1A3C2E]/25 shadow-xs space-y-4">
-                <h4 className="font-marcellus text-base md:text-lg text-[#1A3C2E] uppercase tracking-wide border-b border-[#1A3C2E]/15 pb-2">
+              <div
+                className="bg-white p-6 rounded-2xl border shadow-xs space-y-4"
+                style={{ borderColor: selectedOrg.theme.primary }}
+              >
+                <h4
+                  className="font-marcellus text-base md:text-lg text-[#123524] uppercase tracking-wide border-b pb-2"
+                  style={{ borderBottomColor: selectedOrg.theme.accent }}
+                >
                   Key Functions &amp; Objectives
                 </h4>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {selectedOrg.functions.map((fn, idx) => (
-                    <div key={idx} className="bg-[#FAF7EA] p-4 rounded-xl border border-[#1A3C2E]/20 flex gap-3">
-                      <CheckCircle2 size={20} className="text-[#1A3C2E] shrink-0 mt-0.5" />
+                    <div
+                      key={idx}
+                      className="bg-[#FAF7EA] p-4 rounded-xl border flex gap-3"
+                      style={{ borderColor: selectedOrg.theme.primary }}
+                    >
+                      <CheckCircle2
+                        size={20}
+                        className="shrink-0 mt-0.5"
+                        style={{ color: selectedOrg.theme.heading }}
+                      />
                       <div className="font-sans">
-                        <strong className="text-[#1A3C2E] block text-sm font-bold mb-0.5">{fn.title}</strong>
+                        <strong className="text-[#123524] block text-sm font-bold mb-0.5">{fn.title}</strong>
                         <span className="text-stone-600 text-xs leading-relaxed">{fn.desc}</span>
                       </div>
                     </div>
@@ -763,21 +954,34 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
               <p className="text-stone-500 text-xs md:text-sm mt-1 uppercase tracking-wider">
                 {selectedOrg.tagline}
               </p>
-              <div className="h-1 w-16 bg-[#F5B400] mx-auto mt-3 rounded-full mb-6" />
+              <div
+                className="h-1 w-16 mx-auto mt-3 rounded-full mb-6"
+                style={{ backgroundColor: selectedOrg.theme.accent }}
+              />
               
               {/* Switcher & Academic Year Selection */}
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-4">
-                <div className="inline-flex items-center gap-1.5 bg-[#FAF7EA] rounded-full border border-stone-200 p-1 shadow-xs font-sans">
+                <div className="flex flex-wrap items-center justify-center gap-1.5 bg-[#FAF7EA] rounded-2xl border border-stone-200 p-1 shadow-xs font-sans">
                   {STUDENT_ORGS.map((org) => (
                     <button
                       key={org.id}
                       onClick={() => setSelectedOrgId(org.id)}
-                      className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                         selectedOrgId === org.id
-                          ? 'bg-[#1A3C2E] text-[#FAF7EA] shadow-xs'
+                          ? 'shadow-xs'
                           : 'text-stone-600 hover:text-[#1A3C2E]'
                       }`}
+                      style={selectedOrgId === org.id ? {
+                        backgroundColor: org.theme.primary,
+                        color: org.theme.onPrimary
+                      } : undefined}
                     >
+                      <img
+                        src={org.logo}
+                        alt=""
+                        className="w-5 h-5 rounded-full bg-white object-contain border border-white/70"
+                        aria-hidden="true"
+                      />
                       {org.shortName}
                     </button>
                   ))}

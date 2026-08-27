@@ -207,6 +207,7 @@ export default function OfficersManager() {
             >
               <option value="Student Council">Student Council</option>
               <option value="Computer Society">Computer Society</option>
+              <option value="Society of Innovative Computing">Society of Innovative Computing</option>
             </select>
           </div>
         )}
@@ -541,6 +542,7 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
           >
             <option value="Student Council">Student Council</option>
             <option value="Computer Society">Computer Society</option>
+            <option value="Society of Innovative Computing">Society of Innovative Computing</option>
           </select>
         </div>
       </div>

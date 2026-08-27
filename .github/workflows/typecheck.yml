@@ -39,7 +39,7 @@ jobs:
       - run: npm ci
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.115.0
       - name: Start minimal local Supabase stack
         run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor
       - name: Replay migrations from a clean database

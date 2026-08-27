@@ -8,7 +8,7 @@ import Modal from '../components/Modal';
 import EmptyState from '../components/EmptyState';
 import Pagination from '../components/Pagination';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
-import { postgrestIlike } from '../../lib/postgrest';
+import { withSessionRefreshRetry } from '../../lib/supabaseRequest';
 
 export default function RegistrationManager() {
   const { showToast } = useAdmin();
@@ -35,86 +35,50 @@ export default function RegistrationManager() {
     try {
       // 1. Fetch events list once
       if (events.length === 0) {
-        const { data: eventsData } = await supabase.from('events').select('id, title').order('event_date');
+        const { data: eventsData, error: eventsError } = await withSessionRefreshRetry(() =>
+          supabase.from('events').select('id, title').order('event_date')
+        );
+        if (eventsError) throw eventsError;
         if (eventsData) setEvents(eventsData as EventItem[]);
       }
 
-      // 2. Fetch matching set for statistics & pagination counts
-      let totalQuery;
-      if (search.trim()) {
-        const searchFilter = postgrestIlike(search);
-        totalQuery = supabase
-          .from('event_registrations')
-          .select('id, status, profiles!inner(full_name, email)')
-          .or(`full_name.ilike.${searchFilter},email.ilike.${searchFilter}`, { referencedTable: 'profiles' });
-      } else {
-        totalQuery = supabase
-          .from('event_registrations')
-          .select('id, status');
-      }
+      // 2. Fetch the purpose-limited registration projection and aggregate
+      // counts from a role-checked server function.
+      const offset = (page - 1) * pageSize;
+      const { data, error } = await withSessionRefreshRetry(() =>
+        supabase.rpc('list_registration_admin_rows', {
+          p_search: search.trim() || null,
+          p_event_id: eventFilter === 'ALL' ? null : eventFilter,
+          p_limit: pageSize,
+          p_offset: offset,
+        })
+      );
 
-      if (eventFilter !== 'ALL') {
-        totalQuery = totalQuery.eq('event_id', eventFilter);
-      }
+      if (error) throw error;
 
-      const { data: allRegs, error: countErr } = await totalQuery;
-
-      if (countErr) {
-        console.error('Count query error:', countErr.message);
-        showToast('Failed to load registration statistics', 'error');
-        setLoading(false);
-        return;
-      }
-
-      const totalMatched = allRegs?.length || 0;
+      const result = data as {
+        rows?: EventRegistration[];
+        total?: number;
+        confirmed?: number;
+        pending?: number;
+        attended?: number;
+        cancelled?: number;
+      } | null;
+      const totalMatched = Number(result?.total || 0);
       setTotalCount(totalMatched);
       setTotalPages(Math.max(1, Math.ceil(totalMatched / pageSize)));
 
-      const confirmedCount = allRegs?.filter(r => r.status === 'confirmed').length || 0;
-      const pendingCount = allRegs?.filter(r => r.status === 'pending').length || 0;
-      const attendedCount = allRegs?.filter(r => r.status === 'attended').length || 0;
-      const cancelledCount = allRegs?.filter(r => r.status === 'cancelled').length || 0;
-
       setStats({
         total: totalMatched,
-        confirmed: confirmedCount,
-        pending: pendingCount,
-        attended: attendedCount,
-        cancelled: cancelledCount,
+        confirmed: Number(result?.confirmed || 0),
+        pending: Number(result?.pending || 0),
+        attended: Number(result?.attended || 0),
+        cancelled: Number(result?.cancelled || 0),
       });
-
-      // 3. Fetch paginated records for the current page
-      let listQuery;
-      if (search.trim()) {
-        const searchFilter = postgrestIlike(search);
-        listQuery = supabase
-          .from('event_registrations')
-          .select('*, profiles!inner(full_name, student_number, email, section), events(title, event_date, location)')
-          .or(`full_name.ilike.${searchFilter},email.ilike.${searchFilter}`, { referencedTable: 'profiles' });
-      } else {
-        listQuery = supabase
-          .from('event_registrations')
-          .select('*, profiles(full_name, student_number, email, section), events(title, event_date, location)');
-      }
-
-      if (eventFilter !== 'ALL') {
-        listQuery = listQuery.eq('event_id', eventFilter);
-      }
-
-      const offset = (page - 1) * pageSize;
-      const { data: pageData, error: listErr } = await listQuery
-        .order('registered_at', { ascending: false })
-        .range(offset, offset + pageSize - 1);
-
-      if (listErr) {
-        console.error('List query error:', listErr.message);
-        showToast('Failed to load registrations list', 'error');
-      } else {
-        setRegistrations((pageData as EventRegistration[]) || []);
-      }
+      setRegistrations(result?.rows || []);
     } catch (err: any) {
       console.error(err);
-      showToast('An unexpected error occurred', 'error');
+      showToast('Failed to load registrations: ' + (err?.message || 'Unknown error'), 'error');
     } finally {
       setLoading(false);
     }

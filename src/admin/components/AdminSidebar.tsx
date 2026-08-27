@@ -31,6 +31,7 @@ export default function AdminSidebar({ collapsed, onToggle, onExitAdmin }: Admin
   const { activeSection, setActiveSection } = useAdmin();
   const { profile } = useAuth();
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [pendingVerifications, setPendingVerifications] = useState(0);
 
   useEffect(() => {
     // Bar standard roles from reading messages
@@ -79,6 +80,52 @@ export default function AdminSidebar({ collapsed, onToggle, onExitAdmin }: Admin
     return () => {
       supabase.removeChannel(channel);
       window.removeEventListener('admin-read-conversation', handleReadConversation);
+    };
+  }, [profile]);
+
+  useEffect(() => {
+    if (!profile || !['devcom_head', 'comm_registration'].includes(profile.role)) {
+      setPendingVerifications(0);
+      return;
+    }
+
+    let isActive = true;
+
+    const fetchPendingVerificationCount = async () => {
+      const { data, error } = await supabase.rpc('list_pending_verifications', {
+        p_search: null,
+        p_limit: 1,
+        p_offset: 0,
+      });
+
+      if (error) {
+        console.error('Error fetching pending verification count:', error);
+        return;
+      }
+
+      if (isActive) {
+        const result = data as { total?: number } | null;
+        setPendingVerifications(Number(result?.total || 0));
+      }
+    };
+
+    const refreshCount = () => {
+      void fetchPendingVerificationCount();
+    };
+
+    refreshCount();
+
+    // Polling keeps the badge current even when profile Realtime events are
+    // intentionally unavailable to the registration role under profile RLS.
+    const intervalId = window.setInterval(refreshCount, 60_000);
+    window.addEventListener('focus', refreshCount);
+    window.addEventListener('admin-verification-count-changed', refreshCount);
+
+    return () => {
+      isActive = false;
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', refreshCount);
+      window.removeEventListener('admin-verification-count-changed', refreshCount);
     };
   }, [profile]);
 
@@ -140,7 +187,12 @@ export default function AdminSidebar({ collapsed, onToggle, onExitAdmin }: Admin
         {visibleNavItems.map((item) => {
           const isActive = activeSection === item.id;
           const Icon = item.icon;
-          const showBadge = item.id === 'messages' && unreadMessages > 0;
+          const badgeCount = item.id === 'messages'
+            ? unreadMessages
+            : item.id === 'verification'
+              ? pendingVerifications
+              : 0;
+          const showBadge = badgeCount > 0;
           return (
             <button
               key={item.id}
@@ -153,15 +205,19 @@ export default function AdminSidebar({ collapsed, onToggle, onExitAdmin }: Admin
                   : 'text-[#FAF7EA]/70 hover:bg-white/5 hover:text-white border-l-4 border-transparent'
               }`}
               id={`admin-nav-${item.id}`}
-              title={collapsed ? item.label : undefined}
+              title={collapsed && showBadge ? `${item.label}: ${badgeCount} pending` : collapsed ? item.label : undefined}
+              aria-label={showBadge ? `${item.label}, ${badgeCount} pending` : item.label}
             >
               <Icon size={18} className="shrink-0" />
               {!collapsed && (
                 <span className="text-xs font-semibold tracking-wide truncate">{item.label}</span>
               )}
               {showBadge && (
-                <span className={`${collapsed ? 'absolute top-1 right-1' : 'ml-auto'} bg-[#C0392B] text-white text-[9px] font-black min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1`}>
-                  {unreadMessages}
+                <span
+                  aria-live="polite"
+                  className={`${collapsed ? 'absolute top-1 right-1' : 'ml-auto'} bg-[#C0392B] text-white text-[9px] font-black min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1`}
+                >
+                  {badgeCount > 99 ? '99+' : badgeCount}
                 </span>
               )}
 

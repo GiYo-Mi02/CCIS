@@ -24,8 +24,9 @@ export default function Hero({ onLearnMoreClick, onAnnouncementsClick }: HeroPro
 
   return (
     <section 
-      className="relative w-full min-h-[90vh] flex items-center overflow-hidden border-b-2 border-[#F5B400]" 
+      className="relative w-full flex items-center overflow-hidden border-b-2 border-[#FFBC00]"
       id="hero-section"
+      style={{ minHeight: 'clamp(34rem, calc(100svh - 4rem), 52rem)' }}
     >
       {/* Background Image Carousel with Crossfade */}
       {HERO_IMAGES.map((src, idx) => (
@@ -54,18 +55,20 @@ export default function Hero({ onLearnMoreClick, onAnnouncementsClick }: HeroPro
       </div>
 
       {/* Content */}
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 z-10 w-full py-20 md:py-28 lg:py-32">
-        <div className="max-w-2xl space-y-8">
-          
-          {/* Tag badge */}
-          <div className="animate-hero-fade-up" style={{ animationDelay: '0.2s' }}>
-            <span className="inline-block bg-[#F5B400] text-[#1A3C2E] text-[10px] font-black uppercase tracking-[0.2em] px-4 py-1.5 shadow-lg">
-              OFFICIAL HUB
-            </span>
-          </div>
+      <div
+        className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 z-10 w-full"
+        style={{ paddingBlock: 'clamp(2.5rem, 8svh, 6rem)' }}
+      >
+        <div className="max-w-2xl space-y-[clamp(1.25rem,3svh,2rem)]">
 
           {/* Main heading */}
-          <h1 className="font-marcellus text-5xl sm:text-6xl md:text-7xl lg:text-8xl leading-[0.95] tracking-tight uppercase text-white animate-hero-fade-up" style={{ animationDelay: '0.4s' }}>
+          <h1
+            className="font-marcellus leading-[0.92] tracking-tight uppercase text-white animate-hero-fade-up"
+            style={{
+              animationDelay: '0.4s',
+              fontSize: 'clamp(3rem, min(7.5vw, 11svh), 6rem)'
+            }}
+          >
             Code.<br />
             Create.<br />
             <span className="text-[#F5B400]">Connect.</span>
@@ -94,27 +97,11 @@ export default function Hero({ onLearnMoreClick, onAnnouncementsClick }: HeroPro
               About the Council <ArrowRight size={13} />
             </button>
           </div>
-
-          {/* Stats row */}
-          <div className="grid grid-cols-3 gap-6 pt-6 border-t border-white/10 animate-hero-fade-up" style={{ animationDelay: '1s' }}>
-            <div>
-              <span className="block font-black text-2xl md:text-3xl text-[#F5B400]">100%</span>
-              <span className="text-[10px] uppercase tracking-wider text-[#FAF7EA]/50 font-black">Student Service</span>
-            </div>
-            <div>
-              <span className="block font-black text-2xl md:text-3xl text-[#F5B400]">4+</span>
-              <span className="text-[10px] uppercase tracking-wider text-[#FAF7EA]/50 font-black">Committees</span>
-            </div>
-            <div>
-              <span className="block font-black text-2xl md:text-3xl text-[#F5B400]">1.5k+</span>
-              <span className="text-[10px] uppercase tracking-wider text-[#FAF7EA]/50 font-black">CCIS Herons</span>
-            </div>
-          </div>
         </div>
       </div>
 
       {/* Image indicator dots */}
-      <div className="absolute bottom-8 right-8 z-10 flex items-center gap-2">
+      <div className="absolute bottom-5 right-4 sm:bottom-6 sm:right-6 lg:bottom-8 lg:right-8 z-10 flex items-center gap-2">
         {HERO_IMAGES.map((_, idx) => (
           <button
             key={idx}
