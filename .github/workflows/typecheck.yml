@@ -46,7 +46,7 @@ jobs:
         run: supabase db reset
       - name: Run database security contracts
         env:
-          SUPABASE_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+          SUPABASE_DB_URL: postgresql://postgres:postgres@127.0.0.1:55322/postgres
         run: npm run test:db
       - name: Stop local Supabase stack
         if: always()
