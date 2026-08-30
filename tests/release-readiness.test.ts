@@ -44,7 +44,7 @@ test('registration screens use scoped RPCs instead of unrestricted profile reads
   }
 });
 
-test('verification RPC repair and admin notification badge stay aligned', () => {
+test('verification RPC runs only on the authorized verification screen', () => {
   const repairMigration = read(
     'supabase',
     'migrations',
@@ -60,10 +60,8 @@ test('verification RPC repair and admin notification badge stay aligned', () => 
   assert.match(repairMigration, /GRANT EXECUTE ON FUNCTION[\s\S]*TO authenticated/);
   assert.match(repairMigration, /NOTIFY pgrst, 'reload schema'/);
 
-  assert.match(sidebar, /rpc\('list_pending_verifications'/);
-  assert.match(sidebar, /pendingVerifications/);
-  assert.match(sidebar, /admin-verification-count-changed/);
-  assert.match(verification, /dispatchEvent\(new Event\('admin-verification-count-changed'\)\)/);
+  assert.doesNotMatch(sidebar, /rpc\('list_pending_verifications'|setInterval|postgres_changes/);
+  assert.match(verification, /rpc\('list_pending_verifications'/);
 });
 
 test('registration RPC repair is scoped and admin reads retry invalid sessions once', () => {

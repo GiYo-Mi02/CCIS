@@ -10,6 +10,7 @@ import CouncilSeal from './CouncilSeal';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { InfoHubSkeleton } from './common/Skeleton';
+import OptimizedImage from './OptimizedImage';
 
 interface StudentOrgMeta {
   id: string;
@@ -135,12 +136,15 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
   const [officers, setOfficers] = useState<Officer[]>([]);
   const [committees, setCommittees] = useState<Committee[]>([]);
   const [loading, setLoading] = useState(true);
+  const officersLoadedRef = useRef(false);
 
   useEffect(() => {
+    if (activeInfoTab !== 'org' || officersLoadedRef.current) return;
+    officersLoadedRef.current = true;
     const fetchData = async () => {
       const [offRes, commRes] = await Promise.all([
         supabase.from('officers').select('*, committees(name, slug)').order('display_order'),
-        supabase.from('committees').select('*').order('display_order')
+        supabase.from('committees').select('id, name, slug, description, icon, responsibilities, display_order, head_name, created_at').order('display_order')
       ]);
 
       if (commRes.data && commRes.data.length > 0) {
@@ -173,8 +177,8 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
       setLoading(false);
     };
 
-    fetchData();
-  }, []);
+    void fetchData();
+  }, [activeInfoTab]);
 
   useEffect(() => {
     if (!isOrgMenuOpen) return;
@@ -314,9 +318,11 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
       <div className="absolute bottom-20 left-1/2 -translate-x-1/2 w-[88%] h-[98%] overflow-hidden rounded-2xl border border-white/10 shadow-lg bg-white/5 pointer-events-none z-10 group-hover:shadow-2xl group-hover:scale-106 group-hover:-translate-y-4 group-hover:border-[#F5B400]/30 transition-all duration-500 origin-bottom">
         {off.photoUrl ? (
           <div className="relative w-full h-full">
-            <img 
+            <OptimizedImage
               src={off.photoUrl} 
               alt={off.name} 
+              width={720}
+              height={900}
               className="w-full h-full object-cover select-none" 
             />
             <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none" />
@@ -1115,7 +1121,7 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
                             <span className="inline-flex items-center gap-1.5">
                               {headOfficer?.photoUrl ? (
                                 <span className="w-5 h-5 rounded-full overflow-hidden border border-stone-200 inline-block shrink-0">
-                                  <img src={headOfficer.photoUrl} alt="" className="w-full h-full object-cover select-none" />
+                                  <OptimizedImage src={headOfficer.photoUrl} alt="" width={160} height={160} className="w-full h-full object-cover select-none" />
                                 </span>
                               ) : (
                                 <span className="w-5 h-5 rounded-full bg-stone-100 border border-stone-200 flex items-center justify-center text-[7px] font-bold text-[#1A3C2E] shrink-0">

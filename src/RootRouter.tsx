@@ -17,7 +17,7 @@ export default function RootRouter() {
       try {
         const { data, error } = await supabase
           .from('theme_settings')
-          .select('*')
+          .select('id, preset_name, primary_color, accent_color, canvas_color, is_active, created_at')
           .eq('is_active', true)
           .single();
 

@@ -1,4 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
+import {
+  deleteManagedOptimizedImage,
+  deleteManagedOptimizedImageByUrl,
+  uploadOptimizedImage,
+  type MediaAsset,
+} from '../../lib/media';
 import { Plus, Search, Edit3, Pin, Trash2, Megaphone, Trash, ImageIcon } from 'lucide-react';
 import { useAdmin } from '../AdminContext';
 import { useAuth } from '../../context/AuthContext';
@@ -39,10 +45,13 @@ export default function AnnouncementsManager() {
 
   const handleDelete = async (id: string) => {
     if (deleting || !window.confirm('Delete this announcement? This action cannot be undone.')) return;
+    const deletedAnnouncement = announcements.find(announcement => announcement.id === id);
     setDeleting(id);
     try {
       const { error } = await supabase.from('announcements').delete().eq('id', id);
       if (error) { showToast('Failed to delete', 'error'); return; }
+      await deleteManagedOptimizedImageByUrl(deletedAnnouncement?.banner_url, 'banners').catch(error =>
+        console.error('Failed to clean up managed announcement banner:', error));
       setAnnouncements(prev => prev.filter(a => a.id !== id));
       showToast('Announcement deleted', 'error');
     } finally {
@@ -56,6 +65,8 @@ export default function AnnouncementsManager() {
     try {
       const { error } = await supabase.from('announcements').delete().not('id', 'is', null);
       if (error) { showToast('Failed to delete all', 'error'); return; }
+      await Promise.allSettled(announcements.map(announcement =>
+        deleteManagedOptimizedImageByUrl(announcement.banner_url, 'banners')));
       setAnnouncements([]);
       showToast('All announcements deleted', 'error');
     } finally {
@@ -85,7 +96,7 @@ export default function AnnouncementsManager() {
         author_id: user?.id,
         published_at: ann.status === 'published' ? new Date().toISOString() : null,
       }).select('*, profiles(full_name)').single();
-      if (error) { showToast('Failed to create', 'error'); return; }
+      if (error) { showToast('Failed to create', 'error'); throw error; }
       setAnnouncements(prev => [data as Announcement, ...prev]);
       showToast('Announcement created!');
     } else {
@@ -99,7 +110,7 @@ export default function AnnouncementsManager() {
         published_at: ann.status === 'published' ? new Date().toISOString() : null,
         updated_at: new Date().toISOString(),
       }).eq('id', ann.id);
-      if (error) { showToast('Failed to update', 'error'); return; }
+      if (error) { showToast('Failed to update', 'error'); throw error; }
       await fetchAnnouncements();
       showToast('Announcement updated!');
     }
@@ -255,7 +266,7 @@ export default function AnnouncementsManager() {
 function AnnouncementForm({ announcement, isCreating, onSave, onClose }: {
   announcement: Announcement;
   isCreating: boolean;
-  onSave: (a: Partial<Announcement>) => void;
+  onSave: (a: Partial<Announcement>) => Promise<void>;
   onClose: () => void;
 }) {
   const [title, setTitle] = useState(announcement.title);
@@ -264,6 +275,8 @@ function AnnouncementForm({ announcement, isCreating, onSave, onClose }: {
   const [bannerUrl, setBannerUrl] = useState(announcement.banner_url || '');
   const [pinned, setPinned] = useState(announcement.pinned);
   const [uploading, setUploading] = useState(false);
+  const [uploadSummary, setUploadSummary] = useState<string | null>(null);
+  const [pendingAsset, setPendingAsset] = useState<MediaAsset | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -281,39 +294,65 @@ function AnnouncementForm({ announcement, isCreating, onSave, onClose }: {
 
     setUploading(true);
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `announcements/${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
-      
-      const { data, error } = await supabase.storage
-        .from('banners')
-        .upload(fileName, file);
-
-      if (error) throw error;
-
-      const { data: urlData } = supabase.storage
-        .from('banners')
-        .getPublicUrl(fileName);
-
-      setBannerUrl(urlData.publicUrl);
-    } catch (err: any) {
+      const result = await uploadOptimizedImage(file, {
+        category: 'banner',
+        bucket: 'banners',
+        folder: 'announcements',
+        entityType: 'announcements',
+        entityId: announcement.id,
+      });
+      const previousPendingAsset = pendingAsset;
+      setPendingAsset(result.asset);
+      setBannerUrl(result.asset.variants.find(variant => variant.label === 'card')?.publicUrl ?? result.asset.publicUrl);
+      setUploadSummary(`${(result.originalSizeBytes / 1024).toFixed(0)} KB to ${(result.optimizedSizeBytes / 1024).toFixed(0)} KB (${result.percentageSaved.toFixed(0)}% saved)`);
+      if (previousPendingAsset) {
+        await deleteManagedOptimizedImage(previousPendingAsset).catch(error => console.error('Failed to clean up replaced draft banner:', error));
+      }
+    } catch (err: unknown) {
       console.error(err);
-      alert('Upload failed: ' + err.message);
+      alert(`Upload failed: ${err instanceof Error ? err.message : 'Unknown image error'}`);
     } finally {
       setUploading(false);
     }
   };
 
-  const handleSubmit = (status: 'draft' | 'published') => {
-    onSave({
-      id: announcement.id,
-      title, content, category,
-      status, pinned,
-      banner_url: bannerUrl || null,
-    });
+  const handleSubmit = async (status: 'draft' | 'published') => {
+    try {
+      await onSave({
+        id: announcement.id,
+        title, content, category,
+        status, pinned,
+        banner_url: bannerUrl || null,
+      });
+      if (announcement.banner_url && announcement.banner_url !== bannerUrl) {
+        await deleteManagedOptimizedImageByUrl(announcement.banner_url, 'banners').catch(error =>
+          console.error('Failed to clean up replaced announcement banner:', error));
+      }
+      setPendingAsset(null);
+    } catch (error) {
+      if (pendingAsset) await deleteManagedOptimizedImage(pendingAsset).catch(() => undefined);
+      setPendingAsset(null);
+      setBannerUrl(announcement.banner_url || '');
+      alert(error instanceof Error ? error.message : 'The announcement could not be saved.');
+    }
+  };
+
+  const handleClose = () => {
+    if (uploading) return;
+    if (pendingAsset) void deleteManagedOptimizedImage(pendingAsset).catch(() => undefined);
+    setPendingAsset(null);
+    onClose();
+  };
+
+  const handleRemoveBanner = () => {
+    if (pendingAsset) void deleteManagedOptimizedImage(pendingAsset).catch(() => undefined);
+    setPendingAsset(null);
+    setBannerUrl('');
+    setUploadSummary(null);
   };
 
   return (
-    <Modal isOpen={true} onClose={onClose} title={isCreating ? 'New Announcement' : 'Edit Announcement'}>
+    <Modal isOpen={true} onClose={handleClose} title={isCreating ? 'New Announcement' : 'Edit Announcement'}>
       <div className="space-y-5">
         <div>
           <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Title</label>
@@ -337,10 +376,11 @@ function AnnouncementForm({ announcement, isCreating, onSave, onClose }: {
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-lg bg-gray-50 border border-gray-200 overflow-hidden flex items-center justify-center relative flex-shrink-0">
                 {bannerUrl ? (
-                  <img src={bannerUrl} alt="Banner Preview" className="w-full h-full object-cover" />
+                  <img src={bannerUrl} alt="Banner Preview" width={960} height={400} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                 ) : (
                   <ImageIcon size={20} className="text-stone-300" aria-hidden="true" />
                 )}
+                {uploadSummary && <p className="mt-2 text-[10px] font-mono text-emerald-700">Optimized: {uploadSummary}</p>}
                 {uploading && (
                   <div className="absolute inset-0 bg-black/45 flex items-center justify-center">
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -367,7 +407,7 @@ function AnnouncementForm({ announcement, isCreating, onSave, onClose }: {
                   {bannerUrl && (
                     <button 
                       type="button"
-                      onClick={() => setBannerUrl('')}
+                      onClick={handleRemoveBanner}
                       className="px-3 py-1.5 border border-rose-200 hover:border-rose-300 text-[11px] font-bold rounded-lg text-rose-600 hover:bg-rose-50 transition-colors uppercase tracking-wider cursor-pointer"
                     >
                       Remove
@@ -393,15 +433,15 @@ function AnnouncementForm({ announcement, isCreating, onSave, onClose }: {
           </label>
         </div>
         <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
-          <button onClick={() => handleSubmit('draft')}
+          <button onClick={() => void handleSubmit('draft')} disabled={uploading}
             className="px-5 py-2.5 border border-gray-200 rounded-lg font-bold text-xs uppercase tracking-wider text-gray-600 hover:bg-gray-50 transition-colors">
             Save as Draft
           </button>
-          <button onClick={() => handleSubmit('published')}
+          <button onClick={() => void handleSubmit('published')} disabled={uploading}
             className="px-5 py-2.5 bg-[#F5B400] hover:bg-[#ffc522] text-[#1A3C2E] rounded-lg font-bold text-xs uppercase tracking-wider shadow-sm transition-colors">
             Publish
           </button>
-          <button onClick={onClose}
+          <button onClick={handleClose} disabled={uploading}
             className="ml-auto px-4 py-2.5 text-xs text-gray-400 hover:text-gray-600 transition-colors">
             Cancel
           </button>

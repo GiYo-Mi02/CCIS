@@ -74,7 +74,10 @@ try {
     'gallery_rls.sql',
     'messages_rls.sql',
     'attendance_rpc.sql',
-    'email_queue_recovery.sql'
+    'email_queue_recovery.sql',
+    'email_worker_outcomes.sql',
+    'client_error_events.sql',
+    'scaling_performance.sql'
   )
 
   foreach ($testName in $tests) {

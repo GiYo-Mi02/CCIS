@@ -294,7 +294,7 @@ export default function App({ onAdminSwitch }: AppProps) {
       <Footer onNavClick={handleNavigate} onAdminSwitch={onAdminSwitch} isUmakTheme={isUmakTheme} />
 
       {/* Floating Support Chat Widget */}
-      <SupportWidget onNavigate={handleNavigate} />
+      <SupportWidget onNavigate={handleNavigate} disabled={activeTab === 'messages'} />
     </div>
   );
 }

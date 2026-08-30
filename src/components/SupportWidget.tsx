@@ -1,13 +1,24 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { MessageSquare, X, Send, Loader2, Lock, MessageCircle, Clock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Conversation, Message } from '../types/database';
 import { checkIsProfane } from '../lib/profanity';
+import {
+  CHAT_MESSAGE_FIELDS,
+  mergeChatMessages,
+  registerRealtimeChannel,
+  toChatMessage,
+  toChatMessages,
+} from '../lib/chatLifecycle';
+import { useRealtimeAvailability } from '../hooks/useRealtimeAvailability';
 
 interface SupportWidgetProps {
   onNavigate: (tab: string) => void;
+  disabled?: boolean;
 }
+
+const MESSAGE_LIMIT = 30;
 
 const formatMessageTimeHeader = (dateStr: string): string => {
   const date = new Date(dateStr);
@@ -34,8 +45,9 @@ const isWorkingHours = (): boolean => {
   return isWeekday && isOfficeHours;
 };
 
-export default function SupportWidget({ onNavigate }: SupportWidgetProps) {
-  const { user, profile } = useAuth();
+export default function SupportWidget({ onNavigate, disabled = false }: SupportWidgetProps) {
+  const { user } = useAuth();
+  const { isOnline, isRealtimeAvailable } = useRealtimeAvailability();
   const [isOpen, setIsOpen] = useState(false);
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -44,100 +56,137 @@ export default function SupportWidget({ onNavigate }: SupportWidgetProps) {
   const [sending, setSending] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [warningMsg, setWarningMsg] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [offset, setOffset] = useState(0);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [retryNonce, setRetryNonce] = useState(0);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Initialize conversation and fetch unread count on login/mount
+  const scrollToBottom = useCallback(() => {
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  }, []);
+
+  // Reset chat state when the authenticated identity changes. No request is
+  // made here: opening the chat is what lazily initializes a conversation.
   useEffect(() => {
-    if (!user) {
-      setConversation(null);
-      setMessages([]);
-      setUnreadCount(0);
-      return;
-    }
+    setConversation(null);
+    setMessages([]);
+    setUnreadCount(0);
+    setHasMore(false);
+    setOffset(0);
+    setLoadError(null);
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (disabled) setIsOpen(false);
+  }, [disabled]);
+
+  // Create/ensure a conversation only after the student opens chat while the
+  // page is visible and online. Reopening or resuming reuses local state.
+  useEffect(() => {
+    if (!user || !isOpen || disabled || !isRealtimeAvailable || conversation) return;
+
+    let cancelled = false;
 
     const initConversation = async () => {
+      setLoading(true);
+      setLoadError(null);
       try {
-        // Use the ensure_conversation() RPC which does INSERT ... ON CONFLICT DO NOTHING
-        // internally, so it never throws a 409 duplicate key error.
         const { data: con, error } = await supabase
           .rpc('ensure_conversation')
           .single();
 
         if (error) {
           console.error('Error fetching conversation:', error.message);
+          if (!cancelled) {
+            setLoadError('Support chat could not be opened. Please try again.');
+            setLoading(false);
+          }
           return;
         }
 
-        if (con) {
-          const conversation = con as Conversation;
-          setConversation(conversation);
-          
-          // Count unread messages from admin
-          const { count, error: countErr } = await supabase
-            .from('messages')
-            .select('*', { count: 'exact', head: true })
-            .eq('conversation_id', conversation.id)
-            .eq('sender_role', 'admin')
-            .eq('read_by_student', false);
-
-          if (!countErr && count !== null) {
-            setUnreadCount(count);
-          }
+        if (!cancelled && con) {
+          setConversation(con as Conversation);
         }
       } catch (err) {
         console.error('Unexpected conversation init error in widget:', err);
+        if (!cancelled) {
+          setLoadError('Support chat could not be opened. Please try again.');
+          setLoading(false);
+        }
       }
     };
 
-    initConversation();
-  }, [user]);
+    void initConversation();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, isOpen, disabled, isRealtimeAvailable, conversation, retryNonce]);
 
-  // Load messages when widget opens
-  useEffect(() => {
-    if (!isOpen || !conversation) return;
+  const fetchMessages = useCallback(async (currentOffset: number, append = false) => {
+    if (!conversation) return;
 
-    const loadMessages = async () => {
-      setLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('messages')
-          .select('*')
-          .eq('conversation_id', conversation.id)
-          .order('created_at', { ascending: true });
+    if (currentOffset === 0) setLoading(true);
+    setLoadError(null);
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select(CHAT_MESSAGE_FIELDS)
+        .eq('conversation_id', conversation.id)
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
+        .range(currentOffset, currentOffset + MESSAGE_LIMIT - 1);
 
-        if (error) {
-          console.error('Error fetching messages in widget:', error.message);
-        } else if (data) {
-          setMessages(data as Message[]);
-          scrollToBottom();
+      if (error) {
+        console.error('Error fetching messages in widget:', error.message);
+        setLoadError('Messages could not be loaded. Please try again.');
+        return;
+      }
 
-          // Mark all admin messages as read in the database
-          const hasUnreadAdmin = data.some(m => m.sender_role === 'admin' && !m.read_by_student);
-          if (hasUnreadAdmin) {
-            const { error: readError } = await supabase.rpc('mark_conversation_messages_read_by_student', {
-              p_conversation_id: conversation.id,
-            });
-            if (readError) {
-              console.error('Error marking widget messages as read:', readError.message);
-            } else {
-              setUnreadCount(0);
-            }
+      const rows = toChatMessages(data);
+      const page = [...rows].reverse();
+      setMessages((current) => append ? mergeChatMessages(current, page) : page);
+      setHasMore(rows.length === MESSAGE_LIMIT);
+
+      if (currentOffset === 0) {
+        const hasUnreadAdmin = rows.some(
+          (message) => message.sender_role === 'admin' && !message.read_by_student,
+        );
+        if (hasUnreadAdmin) {
+          const { error: readError } = await supabase.rpc('mark_conversation_messages_read_by_student', {
+            p_conversation_id: conversation.id,
+          });
+          if (readError) {
+            console.error('Error marking widget messages as read:', readError.message);
+          } else {
+            setUnreadCount(0);
+            window.dispatchEvent(new Event('student-chat-read'));
           }
         }
-      } catch (err) {
-        console.error('Error loading support messages:', err);
-      } finally {
-        setLoading(false);
+        scrollToBottom();
       }
-    };
+    } catch (err) {
+      console.error('Error loading support messages:', err);
+      setLoadError('Messages could not be loaded. Please try again.');
+    } finally {
+      if (currentOffset === 0) setLoading(false);
+    }
+  }, [conversation, scrollToBottom]);
 
-    loadMessages();
-  }, [isOpen, conversation]);
+  // Refresh the latest page after opening or returning from a hidden/offline
+  // state so messages missed while disconnected are reconciled once.
+  useEffect(() => {
+    if (!isOpen || disabled || !conversation || !isRealtimeAvailable) return;
+    setOffset(0);
+    void fetchMessages(0, false);
+  }, [isOpen, disabled, conversation, isRealtimeAvailable, fetchMessages]);
 
   // Realtime messages subscription
   useEffect(() => {
-    if (!conversation) return;
+    if (!isOpen || disabled || !conversation || !isRealtimeAvailable) return;
 
     const channelId = `widget_chat_messages_${conversation.id}`;
     const channel = supabase
@@ -151,59 +200,52 @@ export default function SupportWidget({ onNavigate }: SupportWidgetProps) {
           filter: `conversation_id=eq.${conversation.id}`
         },
         async (payload) => {
-          const newMsg = payload.new as Message;
+          const newMsg = toChatMessage(payload.new);
+          if (!newMsg) return;
           
           if (newMsg.sender_role === 'admin') {
-            if (isOpen) {
-              // Mark as read immediately in DB since the widget is open
-              const { error: readError } = await supabase.rpc('mark_conversation_messages_read_by_student', {
-                p_conversation_id: conversation.id,
-              });
-              if (readError) {
-                console.error('Error marking widget message as read:', readError.message);
-              } else {
-                newMsg.read_by_student = true;
-              }
-              
-              setMessages((prev) => {
-                if (prev.some((m) => m.id === newMsg.id)) return prev;
-                return [...prev, newMsg];
-              });
-              scrollToBottom();
-            } else {
-              // Widget is closed, increment unread count
-              setUnreadCount((prev) => prev + 1);
-              setMessages((prev) => {
-                if (prev.some((m) => m.id === newMsg.id)) return prev;
-                return [...prev, newMsg];
-              });
-            }
-          } else {
-            // My own messages (sent from student panel or here)
-            setMessages((prev) => {
-              if (prev.some((m) => m.id === newMsg.id)) return prev;
-              return [...prev, newMsg];
+            const { error: readError } = await supabase.rpc('mark_conversation_messages_read_by_student', {
+              p_conversation_id: conversation.id,
             });
+            if (readError) {
+              console.error('Error marking widget message as read:', readError.message);
+            } else {
+              newMsg.read_by_student = true;
+              setUnreadCount(0);
+              window.dispatchEvent(new Event('student-chat-read'));
+            }
+            setMessages((prev) => mergeChatMessages(prev, [newMsg]));
+            scrollToBottom();
+          } else {
+            setMessages((prev) => mergeChatMessages(prev, [newMsg]));
             scrollToBottom();
           }
         }
       )
       .subscribe();
+    const unregisterChannel = registerRealtimeChannel(channelId);
 
     return () => {
-      supabase.removeChannel(channel);
+      unregisterChannel();
+      void supabase.removeChannel(channel);
     };
-  }, [conversation, isOpen]);
+  }, [conversation, isOpen, disabled, isRealtimeAvailable, scrollToBottom]);
 
-  const scrollToBottom = () => {
-    setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
+  const handleLoadMore = async () => {
+    const nextOffset = offset + MESSAGE_LIMIT;
+    setOffset(nextOffset);
+    await fetchMessages(nextOffset, true);
+  };
+
+  const handleRetry = () => {
+    setLoadError(null);
+    if (conversation) void fetchMessages(0, false);
+    else setRetryNonce((current) => current + 1);
   };
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !conversation || !inputText.trim() || sending) return;
+    if (!user || !conversation || !isOnline || !inputText.trim() || sending) return;
 
     if (checkIsProfane(inputText)) {
       setWarningMsg('Inappropriate language detected. Please check your message.');
@@ -224,14 +266,15 @@ export default function SupportWidget({ onNavigate }: SupportWidgetProps) {
           sender_role: 'student',
           content: messageText,
         })
-        .select()
+        .select(CHAT_MESSAGE_FIELDS)
         .single();
 
       if (error) {
         console.error('Failed to send widget message:', error.message);
         setInputText(messageText); // restore text on failure
       } else if (insertedMsg) {
-        setMessages((prev) => [...prev, insertedMsg as Message]);
+        const message = toChatMessage(insertedMsg);
+        if (message) setMessages((prev) => mergeChatMessages(prev, [message]));
         scrollToBottom();
       }
     } catch (err) {
@@ -250,6 +293,8 @@ export default function SupportWidget({ onNavigate }: SupportWidgetProps) {
       setIsOpen(true);
     }
   };
+
+  if (disabled) return null;
 
   return (
     <>
@@ -356,15 +401,44 @@ export default function SupportWidget({ onNavigate }: SupportWidgetProps) {
                 Go to Sign In
               </button>
             </div>
+          ) : !isOnline ? (
+            <div className="my-auto text-center flex flex-col items-center justify-center px-5 py-8">
+              <MessageSquare className="text-stone-300 mb-3" size={28} />
+              <h4 className="font-serif font-black text-[#1A3C2E] text-sm">You are offline</h4>
+              <p className="text-xs text-stone-500 mt-2 leading-relaxed">
+                Reconnect to load or send support messages. Chat will resume automatically.
+              </p>
+            </div>
           ) : loading ? (
             /* Loading state */
             <div className="my-auto flex flex-col items-center justify-center gap-2">
               <Loader2 className="animate-spin text-[#1A3C2E]" size={24} />
               <span className="text-[10px] font-mono text-stone-400">Loading support conversation...</span>
             </div>
+          ) : loadError ? (
+            <div className="my-auto text-center flex flex-col items-center justify-center px-5 py-8">
+              <MessageSquare className="text-rose-300 mb-3" size={28} />
+              <p className="text-xs text-stone-600 leading-relaxed">{loadError}</p>
+              <button
+                type="button"
+                onClick={handleRetry}
+                className="mt-4 rounded-xl bg-[#1A3C2E] px-4 py-2 text-[10px] font-black uppercase tracking-wider text-white"
+              >
+                Retry
+              </button>
+            </div>
           ) : (
             /* Logged in state with conversation messages */
             <>
+              {hasMore && (
+                <button
+                  type="button"
+                  onClick={() => void handleLoadMore()}
+                  className="mx-auto rounded-full border border-stone-200 bg-white px-3 py-1 text-[9px] font-bold uppercase tracking-wider text-[#1A3C2E]"
+                >
+                  Load older messages
+                </button>
+              )}
               {messages.length === 0 ? (
                 /* Empty state / Welcome message */
                 <div className="flex gap-2.5 items-start mt-2">
@@ -461,11 +535,11 @@ export default function SupportWidget({ onNavigate }: SupportWidgetProps) {
                 placeholder="Type your message here..."
                 rows={1}
                 className="flex-1 bg-stone-50 border border-stone-100 focus:outline-none focus:ring-1 focus:ring-[#F5B400] focus:bg-white rounded-2xl px-4 py-2 text-xs font-sans transition-all resize-none min-h-[36px] max-h-[100px] overflow-y-auto leading-relaxed"
-                disabled={sending}
+                disabled={sending || !isOnline}
               />
               <button
                 type="submit"
-                disabled={sending || !inputText.trim()}
+                disabled={sending || !isOnline || !inputText.trim()}
                 className="w-9 h-9 rounded-full bg-[#1A3C2E] text-white hover:bg-[#123524] disabled:bg-stone-100 disabled:text-stone-300 disabled:scale-100 hover:scale-105 active:scale-95 transition-all flex items-center justify-center shrink-0 border border-[#F5B400]/20 cursor-pointer self-end mb-0.5"
               >
                 {sending ? (

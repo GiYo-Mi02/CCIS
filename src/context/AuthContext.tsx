@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { AuthChangeEvent, Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { Profile, isAdminRole } from '../types/database';
@@ -60,6 +60,9 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const PROFILE_FIELDS = 'id, email, full_name, avatar_url, student_number, year_level, program, section, role, position, committee_id, profile_complete, banned, banned_until, subscribe_announcements_events, email_subscription_decided, status, privacy_agreed_at, submitted_at, approved_at, approved_by, rejection_reason, contact_number, attendance_qr_code, attendance_qr_generated_at, last_ip, created_at, updated_at';
+const PROFILE_CACHE_MS = 5 * 60_000;
+
 export function useAuth(): AuthContextType {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error('useAuth must be used within AuthProvider');
@@ -80,16 +83,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loginCooldownUntil, setLoginCooldownUntil] = useState<number | null>(null);
   const MAX_LOGIN_ATTEMPTS = 5;
   const COOLDOWN_MS = 60_000; // 60 seconds
+  const profileCacheRef = useRef(new Map<string, { profile: Profile; expiresAt: number }>());
+  const profileRequestsRef = useRef(new Map<string, Promise<Profile | null>>());
 
 
   const clearBanNotice = useCallback(() => setBanNotice(null), []);
   const clearEmailValidationError = useCallback(() => setEmailValidationError(null), []);
 
-  const fetchProfile = useCallback(async (userId: string): Promise<Profile | null> => {
+  const loadProfileFromServer = useCallback(async (userId: string): Promise<Profile | null> => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select(PROFILE_FIELDS)
         .eq('id', userId)
         .maybeSingle();
 
@@ -129,9 +134,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const fetchProfile = useCallback(async (userId: string, force = false): Promise<Profile | null> => {
+    const cached = profileCacheRef.current.get(userId);
+    if (!force && cached && cached.expiresAt > Date.now()) return cached.profile;
+
+    const existing = profileRequestsRef.current.get(userId);
+    if (existing) return existing;
+
+    const request = loadProfileFromServer(userId).then(result => {
+      if (result) profileCacheRef.current.set(userId, { profile: result, expiresAt: Date.now() + PROFILE_CACHE_MS });
+      return result;
+    }).finally(() => {
+      profileRequestsRef.current.delete(userId);
+    });
+    profileRequestsRef.current.set(userId, request);
+    return request;
+  }, [loadProfileFromServer]);
+
   const refreshProfile = useCallback(async () => {
     if (!user) return;
-    const p = await fetchProfile(user.id);
+    const p = await fetchProfile(user.id, true);
     if (p) setProfile(p);
   }, [user, fetchProfile]);
 
@@ -426,6 +448,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setSession(null);
     setUser(null);
     setProfile(null);
+    profileCacheRef.current.clear();
+    profileRequestsRef.current.clear();
   }, []);
 
   useEffect(() => {

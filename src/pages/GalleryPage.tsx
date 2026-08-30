@@ -2,12 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { Camera, Edit, Trash2, Plus, X, Maximize2, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import {
+  deleteManagedOptimizedImageByUrl,
+  getManagedImagePathsFromUrl,
+} from '../lib/media';
 
 // Types & Sub-components
 import { GalleryItem, GalleryCategory, Toast } from '../types/gallery';
 import HeroCarousel from '../components/gallery/HeroCarousel';
 import DetailModal from '../components/gallery/DetailModal';
 import AdminForm from '../components/gallery/AdminForm';
+import OptimizedImage from '../components/OptimizedImage';
 
 interface GalleryPageProps {
   isAdmin?: boolean;
@@ -49,6 +54,7 @@ export default function GalleryPage({ isAdmin = false }: GalleryPageProps) {
   
   // Accessibility / Reduced Motion hook
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(24);
 
   // Responsive masonry columns hook
   const useColumnsCount = () => {
@@ -94,7 +100,7 @@ export default function GalleryPage({ isAdmin = false }: GalleryPageProps) {
       try {
         const { data, error } = await supabase
           .from('gallery_items')
-          .select('*')
+          .select('id, title, description, category, posted_by, image_url, thumbnails, aspect_ratio, featured, created_at')
           .order('created_at', { ascending: false })
           .limit(100);
 
@@ -204,28 +210,26 @@ export default function GalleryPage({ isAdmin = false }: GalleryPageProps) {
       const itemToDelete = items.find(i => i.id === itemId);
       if (!itemToDelete) return;
 
-      const storagePaths: string[] = [];
-      const mainPath = getStoragePathFromUrl(itemToDelete.imageUrl);
-      if (mainPath) storagePaths.push(mainPath);
-
-      itemToDelete.thumbnails.forEach(tUrl => {
-        const path = getStoragePathFromUrl(tUrl);
-        if (path) storagePaths.push(path);
-      });
-
-      if (storagePaths.length > 0) {
-        const { error: storageError } = await supabase.storage
-          .from('gallery-images')
-          .remove(storagePaths);
-        if (storageError) console.error('Failed to clean storage paths:', storageError);
-      }
-
       const { error: dbError } = await supabase
         .from('gallery_items')
         .delete()
         .eq('id', itemId);
 
       if (dbError) throw dbError;
+
+      const mediaUrls = [itemToDelete.imageUrl, ...itemToDelete.thumbnails];
+      await Promise.allSettled(mediaUrls
+        .filter(url => getManagedImagePathsFromUrl(url, 'gallery-images') !== null)
+        .map(url => deleteManagedOptimizedImageByUrl(url, 'gallery-images')));
+
+      const legacyStoragePaths = mediaUrls
+        .filter(url => getManagedImagePathsFromUrl(url, 'gallery-images') === null)
+        .map(url => getStoragePathFromUrl(url))
+        .filter((path): path is string => path !== null);
+      if (legacyStoragePaths.length > 0) {
+        const { error: storageError } = await supabase.storage.from('gallery-images').remove(legacyStoragePaths);
+        if (storageError) console.error('Failed to clean legacy gallery paths:', storageError);
+      }
 
       // Optimistic state updates
       setItems(prev => prev.filter(i => i.id !== itemId));
@@ -268,10 +272,15 @@ export default function GalleryPage({ isAdmin = false }: GalleryPageProps) {
     if (selectedCategory === 'All') return true;
     return item.category === selectedCategory;
   });
+  const visibleItems = filteredItems.slice(0, visibleCount);
+
+  useEffect(() => {
+    setVisibleCount(24);
+  }, [selectedCategory]);
 
   // Masonry layout packing columns
   const columns: GalleryItem[][] = Array.from({ length: colsCount }, () => []);
-  filteredItems.forEach((item, index) => {
+  visibleItems.forEach((item, index) => {
     columns[index % colsCount].push(item);
   });
 
@@ -481,9 +490,11 @@ export default function GalleryPage({ isAdmin = false }: GalleryPageProps) {
                         
                         {/* Image aspect box */}
                         <div className="overflow-hidden relative bg-stone-100 w-full h-full">
-                          <img
-                            src={item.imageUrl}
+                          <OptimizedImage
+                            src={item.thumbnails[0] || item.imageUrl}
                             alt={item.title}
+                            width={800}
+                            height={600}
                             className="w-full h-auto object-cover transition-all duration-500 group-hover:scale-105 group-hover:brightness-75 group-hover:opacity-90"
                             loading="lazy"
                           />
@@ -575,6 +586,18 @@ export default function GalleryPage({ isAdmin = false }: GalleryPageProps) {
                   })}
                 </div>
               ))}
+            </div>
+          )}
+
+          {filteredItems.length > visibleCount && (
+            <div className="mt-8 flex justify-center">
+              <button
+                type="button"
+                onClick={() => setVisibleCount(count => count + 24)}
+                className="rounded-xl border border-[#123524] bg-white px-5 py-2.5 text-xs font-bold text-[#123524] transition-colors hover:bg-[#123524] hover:text-white"
+              >
+                Load 24 more
+              </button>
             </div>
           )}
 

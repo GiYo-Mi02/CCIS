@@ -357,7 +357,7 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
                     >
                       {ev.banner_url && (
                         <div className="h-44 w-full overflow-hidden flex-shrink-0 relative">
-                          <img src={ev.banner_url} alt="" className="w-full h-full object-cover" />
+                          <img src={ev.banner_url} alt="" width={960} height={540} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                         </div>
                       )}
                       <div className="p-6 flex-1 flex flex-col justify-between">
@@ -512,7 +512,7 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
                       if (ev?.banner_url) {
                         return (
                           <div className="w-full h-44 rounded-2xl overflow-hidden -mt-4 mb-2 flex-shrink-0 shadow-sm border border-zinc-250">
-                            <img src={ev.banner_url} alt="" className="w-full h-full object-cover" />
+                            <img src={ev.banner_url} alt="" width={960} height={540} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                           </div>
                         );
                       }

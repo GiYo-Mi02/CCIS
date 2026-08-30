@@ -24,7 +24,13 @@ export default function NavBar({ activeTab, setActiveTab, isUmakTheme = false }:
       return;
     }
 
-    const checkUnread = async () => {
+    let active = true;
+    let inFlight = false;
+    let lastCheckedAt = 0;
+
+    const checkUnread = async (force = false) => {
+      if (inFlight || (!force && Date.now() - lastCheckedAt < 60_000)) return;
+      inFlight = true;
       try {
         const { data: con } = await supabase
           .from('conversations')
@@ -33,58 +39,39 @@ export default function NavBar({ activeTab, setActiveTab, isUmakTheme = false }:
           .maybeSingle();
 
         if (con) {
-          // Fetch the latest admin message ID to check if dismissed in localStorage
-          const { data: latestMsg } = await supabase
+          const { data: unread } = await supabase
             .from('messages')
             .select('id')
             .eq('conversation_id', con.id)
             .eq('sender_role', 'admin')
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
+            .eq('read_by_student', false)
+            .limit(1);
 
-          if (latestMsg) {
-            const lastDismissedId = localStorage.getItem(`dismissed_msg_${user.id}`);
-            if (lastDismissedId === latestMsg.id) {
-              setHasUnread(false);
-              return;
-            }
-          }
-
-          const { count } = await supabase
-            .from('messages')
-            .select('*', { count: 'exact', head: true })
-            .eq('conversation_id', con.id)
-            .eq('sender_role', 'admin')
-            .eq('read_by_student', false);
-          
-          setHasUnread((count || 0) > 0);
+          if (active) setHasUnread(Boolean(unread?.length));
         } else {
-          setHasUnread(false);
+          if (active) setHasUnread(false);
         }
       } catch (err) {
         console.error('Error checking unread messages:', err);
+      } finally {
+        lastCheckedAt = Date.now();
+        inFlight = false;
       }
     };
 
-    checkUnread();
+    void checkUnread(true);
 
-    const channelId = `navbar_unread_messages_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-    const channel = supabase
-      .channel(channelId)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'messages' },
-        () => {
-          checkUnread();
-        }
-      )
-      .subscribe();
+    const handleFocus = () => void checkUnread();
+    const handleChatRead = () => setHasUnread(false);
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('student-chat-read', handleChatRead);
 
     return () => {
-      supabase.removeChannel(channel);
+      active = false;
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('student-chat-read', handleChatRead);
     };
-  }, [user]);
+  }, [user?.id]);
 
   // Close user menu on click outside
   useEffect(() => {
@@ -108,43 +95,6 @@ export default function NavBar({ activeTab, setActiveTab, isUmakTheme = false }:
   ];
 
   const handleNavClick = async (tabId: string) => {
-    if (tabId === 'messages' && user) {
-      try {
-        const { data: con } = await supabase
-          .from('conversations')
-          .select('id')
-          .eq('profile_id', user.id)
-          .maybeSingle();
-
-        if (con) {
-          const { data: latestMsg } = await supabase
-            .from('messages')
-            .select('id')
-            .eq('conversation_id', con.id)
-            .eq('sender_role', 'admin')
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          // Mark all admin messages as read in this conversation
-          const { error: readError } = await supabase.rpc('mark_conversation_messages_read_by_student', {
-            p_conversation_id: con.id,
-          });
-          if (readError) {
-            console.error('Failed to mark messages as read:', readError.message);
-          } else {
-            if (latestMsg) {
-              localStorage.setItem(`dismissed_msg_${user.id}`, latestMsg.id);
-            }
-            setHasUnread(false);
-          }
-        } else {
-          setHasUnread(false);
-        }
-      } catch (err) {
-        console.error('Failed to dismiss unread notifications:', err);
-      }
-    }
     setActiveTab(tabId);
     setMobileMenuOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });

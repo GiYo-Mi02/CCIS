@@ -4,6 +4,9 @@ import { AuthProvider } from './context/AuthContext';
 import RootRouter from './RootRouter';
 import ErrorBoundary from './components/ErrorBoundary';
 import './index.css';
+import { installDevelopmentTelemetry } from './lib/developmentTelemetry';
+
+installDevelopmentTelemetry();
 
 // One-time cleanup of legacy localStorage keys from the mock-data version
 const LEGACY_KEYS = [

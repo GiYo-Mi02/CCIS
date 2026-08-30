@@ -1,16 +1,27 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Send, ArrowLeft, Loader2, MessageSquare, Clock, User, AlertCircle } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { AlertCircle, ArrowLeft, Clock, Loader2, MessageSquare, Send, User } from 'lucide-react';
+
 import { useAuth } from '../context/AuthContext';
+import { useRealtimeAvailability } from '../hooks/useRealtimeAvailability';
+import {
+  CHAT_MESSAGE_FIELDS,
+  mergeChatMessages,
+  registerRealtimeChannel,
+  toChatMessage,
+  toChatMessages,
+} from '../lib/chatLifecycle';
 import { supabase } from '../lib/supabase';
-import { Conversation, Message } from '../types/database';
+import type { Conversation, Message } from '../types/database';
 
 interface MessagesPageProps {
   onNavigate: (tab: string) => void;
 }
 
+const MESSAGE_PAGE_SIZE = 30;
+
 export default function MessagesPage({ onNavigate }: MessagesPageProps) {
   const { user, profile } = useAuth();
-  
+  const { isOnline, isRealtimeAvailable } = useRealtimeAvailability();
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
@@ -18,324 +29,190 @@ export default function MessagesPage({ onNavigate }: MessagesPageProps) {
   const [sending, setSending] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [offset, setOffset] = useState(0);
-  const limit = 50;
-
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [retryNonce, setRetryNonce] = useState(0);
   const chatEndRef = useRef<HTMLDivElement>(null);
-  const isFirstLoad = useRef(true);
 
-  // Initialize or fetch conversation
+  const scrollToBottom = useCallback(() => {
+    window.setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+  }, []);
+
   useEffect(() => {
-    if (!user) return;
+    if (!user || !isRealtimeAvailable || conversation) return;
+    let active = true;
+    setLoading(true);
+    setErrorMessage(null);
 
-    const initConversation = async () => {
-      setLoading(true);
-      try {
-        // Use the ensure_conversation() RPC which does INSERT ... ON CONFLICT DO NOTHING
-        // internally, so it never throws a 409 duplicate key error.
-        const { data: con, error } = await supabase
-          .rpc('ensure_conversation')
-          .single();
-
-        if (error) {
-          console.error('Error fetching conversation:', error.message);
-        }
-
-        setConversation(con as Conversation);
-      } catch (err) {
-        console.error('Unexpected conversation init error:', err);
-      } finally {
+    void supabase.rpc('ensure_conversation').single().then(({ data, error }) => {
+      if (!active) return;
+      if (error || !data) {
+        setErrorMessage('The support conversation could not be opened. Please try again.');
         setLoading(false);
+        return;
       }
-    };
+      setConversation(data as Conversation);
+    });
+    return () => { active = false; };
+  }, [user?.id, isRealtimeAvailable, conversation, retryNonce]);
 
-    initConversation();
-  }, [user]);
-
-  // Fetch messages helper
-  const fetchMessages = async (currentOffset: number, append: boolean = false) => {
+  const fetchMessages = useCallback(async (currentOffset: number, append = false) => {
     if (!conversation) return;
-
+    if (currentOffset === 0) setLoading(true);
+    setErrorMessage(null);
     try {
       const { data, error } = await supabase
         .from('messages')
-        .select('*')
+        .select(CHAT_MESSAGE_FIELDS)
         .eq('conversation_id', conversation.id)
         .order('created_at', { ascending: false })
-        .range(currentOffset, currentOffset + limit - 1);
+        .order('id', { ascending: false })
+        .range(currentOffset, currentOffset + MESSAGE_PAGE_SIZE - 1);
+      if (error) throw error;
 
-      if (error) {
-        console.error('Error fetching messages:', error.message);
-        return;
+      const rows = toChatMessages(data);
+      const page = [...rows].reverse();
+      setMessages(current => append ? mergeChatMessages(current, page) : page);
+      setHasMore(rows.length === MESSAGE_PAGE_SIZE);
+
+      if (currentOffset === 0 && rows.some(message => message.sender_role === 'admin' && !message.read_by_student)) {
+        const { error: readError } = await supabase.rpc('mark_conversation_messages_read_by_student', {
+          p_conversation_id: conversation.id,
+        });
+        if (!readError) window.dispatchEvent(new Event('student-chat-read'));
       }
+      if (currentOffset === 0) scrollToBottom();
+    } catch (error) {
+      console.error('Failed to load student chat:', error);
+      setErrorMessage('Messages could not be loaded. Check your connection and retry.');
+    } finally {
+      if (currentOffset === 0) setLoading(false);
+    }
+  }, [conversation, scrollToBottom]);
 
-      if (data) {
-        // Reverse array because database retrieves descending but chat renders ascending
-        const newMessages = [...data].reverse() as Message[];
-        
-        if (append) {
-          setMessages((prev) => [...newMessages, ...prev]);
-        } else {
-          setMessages(newMessages);
-        }
+  useEffect(() => {
+    if (!conversation || !isRealtimeAvailable) return;
+    setOffset(0);
+    void fetchMessages(0);
+  }, [conversation, isRealtimeAvailable, fetchMessages]);
 
-        setHasMore(data.length === limit);
-        
-        // Mark admin messages as read by student in the entire conversation
-        const latestAdminMsg = [...data].reverse().find(m => m.sender_role === 'admin');
-        const hasUnreadAdmin = data.some(m => m.sender_role === 'admin' && !m.read_by_student);
-        if (hasUnreadAdmin) {
-          const { error: readError } = await supabase.rpc('mark_conversation_messages_read_by_student', {
+  useEffect(() => {
+    if (!conversation || !isRealtimeAvailable) return;
+    const channelName = `student_chat_messages_${conversation.id}`;
+    const channel = supabase
+      .channel(channelName)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `conversation_id=eq.${conversation.id}`,
+      }, async payload => {
+        const message = toChatMessage(payload.new);
+        if (!message) return;
+        if (message.sender_role === 'admin' && !message.read_by_student) {
+          const { error } = await supabase.rpc('mark_conversation_messages_read_by_student', {
             p_conversation_id: conversation.id,
           });
-          if (readError) {
-            console.error('Error marking messages as read:', readError.message);
-          } else if (latestAdminMsg && user) {
-            localStorage.setItem(`dismissed_msg_${user.id}`, latestAdminMsg.id);
-          }
+          if (!error) window.dispatchEvent(new Event('student-chat-read'));
         }
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  // Initial messages load
-  useEffect(() => {
-    if (conversation) {
-      fetchMessages(0, false).then(() => {
-        if (isFirstLoad.current) {
-          scrollToBottom();
-          isFirstLoad.current = false;
-        }
-      });
-    }
-  }, [conversation]);
-  // Set up realtime channel subscription to listen for inserts/updates
-  useEffect(() => {
-    if (!conversation) return;
-
-    const channelId = `student_chat_messages_${conversation.id}`;
-    const channel = supabase
-      .channel(channelId)
-      .on(
-        'postgres_changes',
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'messages',
-          filter: `conversation_id=eq.${conversation.id}`
-        },
-        async (payload) => {
-          if (payload.eventType === 'INSERT') {
-            const newMsg = payload.new as Message;
-            
-            // Mark admin messages as read by student in the database
-            if (newMsg.sender_role === 'admin' && !newMsg.read_by_student) {
-              const { error: readError } = await supabase.rpc('mark_conversation_messages_read_by_student', {
-                p_conversation_id: conversation.id,
-              });
-              if (readError) {
-                console.error('Error marking message as read:', readError.message);
-              } else {
-                newMsg.read_by_student = true;
-              }
-            }
-
-            setMessages((prev) => {
-              if (prev.some((m) => m.id === newMsg.id)) return prev;
-              return [...prev, newMsg];
-            });
-            scrollToBottom();
-          } else if (payload.eventType === 'UPDATE') {
-            const updatedMsg = payload.new as Message;
-            setMessages((prev) => 
-              prev.map((m) => (m.id === updatedMsg.id ? updatedMsg : m))
-            );
-          }
-        }
-      )
+        setMessages(current => mergeChatMessages(current, [message]));
+        scrollToBottom();
+      })
       .subscribe();
-
+    const unregister = registerRealtimeChannel(channelName);
     return () => {
-      supabase.removeChannel(channel);
+      unregister();
+      void supabase.removeChannel(channel);
     };
-  }, [conversation]);
+  }, [conversation, isRealtimeAvailable, scrollToBottom]);
 
-  // Scroll to bottom helper
-  const scrollToBottom = () => {
-    setTimeout(() => {
-      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
-  };
-
-  // Load older messages
-  const handleLoadMore = async () => {
-    const nextOffset = offset + limit;
+  const loadOlder = async () => {
+    const nextOffset = offset + MESSAGE_PAGE_SIZE;
     setOffset(nextOffset);
     await fetchMessages(nextOffset, true);
   };
 
-  // Send message
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user || !conversation || !inputText.trim() || sending) return;
-
-    const messageText = inputText.trim();
+  const handleSend = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!user || !conversation || !isOnline || sending || !inputText.trim()) return;
+    const content = inputText.trim();
     setInputText('');
     setSending(true);
-
     try {
-      const { data: insertedMsg, error } = await supabase
-        .from('messages')
-        .insert({
-          conversation_id: conversation.id,
-          sender_id: user.id,
-          sender_role: 'student',
-          content: messageText,
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Failed to send message:', error.message);
-        setInputText(messageText); // restore text on failure
-      } else if (insertedMsg) {
-        setMessages((prev) => [...prev, insertedMsg as Message]);
-        scrollToBottom();
-      }
-    } catch (err) {
-      console.error('Failed to send:', err);
+      const { data, error } = await supabase.from('messages').insert({
+        conversation_id: conversation.id,
+        sender_id: user.id,
+        sender_role: 'student',
+        content,
+      }).select(CHAT_MESSAGE_FIELDS).single();
+      if (error) throw error;
+      const message = toChatMessage(data);
+      if (message) setMessages(current => mergeChatMessages(current, [message]));
+      scrollToBottom();
+    } catch (error) {
+      console.error('Failed to send student message:', error);
+      setInputText(content);
+      setErrorMessage('Your message was not sent. Please retry.');
     } finally {
-      // 1.5s anti-spam debounce delay
-      setTimeout(() => {
-        setSending(false);
-      }, 1500);
+      setSending(false);
     }
   };
 
   if (!user || !profile) return null;
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg-cream,#FAF7EA)] py-12 px-4 sm:px-6 lg:px-8 font-sans">
-      <div className="max-w-4xl mx-auto flex flex-col h-[75vh] bg-white rounded-3xl border border-zinc-100 shadow-xl overflow-hidden">
-        
-        {/* Chat Header */}
-        <div className="px-6 py-4 border-b border-zinc-100 flex items-center justify-between bg-[var(--color-primary-green,#1A3C2E)] text-white shrink-0">
+    <div className="min-h-screen bg-[var(--color-bg-cream,#FAF7EA)] px-4 py-8 font-sans sm:px-6 sm:py-12">
+      <div className="mx-auto flex h-[75vh] max-w-4xl flex-col overflow-hidden rounded-3xl border border-zinc-100 bg-white shadow-xl">
+        <div className="flex shrink-0 items-center justify-between bg-[var(--color-primary-green,#1A3C2E)] px-4 py-4 text-white sm:px-6">
           <div className="flex items-center gap-3">
-            <button 
-              onClick={() => onNavigate('home')} 
-              className="p-1.5 rounded-full hover:bg-white/10 text-white/80 hover:text-white transition-colors"
-            >
+            <button onClick={() => onNavigate('home')} className="rounded-full p-1.5 text-white/80 transition-colors hover:bg-white/10 hover:text-white" aria-label="Back to home">
               <ArrowLeft size={18} />
             </button>
-            <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center border border-[#F5B400]/40 shrink-0">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[#F5B400]/40 bg-white/10">
               <MessageSquare size={18} className="text-[#F5B400]" />
             </div>
             <div>
-              <h2 className="font-sans font-black text-sm tracking-tight">Council Direct Support</h2>
-              <p className="text-[10px] text-white/60 font-mono flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                DevCom Live Support Inbox
-              </p>
+              <h1 className="text-sm font-black tracking-tight">Council Direct Support</h1>
+              <p className="font-mono text-[10px] text-white/60">Scoped student conversation</p>
             </div>
           </div>
-          <div className="text-right hidden sm:block">
-            <span className="text-[9px] font-mono uppercase tracking-wider text-[#F5B400] font-bold bg-[#F5B400]/10 border border-[#F5B400]/20 px-2 py-0.5 rounded-md">
-              Student Channel
-            </span>
-          </div>
+          <span className={`text-[10px] font-bold ${isOnline ? 'text-emerald-300' : 'text-amber-300'}`}>{isOnline ? 'Online' : 'Offline'}</span>
         </div>
 
-        {/* Chat Messages Panel */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-zinc-50/50 flex flex-col">
-          {loading ? (
-            <div className="flex-1 space-y-4 py-4 animate-pulse">
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-stone-200" />
-                <div className="space-y-1.5 max-w-xs">
-                  <div className="h-10 w-48 bg-stone-200 rounded-2xl rounded-tl-sm" />
-                </div>
-              </div>
-              <div className="flex items-end justify-end gap-3">
-                <div className="space-y-1.5 max-w-xs">
-                  <div className="h-12 w-56 bg-[#1A3C2E]/15 rounded-2xl rounded-tr-sm" />
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-stone-200" />
-                <div className="space-y-1.5 max-w-xs">
-                  <div className="h-16 w-64 bg-stone-200 rounded-2xl rounded-tl-sm" />
-                </div>
-              </div>
+        <div className="flex flex-1 flex-col space-y-4 overflow-y-auto bg-zinc-50/50 p-4 sm:p-6">
+          {errorMessage && (
+            <div role="alert" className="flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+              <span>{errorMessage}</span>
+              <button onClick={() => conversation ? void fetchMessages(0) : setRetryNonce(value => value + 1)} className="font-bold underline">Retry</button>
             </div>
+          )}
+          {!isOnline && <p className="rounded-xl border border-zinc-200 bg-white p-3 text-center text-xs text-zinc-500">Chat is paused while you are offline.</p>}
+          {loading ? (
+            <div className="flex flex-1 items-center justify-center"><Loader2 className="animate-spin text-[#1A3C2E]" size={24} /></div>
           ) : (
             <>
-              {/* Load older messages trigger */}
-              {hasMore && (
-                <button
-                  onClick={handleLoadMore}
-                  className="mx-auto bg-white hover:bg-zinc-50 text-[var(--color-primary-green,#1A3C2E)] border border-zinc-200/80 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-colors shadow-xs"
-                >
-                  Load older messages
-                </button>
-              )}
-
+              {hasMore && <button onClick={() => void loadOlder()} className="mx-auto rounded-full border border-zinc-200 bg-white px-4 py-1.5 text-[10px] font-bold uppercase text-[#1A3C2E]">Load older messages</button>}
               {messages.length === 0 ? (
-                <div className="flex-1 flex flex-col items-center justify-center text-center max-w-md mx-auto space-y-4">
-                  <div className="w-14 h-14 bg-[var(--color-accent-gold,#F5B400)]/10 text-[var(--color-accent-gold,#F5B400)] rounded-full flex items-center justify-center">
-                    <MessageSquare size={24} />
-                  </div>
-                  <div className="space-y-1">
-                    <h3 className="font-bold text-sm text-[var(--color-primary-green,#1A3C2E)]">Start a Conversation</h3>
-                    <p className="text-xs text-stone-400 leading-relaxed">
-                      Send a message to our student council developers or administrative officers. Ask about ticket issues, college events, or platform help.
-                    </p>
-                  </div>
+                <div className="m-auto max-w-md text-center">
+                  <MessageSquare className="mx-auto mb-3 text-[#F5B400]" size={28} />
+                  <h2 className="text-sm font-bold text-[#1A3C2E]">Start a conversation</h2>
+                  <p className="mt-1 text-xs leading-relaxed text-stone-500">Ask the Student Council about events, tickets, or portal support.</p>
                 </div>
               ) : (
-                <div className="space-y-3.5 mt-auto">
-                  {messages.map((msg) => {
-                    const isAdmin = msg.sender_role === 'admin';
+                <div className="mt-auto space-y-3.5">
+                  {messages.map(message => {
+                    const fromAdmin = message.sender_role === 'admin';
                     return (
-                      <div 
-                        key={msg.id} 
-                        className={`flex ${isAdmin ? 'justify-start' : 'justify-end'} animate-fade-in`}
-                      >
-                        <div className={`flex items-start gap-2.5 max-w-[80%] ${isAdmin ? 'flex-row' : 'flex-row-reverse'}`}>
-                          
-                          {/* Avatar icon */}
-                          <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
-                            isAdmin 
-                              ? 'bg-[var(--color-primary-green,#1A3C2E)] text-[#F5B400] border border-[#F5B400]/20' 
-                              : 'bg-[var(--color-accent-gold,#F5B400)]/10 text-[var(--color-primary-green,#1A3C2E)] border border-zinc-200'
-                          }`}>
-                            {isAdmin ? <User size={12} /> : <User size={12} />}
-                          </div>
-
-                          {/* Chat bubble body */}
-                          <div className="flex flex-col">
-                            <div className={`px-4 py-2.5 rounded-2xl text-xs leading-relaxed shadow-xs ${
-                              isAdmin 
-                                ? 'bg-white border border-zinc-150 text-[#222B26] rounded-tl-none' 
-                                : 'bg-[var(--color-primary-green,#1A3C2E)] text-[#FAF7EA] rounded-tr-none'
-                            }`}>
-                              <p className="whitespace-pre-wrap" style={{ wordBreak: 'break-word', overflowWrap: 'break-word', whiteSpace: 'pre-wrap' }}>{msg.content}</p>
+                      <div key={message.id} className={`flex ${fromAdmin ? 'justify-start' : 'justify-end'}`}>
+                        <div className={`flex max-w-[85%] items-start gap-2 ${fromAdmin ? '' : 'flex-row-reverse'}`}>
+                          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-white"><User size={12} /></span>
+                          <div>
+                            <div className={`rounded-2xl px-4 py-2.5 text-xs leading-relaxed shadow-xs ${fromAdmin ? 'rounded-tl-none border border-zinc-150 bg-white text-[#222B26]' : 'rounded-tr-none bg-[#1A3C2E] text-[#FAF7EA]'}`}>
+                              <p className="whitespace-pre-wrap break-words">{message.content}</p>
                             </div>
-                            
-                            {/* Timestamp / Read indicator */}
-                            <span className={`text-[8.5px] font-mono text-zinc-400 mt-1 flex items-center gap-1 ${isAdmin ? 'justify-start' : 'justify-end'}`}>
-                              <Clock size={8} />
-                              {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              {!isAdmin && (
-                                <span className={`font-bold uppercase tracking-wider text-[7.5px] ml-1 ${
-                                  msg.read_by_admin ? 'text-emerald-500' : 'text-zinc-300'
-                                }`}>
-                                  · {msg.read_by_admin ? 'Seen' : 'Sent'}
-                                </span>
-                              )}
+                            <span className={`mt-1 flex items-center gap-1 font-mono text-[9px] text-zinc-400 ${fromAdmin ? '' : 'justify-end'}`}>
+                              <Clock size={8} /> {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </span>
                           </div>
-
                         </div>
                       </div>
                     );
@@ -347,39 +224,15 @@ export default function MessagesPage({ onNavigate }: MessagesPageProps) {
           <div ref={chatEndRef} />
         </div>
 
-        {/* Chat Input form */}
-        <form onSubmit={handleSend} className="p-4 bg-white border-t border-zinc-100 shrink-0 font-sans">
+        <form onSubmit={handleSend} className="shrink-0 border-t border-zinc-100 bg-white p-4">
           <div className="flex items-center gap-2">
-            <input
-              type="text"
-              required
-              disabled={loading || sending}
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              placeholder={sending ? 'Sending disabled briefly (cooldown)...' : 'Type your message to the student council...'}
-              className="flex-1 bg-zinc-50 border border-zinc-200 focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400] rounded-xl px-4 py-2.5 text-xs outline-none transition-colors disabled:bg-zinc-100 disabled:text-zinc-400"
-              maxLength={1000}
-            />
-            <button
-              type="submit"
-              disabled={loading || sending || !inputText.trim()}
-              className="p-2.5 bg-[#F5B400] hover:bg-[#ffc522] text-[#1A3C2E] rounded-xl shadow-xs transition-colors flex items-center justify-center shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Send Message"
-            >
-              {sending ? (
-                <Loader2 className="animate-spin" size={16} />
-              ) : (
-                <Send size={16} />
-              )}
+            <input value={inputText} onChange={event => setInputText(event.target.value)} disabled={loading || sending || !isOnline} maxLength={1000} placeholder={isOnline ? 'Type your message...' : 'Reconnect to send a message'} className="flex-1 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-xs outline-none focus:border-[#F5B400]" />
+            <button type="submit" disabled={loading || sending || !isOnline || !inputText.trim()} className="rounded-xl bg-[#F5B400] p-2.5 text-[#1A3C2E] disabled:opacity-50" aria-label="Send message">
+              {sending ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />}
             </button>
           </div>
-          
-          <div className="flex items-center gap-1 text-[9px] text-stone-400 mt-2 font-mono justify-end">
-            <AlertCircle size={10} />
-            <span>Messages are checked by CCIS Officers and DevCom heads.</span>
-          </div>
+          <p className="mt-2 flex items-center justify-end gap-1 font-mono text-[9px] text-stone-400"><AlertCircle size={10} /> Messages are visible to authorized CCIS support staff.</p>
         </form>
-
       </div>
     </div>
   );

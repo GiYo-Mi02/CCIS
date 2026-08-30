@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   LayoutDashboard, Megaphone, ClipboardList,
   Users, CalendarDays, Settings, ArrowLeft, ChevronLeft, ChevronRight, MessageSquare, Scan, UserCog, HelpCircle, UserCheck
 } from 'lucide-react';
 import { useAdmin } from '../AdminContext';
 import { useAuth } from '../../context/AuthContext';
-import { supabase } from '../../lib/supabase';
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -30,104 +29,6 @@ interface AdminSidebarProps {
 export default function AdminSidebar({ collapsed, onToggle, onExitAdmin }: AdminSidebarProps) {
   const { activeSection, setActiveSection } = useAdmin();
   const { profile } = useAuth();
-  const [unreadMessages, setUnreadMessages] = useState(0);
-  const [pendingVerifications, setPendingVerifications] = useState(0);
-
-  useEffect(() => {
-    // Bar standard roles from reading messages
-    if (!profile || !['devcom_head', 'officer'].includes(profile.role)) {
-      setUnreadMessages(0);
-      return;
-    }
-
-    const fetchCount = async () => {
-      try {
-        const { count } = await supabase
-          .from('messages')
-          .select('*', { count: 'exact', head: true })
-          .eq('read_by_admin', false)
-          .eq('sender_role', 'student');
-        setUnreadMessages(count || 0);
-      } catch (err) {
-        console.error('Error fetching unread count:', err);
-      }
-    };
-
-    fetchCount();
-
-    // Subscribe to messages changes to update unread count in real-time
-    const channelId = `sidebar_unread_messages_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-    const channel = supabase
-      .channel(channelId)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'messages' },
-        () => {
-          fetchCount();
-        }
-      )
-      .subscribe();
-
-    // Listen to local concern/conversation read events for instant badge subtraction
-    const handleReadConversation = (e: Event) => {
-      const customEvent = e as CustomEvent<{ conversationId: string; count: number }>;
-      const { count } = customEvent.detail;
-      setUnreadMessages(prev => Math.max(0, prev - count));
-    };
-
-    window.addEventListener('admin-read-conversation', handleReadConversation);
-
-    return () => {
-      supabase.removeChannel(channel);
-      window.removeEventListener('admin-read-conversation', handleReadConversation);
-    };
-  }, [profile]);
-
-  useEffect(() => {
-    if (!profile || !['devcom_head', 'comm_registration'].includes(profile.role)) {
-      setPendingVerifications(0);
-      return;
-    }
-
-    let isActive = true;
-
-    const fetchPendingVerificationCount = async () => {
-      const { data, error } = await supabase.rpc('list_pending_verifications', {
-        p_search: null,
-        p_limit: 1,
-        p_offset: 0,
-      });
-
-      if (error) {
-        console.error('Error fetching pending verification count:', error);
-        return;
-      }
-
-      if (isActive) {
-        const result = data as { total?: number } | null;
-        setPendingVerifications(Number(result?.total || 0));
-      }
-    };
-
-    const refreshCount = () => {
-      void fetchPendingVerificationCount();
-    };
-
-    refreshCount();
-
-    // Polling keeps the badge current even when profile Realtime events are
-    // intentionally unavailable to the registration role under profile RLS.
-    const intervalId = window.setInterval(refreshCount, 60_000);
-    window.addEventListener('focus', refreshCount);
-    window.addEventListener('admin-verification-count-changed', refreshCount);
-
-    return () => {
-      isActive = false;
-      window.clearInterval(intervalId);
-      window.removeEventListener('focus', refreshCount);
-      window.removeEventListener('admin-verification-count-changed', refreshCount);
-    };
-  }, [profile]);
 
   // Filter items by role
   const visibleNavItems = NAV_ITEMS.filter(item => {
@@ -187,12 +88,6 @@ export default function AdminSidebar({ collapsed, onToggle, onExitAdmin }: Admin
         {visibleNavItems.map((item) => {
           const isActive = activeSection === item.id;
           const Icon = item.icon;
-          const badgeCount = item.id === 'messages'
-            ? unreadMessages
-            : item.id === 'verification'
-              ? pendingVerifications
-              : 0;
-          const showBadge = badgeCount > 0;
           return (
             <button
               key={item.id}
@@ -205,22 +100,13 @@ export default function AdminSidebar({ collapsed, onToggle, onExitAdmin }: Admin
                   : 'text-[#FAF7EA]/70 hover:bg-white/5 hover:text-white border-l-4 border-transparent'
               }`}
               id={`admin-nav-${item.id}`}
-              title={collapsed && showBadge ? `${item.label}: ${badgeCount} pending` : collapsed ? item.label : undefined}
-              aria-label={showBadge ? `${item.label}, ${badgeCount} pending` : item.label}
+              title={collapsed ? item.label : undefined}
+              aria-label={item.label}
             >
               <Icon size={18} className="shrink-0" />
               {!collapsed && (
                 <span className="text-xs font-semibold tracking-wide truncate">{item.label}</span>
               )}
-              {showBadge && (
-                <span
-                  aria-live="polite"
-                  className={`${collapsed ? 'absolute top-1 right-1' : 'ml-auto'} bg-[#C0392B] text-white text-[9px] font-black min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1`}
-                >
-                  {badgeCount > 99 ? '99+' : badgeCount}
-                </span>
-              )}
-
               {/* Tooltip for collapsed state */}
               {collapsed && (
                 <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 bg-[#222B26] text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">

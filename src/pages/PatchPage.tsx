@@ -2,6 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Play, Pause, Plus, Edit, Trash2, X, FileVideo, Loader2, Eye, Film, ArrowLeft, Volume2, VolumeX, Maximize, Minimize, RotateCcw, RotateCw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import {
+  deleteManagedOptimizedImage,
+  deleteManagedOptimizedImageByUrl,
+  uploadOptimizedImage,
+  type MediaAsset,
+} from '../lib/media';
 import CouncilSeal from '../components/CouncilSeal';
 
 export interface PatchVideo {
@@ -350,7 +356,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
     try {
       const { data, error } = await supabase
         .from('patch_videos')
-        .select('*')
+        .select('id, episode_number, title, description, category, facebook_permalink, thumbnail_url, is_featured, created_at, video_url')
         .order('episode_number', { ascending: false })
         .limit(100);
 
@@ -734,21 +740,22 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
     }
 
     setFormSubmitting(true);
+    let uploadedThumbnailAsset: MediaAsset | null = null;
+    let uploadedVideoPath: string | null = null;
 
     try {
       // 1. Upload custom thumbnail to bucket if selected
       if (selectedFile) {
-        const fileExt = selectedFile.name.split('.').pop();
-        const sanitizedFileName = `thumb_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
-        
-        const { error: uploadErr } = await supabase.storage
-          .from('patch-thumbnails')
-          .upload(sanitizedFileName, selectedFile);
-
-        if (uploadErr) throw uploadErr;
-
-        const publicUrl = supabase.storage.from('patch-thumbnails').getPublicUrl(sanitizedFileName).data.publicUrl;
-        thumbnailUrl = publicUrl;
+        const result = await uploadOptimizedImage(selectedFile, {
+          category: 'patch',
+          bucket: 'patch-thumbnails',
+          folder: 'episodes',
+          entityType: 'patch_videos',
+          entityId: editTarget?.id,
+        });
+        uploadedThumbnailAsset = result.asset;
+        thumbnailUrl = result.asset.publicUrl;
+        triggerToast(`Thumbnail optimized from ${(result.originalSizeBytes / 1024).toFixed(0)} KB to ${(result.optimizedSizeBytes / 1024).toFixed(0)} KB.`, 'success');
       }
 
       // 2. Upload custom video to bucket if selected
@@ -762,6 +769,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
           .upload(sanitizedFileName, selectedVideoFile);
 
         if (uploadErr) throw uploadErr;
+        uploadedVideoPath = sanitizedFileName;
 
         const publicUrl = supabase.storage.from('patch-videos').getPublicUrl(sanitizedFileName).data.publicUrl;
         videoUrl = publicUrl;
@@ -783,6 +791,10 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
           .eq('id', editTarget.id);
 
         if (dbErr) throw dbErr;
+        if (uploadedThumbnailAsset && editTarget.thumbnailUrl && editTarget.thumbnailUrl !== thumbnailUrl) {
+          await deleteManagedOptimizedImageByUrl(editTarget.thumbnailUrl, 'patch-thumbnails').catch(error =>
+            console.error('Failed to clean up replaced Patch thumbnail:', error));
+        }
         triggerToast('Video metadata updated successfully.', 'success');
       } else {
         const { error: dbErr } = await supabase
@@ -804,9 +816,15 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
 
       setShowFormModal(false);
       fetchVideos();
-    } catch (err: any) {
+    } catch (err: unknown) {
+      if (uploadedThumbnailAsset) {
+        await deleteManagedOptimizedImage(uploadedThumbnailAsset).catch(() => undefined);
+      }
+      if (uploadedVideoPath) {
+        await supabase.storage.from('patch-videos').remove([uploadedVideoPath]).catch(() => undefined);
+      }
       console.error('Submission failed:', err);
-      triggerToast(err.message || 'Failed to submit video metadata.', 'error');
+      triggerToast(err instanceof Error ? err.message : 'Failed to submit video metadata.', 'error');
     } finally {
       setFormSubmitting(false);
     }
@@ -825,6 +843,9 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
         .eq('id', video.id);
 
       if (error) throw error;
+
+      await deleteManagedOptimizedImageByUrl(video.thumbnailUrl, 'patch-thumbnails').catch(cleanupError =>
+        console.error('Failed to clean up managed Patch thumbnail:', cleanupError));
 
       triggerToast('Patch video deleted successfully.', 'success');
       setDeleteConfirmId(null);
@@ -911,6 +932,9 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
               <img
                 src={activeHeroVideo.thumbnailUrl}
                 alt={activeHeroVideo.title}
+                width={1280}
+                height={720}
+                decoding="async"
                 className="w-full h-full object-cover object-top opacity-80 filter brightness-90 scale-105"
               />
             ) : (
@@ -1071,6 +1095,9 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                         <img
                           src={video.thumbnailUrl}
                           alt={video.title}
+                          width={640}
+                          height={360}
+                          decoding="async"
                           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                           loading="lazy"
                         />
@@ -1551,6 +1578,10 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                     <img
                       src={selectedVideo.thumbnailUrl}
                       alt={selectedVideo.title}
+                      width={1280}
+                      height={720}
+                      loading="eager"
+                      decoding="async"
                       className="w-full h-full object-cover select-none scale-102 filter brightness-85"
                     />
                   ) : (

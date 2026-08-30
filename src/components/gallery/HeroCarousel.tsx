@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Edit, Trash2, Camera, ArrowRight } from 'lucide-react';
 import { GalleryItem } from '../../types/gallery';
+import OptimizedImage from '../OptimizedImage';
 
 interface HeroCarouselProps {
   items: GalleryItem[];
@@ -92,6 +93,7 @@ export default function HeroCarousel({
           const isActive = idx === activeIndex;
           const posClass = getSlidePositionClass(idx);
           const isPeek = !isActive && posClass.includes('translate');
+          if (!isActive && !isPeek) return null;
 
           return (
             <div
@@ -104,9 +106,12 @@ export default function HeroCarousel({
               }}
               className={`absolute w-[80%] sm:w-[70%] md:w-[65%] h-[90%] rounded-3xl overflow-hidden shadow-2xl border border-[#1A3C2E]/10 bg-white transition-all duration-700 ease-out select-none ${posClass}`}
             >
-              <img
-                src={item.imageUrl}
+              <OptimizedImage
+                src={isActive ? item.imageUrl : (item.thumbnails[0] || item.imageUrl)}
                 alt={item.title}
+                width={1200}
+                height={675}
+                loading={isActive ? 'eager' : 'lazy'}
                 className="w-full h-full object-cover"
                 draggable={false}
               />
