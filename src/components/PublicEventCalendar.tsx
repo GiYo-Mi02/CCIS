@@ -81,7 +81,7 @@ export function UpcomingEventsList({ onNavigate }: UpcomingEventsListProps) {
               <div className="flex items-start gap-3.5 flex-1 min-w-0">
                 {evt.banner_url ? (
                   <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-stone-200 relative shadow-sm">
-                    <img src={evt.banner_url} alt="" className="w-full h-full object-cover" />
+                    <img src={evt.banner_url} alt="" width={960} height={540} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                     <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${
                       evt.category === 'priority' ? 'bg-[#FFBC00]' : 'bg-[#123524]'
                     }`} />
@@ -314,7 +314,7 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
             <div className="flex items-start gap-3.5 flex-1 min-w-0 text-left">
               {evt.banner_url && (
                 <div className="w-14 h-14 rounded-xl overflow-hidden shrink-0 border border-zinc-150 shadow-xs">
-                  <img src={evt.banner_url} alt="" className="w-full h-full object-cover" />
+                  <img src={evt.banner_url} alt="" width={960} height={540} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                 </div>
               )}
               <div className="space-y-1.5 flex-1 min-w-0">
@@ -577,7 +577,7 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
                   <>
                     {firstEvent.banner_url ? (
                       <div className="w-full h-24 relative overflow-hidden bg-black shrink-0">
-                        <img src={firstEvent.banner_url} alt="" className="w-full h-full object-cover" />
+                        <img src={firstEvent.banner_url} alt="" width={960} height={540} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                         <span className={`absolute top-2 right-2 text-[8px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
                           firstEvent.category === 'priority' ? 'bg-[#FFBC00] text-[#123524]' : 'bg-[#123524] text-white'
                         }`}>

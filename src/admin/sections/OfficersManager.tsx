@@ -5,6 +5,12 @@ import { supabase } from '../../lib/supabase';
 import { Officer, Committee } from '../../types/database';
 import Modal from '../components/Modal';
 import EmptyState from '../components/EmptyState';
+import {
+  deleteManagedOptimizedImage,
+  deleteManagedOptimizedImageByUrl,
+  uploadOptimizedImage,
+  type MediaAsset,
+} from '../../lib/media';
 
 type Tab = 'officers' | 'committees';
 
@@ -23,8 +29,8 @@ export default function OfficersManager() {
 
   const fetchData = async () => {
     const [offRes, commRes] = await Promise.all([
-      supabase.from('officers').select('*').order('display_order'),
-      supabase.from('committees').select('*').order('name'),
+      supabase.from('officers').select('id, name, position, committee_id, photo_url, email, display_order, created_at, quote, term, organization').order('display_order'),
+      supabase.from('committees').select('id, name, slug, description, icon, responsibilities, display_order, head_name, created_at').order('name'),
     ]);
     if (offRes.data) setOfficers(offRes.data as Officer[]);
     if (commRes.data) setCommittees(commRes.data as Committee[]);
@@ -52,10 +58,13 @@ export default function OfficersManager() {
 
   const deleteOfficer = async (id: string) => {
     if (deleting || !window.confirm('Remove this officer? This action cannot be undone.')) return;
+    const deletedOfficer = officers.find(officer => officer.id === id);
     setDeleting(`officer:${id}`);
     try {
       const { error } = await supabase.from('officers').delete().eq('id', id);
       if (error) { showToast('Failed to delete', 'error'); return; }
+      await deleteManagedOptimizedImageByUrl(deletedOfficer?.photo_url, 'gallery-images').catch(error =>
+        console.error('Failed to clean up managed officer image:', error));
       setOfficers(prev => prev.filter(o => o.id !== id));
       showToast('Officer removed', 'error');
     } finally {
@@ -82,7 +91,7 @@ export default function OfficersManager() {
         organization: orgVal,
         display_order: orgOfficers.length + 1,
       });
-      if (error) { showToast('Failed to add officer', 'error'); return; }
+      if (error) { showToast('Failed to add officer', 'error'); throw error; }
       showToast('Officer added!');
     } else {
       const { error } = await supabase.from('officers').update({
@@ -91,7 +100,7 @@ export default function OfficersManager() {
         term: form.term || '2026-2027',
         organization: orgVal,
       }).eq('id', form.id);
-      if (error) { showToast('Failed to update', 'error'); return; }
+      if (error) { showToast('Failed to update', 'error'); throw error; }
       showToast('Officer updated!');
     }
     setEditingOfficer(null);
@@ -352,6 +361,7 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [photoInputMode, setPhotoInputMode] = useState<'upload' | 'link'>('upload');
+  const [optimizationSummary, setOptimizationSummary] = useState<string | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -431,50 +441,39 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
 
     setIsUploading(true);
     let finalPhotoUrl = form.photo_url || '';
+    let uploadedAsset: MediaAsset | null = null;
 
     try {
       if (selectedFile) {
         setUploadProgress(25);
-        const uuid = crypto.randomUUID();
-        const cleanFileName = selectedFile.name.replace(/[^a-zA-Z0-9.]/g, '_');
-        const storagePath = `officers/${uuid}-${cleanFileName}`;
-
         setUploadProgress(50);
-        const { error: uploadErr } = await supabase.storage
-          .from('gallery-images')
-          .upload(storagePath, selectedFile, {
-            cacheControl: '3600',
-            upsert: false
-          });
-
-        if (uploadErr) throw uploadErr;
-
+        const result = await uploadOptimizedImage(selectedFile, {
+          category: 'officer',
+          bucket: 'gallery-images',
+          folder: 'officers',
+          entityType: 'officers',
+          entityId: officer.id,
+        });
+        uploadedAsset = result.asset;
         setUploadProgress(85);
-        const { data: urlData } = supabase.storage
-          .from('gallery-images')
-          .getPublicUrl(storagePath);
-
-        if (!urlData || !urlData.publicUrl) {
-          throw new Error('Failed to retrieve uploaded image public URL.');
-        }
-
-        finalPhotoUrl = urlData.publicUrl;
-
-        if (officer.photo_url && officer.photo_url.includes('gallery-images/officers/')) {
-          const oldPathParts = officer.photo_url.split('gallery-images/');
-          if (oldPathParts.length >= 2) {
-            supabase.storage.from('gallery-images').remove([oldPathParts[1]]).catch(console.error);
-          }
-        }
+        finalPhotoUrl = result.asset.publicUrl;
+        setOptimizationSummary(
+          `${(result.originalSizeBytes / 1024).toFixed(0)} KB original to ${(result.optimizedSizeBytes / 1024).toFixed(0)} KB WebP (${result.percentageSaved.toFixed(0)}% saved)`,
+        );
       }
 
       await onSave({
         ...form,
         photo_url: finalPhotoUrl,
       });
-    } catch (err: any) {
+      if (officer.photo_url && officer.photo_url !== finalPhotoUrl) {
+        await deleteManagedOptimizedImageByUrl(officer.photo_url, 'gallery-images').catch(error =>
+          console.error('Failed to clean up replaced officer image:', error));
+      }
+    } catch (err: unknown) {
+      if (uploadedAsset) await deleteManagedOptimizedImage(uploadedAsset).catch(() => undefined);
       console.error('Error uploading officer photo:', err);
-      showToast(err.message || 'Failed to upload photo', 'error');
+      showToast(err instanceof Error ? err.message : 'Failed to upload photo', 'error');
     } finally {
       setIsUploading(false);
       setUploadProgress(null);
@@ -608,6 +607,9 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
                   ? `${(selectedFile.size / 1024).toFixed(1)} KB (Local File)`
                   : (form.photo_url?.startsWith('http') ? 'External / Storage Link' : 'Image preview active')}
               </p>
+              {optimizationSummary && (
+                <p className="mt-1 text-[10px] font-mono text-emerald-700">{optimizationSummary}</p>
+              )}
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
               <button

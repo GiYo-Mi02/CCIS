@@ -1,0 +1,3 @@
+create extension "pg_net" schema "extensions";
+
+comment on extension "pg_net" is 'Async HTTP';

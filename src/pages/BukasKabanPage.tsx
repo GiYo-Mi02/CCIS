@@ -2,6 +2,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FileText, Plus, X, Edit, Trash2, Loader2, Download, AlertTriangle, CheckCircle2, Info, Eye } from 'lucide-react';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { supabase } from '../lib/supabase';
+import {
+  deleteManagedOptimizedImage,
+  deleteManagedOptimizedImageByUrl,
+  getManagedImagePathsFromUrl,
+  LONG_LIVED_CACHE_CONTROL,
+  uploadOptimizedImage,
+  validatePdfFile,
+  type MediaAsset,
+} from '../lib/media';
 
 // ============================================================
 // SUPABASE SCHEMA CONVENTION REFERENCES
@@ -202,7 +211,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
     try {
       const { data, error } = await supabase
         .from('transparency_reports')
-        .select('*')
+        .select('id, title, caption, semester, pdf_url, thumbnail_url, file_size_label, created_at, total_budget_requested, total_expenses')
         .order('created_at', { ascending: false })
         .limit(100);
 
@@ -447,8 +456,10 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
     if (!files || files.length === 0) return;
 
     const file = files[0];
-    if (file.type !== 'application/pdf') {
-      triggerToast('Only PDF documents are allowed.', 'error');
+    try {
+      await validatePdfFile(file);
+    } catch (error) {
+      triggerToast(error instanceof Error ? error.message : 'Only valid PDF documents are allowed.', 'error');
       e.target.value = '';
       return;
     }
@@ -511,6 +522,8 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
     }
 
     setFormSubmitting(true);
+    let uploadedThumbnailAsset: MediaAsset | null = null;
+    let uploadedPdfPath: string | null = null;
 
     try {
       let pdfUrl = editTarget ? editTarget.pdfUrl : '';
@@ -519,53 +532,47 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
 
       // Upload files if selected
       if (selectedFile) {
-        // Clean storage path on edit replacement
-        if (editTarget) {
-          const oldPdfPath = getStoragePathFromUrl(editTarget.pdfUrl);
-          const oldThumbPath = getStoragePathFromUrl(editTarget.thumbnailUrl);
-          const deletePaths = [];
-          if (oldPdfPath) deletePaths.push(oldPdfPath);
-          if (oldThumbPath) deletePaths.push(oldThumbPath);
-          
-          if (deletePaths.length > 0) {
-            console.log('[Transparency Upload] Cleaning up old assets from storage:', deletePaths);
-            await supabase.storage.from('bukas-kaban-reports').remove(deletePaths);
-          }
-        }
-
-        // Upload new PDF
-        const sanitizedFileName = `${Date.now()}_${selectedFile.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
-        console.log('[Transparency Upload] Starting PDF upload to storage bucket "bukas-kaban-reports":', sanitizedFileName);
+        // Versioned replacements retain the previous objects for rollback.
+        const digest = await crypto.subtle.digest('SHA-256', await selectedFile.arrayBuffer());
+        const hash = [...new Uint8Array(digest)]
+          .map(value => value.toString(16).padStart(2, '0'))
+          .join('')
+          .slice(0, 16);
+        const safeName = selectedFile.name
+          .replace(/\.pdf$/i, '')
+          .replace(/[^a-zA-Z0-9_-]+/g, '-')
+          .slice(0, 48) || 'report';
+        const sanitizedFileName = `reports/v1/${hash}-${safeName}.pdf`;
         const { error: pdfUploadErr } = await supabase.storage
           .from('bukas-kaban-reports')
-          .upload(sanitizedFileName, selectedFile);
+          .upload(sanitizedFileName, selectedFile, {
+            cacheControl: LONG_LIVED_CACHE_CONTROL,
+            contentType: 'application/pdf',
+            upsert: false,
+          });
 
         if (pdfUploadErr) {
           console.error('[Transparency Upload] PDF upload failed with error:', pdfUploadErr);
           throw pdfUploadErr;
         }
+        uploadedPdfPath = sanitizedFileName;
         
         const pdfPublicUrl = supabase.storage.from('bukas-kaban-reports').getPublicUrl(sanitizedFileName).data.publicUrl;
         pdfUrl = pdfPublicUrl;
         fileSizeLabel = (selectedFile.size / (1024 * 1024)).toFixed(2) + ' MB';
-        console.log('[Transparency Upload] PDF uploaded successfully. Public URL:', pdfUrl);
 
         // Upload thumbnail if generated
         if (generatedThumbnailBlob) {
-          const sanitizedThumbName = `thumb_${sanitizedFileName.replace('.pdf', '')}.webp`;
-          console.log('[Transparency Upload] Starting thumbnail upload to storage:', sanitizedThumbName);
-          const { error: thumbUploadErr } = await supabase.storage
-            .from('bukas-kaban-reports')
-            .upload(sanitizedThumbName, generatedThumbnailBlob, {
-              contentType: 'image/webp'
-            });
-
-          if (thumbUploadErr) {
-            console.error('[Transparency Upload] Thumbnail upload failed (non-blocking):', thumbUploadErr);
-          } else {
-            thumbnailUrl = supabase.storage.from('bukas-kaban-reports').getPublicUrl(sanitizedThumbName).data.publicUrl;
-            console.log('[Transparency Upload] Thumbnail uploaded successfully. Public URL:', thumbnailUrl);
-          }
+          const thumbnailFile = new File([generatedThumbnailBlob], `${safeName}-preview.webp`, { type: 'image/webp' });
+          const thumbnail = await uploadOptimizedImage(thumbnailFile, {
+            category: 'document-thumbnail',
+            bucket: 'bukas-kaban-reports',
+            folder: 'previews',
+            entityType: 'transparency_reports',
+            entityId: editTarget?.id,
+          });
+          uploadedThumbnailAsset = thumbnail.asset;
+          thumbnailUrl = thumbnail.asset.publicUrl;
         }
       }
 
@@ -589,6 +596,10 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
           .eq('id', editTarget.id);
 
         if (dbErr) throw dbErr;
+        if (uploadedThumbnailAsset && editTarget.thumbnailUrl && editTarget.thumbnailUrl !== thumbnailUrl) {
+          await deleteManagedOptimizedImageByUrl(editTarget.thumbnailUrl, 'bukas-kaban-reports').catch(error =>
+            console.error('Failed to clean up replaced report thumbnail:', error));
+        }
         triggerToast('Report updated successfully.', 'success');
       } else {
         // Insert database row
@@ -611,9 +622,15 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
 
       setShowFormModal(false);
       fetchReports();
-    } catch (err: any) {
+    } catch (err: unknown) {
+      if (uploadedThumbnailAsset) {
+        await deleteManagedOptimizedImage(uploadedThumbnailAsset).catch(() => undefined);
+      }
+      if (uploadedPdfPath) {
+        await supabase.storage.from('bukas-kaban-reports').remove([uploadedPdfPath]).catch(() => undefined);
+      }
       console.error('Submission failed:', err);
-      triggerToast(err.message || 'Failed to submit transparency report.', 'error');
+      triggerToast(err instanceof Error ? err.message : 'Failed to submit transparency report.', 'error');
     } finally {
       setFormSubmitting(false);
     }
@@ -640,7 +657,10 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
 
       // 2. Clean up associated files from storage after DB deletion succeeds
       const pdfPath = getStoragePathFromUrl(report.pdfUrl);
-      const thumbPath = getStoragePathFromUrl(report.thumbnailUrl);
+      const managedThumbnail = getManagedImagePathsFromUrl(report.thumbnailUrl, 'bukas-kaban-reports');
+      await deleteManagedOptimizedImageByUrl(report.thumbnailUrl, 'bukas-kaban-reports').catch(error =>
+        console.error('Failed to clean up managed report thumbnail:', error));
+      const thumbPath = managedThumbnail ? null : getStoragePathFromUrl(report.thumbnailUrl);
       const pathsToDelete: string[] = [];
       
       if (pdfPath) pathsToDelete.push(pdfPath);
@@ -850,6 +870,9 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
                         <img
                           src={report.thumbnailUrl}
                           alt={`First page preview of ${report.title}`}
+                          width={640}
+                          height={900}
+                          decoding="async"
                           className="w-full h-full object-cover"
                           loading="lazy"
                         />
@@ -1135,7 +1158,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
                     Preview Thumbnail (Generated from PDF page 1)
                   </label>
                   <div className="w-20 h-28 border border-stone-200 shadow-sm rounded-lg overflow-hidden relative">
-                    <img src={thumbnailPreviewUrl} alt="Thumbnail Preview" className="w-full h-full object-cover" />
+                    <img src={thumbnailPreviewUrl} alt="Thumbnail Preview" width={160} height={224} decoding="async" className="w-full h-full object-cover" />
                   </div>
                 </div>
               )}

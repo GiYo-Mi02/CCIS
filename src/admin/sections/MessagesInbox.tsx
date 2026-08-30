@@ -7,6 +7,8 @@ import { Conversation, Message } from '../../types/database';
 import Pagination from '../components/Pagination';
 import { checkIsProfane } from '../../lib/profanity';
 import { postgrestIlike } from '../../lib/postgrest';
+import { useRealtimeAvailability } from '../../hooks/useRealtimeAvailability';
+import { CHAT_MESSAGE_FIELDS, mergeChatMessages, registerRealtimeChannel, toChatMessage, toChatMessages } from '../../lib/chatLifecycle';
 
 const formatMessageTimeHeader = (dateStr: string): string => {
   const date = new Date(dateStr);
@@ -26,6 +28,7 @@ const formatMessageTimeHeader = (dateStr: string): string => {
 export default function MessagesInbox() {
   const { profile } = useAuth();
   const { showToast } = useAdmin();
+  const { isRealtimeAvailable } = useRealtimeAvailability();
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedCon, setSelectedCon] = useState<Conversation | null>(null);
@@ -64,11 +67,7 @@ export default function MessagesInbox() {
   // Fetch unread counts globally for all conversations
   const fetchUnreadCounts = async () => {
     try {
-      const { data, error } = await supabase
-        .from('messages')
-        .select('conversation_id')
-        .eq('read_by_admin', false)
-        .eq('sender_role', 'student');
+      const { data, error } = await supabase.rpc('get_dashboard_unread_counts');
 
       if (error) {
         console.error('Error fetching unread counts:', error.message);
@@ -77,8 +76,8 @@ export default function MessagesInbox() {
 
       if (data) {
         const counts: Record<string, number> = {};
-        data.forEach((m: any) => {
-          counts[m.conversation_id] = (counts[m.conversation_id] || 0) + 1;
+        (data as Array<{ conversation_id: string; unread_count: number | string }>).forEach(row => {
+          counts[row.conversation_id] = Number(row.unread_count || 0);
         });
         setUnreadCounts(counts);
       }
@@ -125,12 +124,12 @@ export default function MessagesInbox() {
         const searchFilter = postgrestIlike(searchQuery);
         listQuery = supabase
           .from('conversations')
-          .select('*, profiles!inner(full_name, email, avatar_url)')
+          .select('id, profile_id, created_at, last_message_at, profiles!inner(full_name, email, avatar_url)')
           .or(`full_name.ilike.${searchFilter},email.ilike.${searchFilter}`, { referencedTable: 'profiles' });
       } else {
         listQuery = supabase
           .from('conversations')
-          .select('*, profiles(full_name, email, avatar_url)');
+          .select('id, profile_id, created_at, last_message_at, profiles(full_name, email, avatar_url)');
       }
 
       const offset = (page - 1) * pageSize;
@@ -165,7 +164,7 @@ export default function MessagesInbox() {
     try {
       const { data, error } = await supabase
         .from('messages')
-        .select('*')
+        .select(CHAT_MESSAGE_FIELDS)
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: false })
         .range(currentOffset, currentOffset + messageLimit - 1);
@@ -177,16 +176,17 @@ export default function MessagesInbox() {
       }
 
       if (data) {
-        const reversed = [...data].reverse() as Message[];
+        const rows = toChatMessages(data);
+        const reversed = [...rows].reverse();
         if (append) {
           setMessages(prev => [...reversed, ...prev]);
         } else {
           setMessages(reversed);
         }
-        setHasMoreMessages(data.length === messageLimit);
+        setHasMoreMessages(rows.length === messageLimit);
 
         // Mark as read
-        const unreadStudentMsgIds = data
+        const unreadStudentMsgIds = rows
           .filter(m => m.sender_role === 'student' && !m.read_by_admin)
           .map(m => m.id);
 
@@ -235,19 +235,18 @@ export default function MessagesInbox() {
 
   // Realtime subscription setup
   useEffect(() => {
-    if (!hasAccess) return;
+    if (!hasAccess || !isRealtimeAvailable) return;
 
     const channelId = `admin_inbox_messages_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     const channel = supabase
       .channel(channelId)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'messages' },
+        { event: 'INSERT', schema: 'public', table: 'messages' },
         async (payload) => {
           const activeConId = activeConIdRef.current;
-
-          if (payload.eventType === 'INSERT') {
-            const newMsg = payload.new as Message;
+          const newMsg = toChatMessage(payload.new);
+          if (!newMsg) return;
             // If the message is for the active thread, append it
             if (activeConId && newMsg.conversation_id === activeConId) {
               if (newMsg.sender_role === 'student' && !newMsg.read_by_admin) {
@@ -262,31 +261,22 @@ export default function MessagesInbox() {
                 }
               }
               
-              setMessages(prev => {
-                if (prev.some(m => m.id === newMsg.id)) return prev;
-                return [...prev, newMsg];
-              });
+              setMessages(prev => mergeChatMessages(prev, [newMsg]));
               scrollToBottom();
             }
-          } else if (payload.eventType === 'UPDATE') {
-            const updatedMsg = payload.new as Message;
-            if (activeConId && updatedMsg.conversation_id === activeConId) {
-              setMessages(prev =>
-                prev.map(m => m.id === updatedMsg.id ? updatedMsg : m)
-              );
-            }
-          }
 
           // Re-fetch conversation details/badge status globally
-          fetchConversationsList(currentPage);
+          void fetchConversationsList(currentPage);
         }
       )
       .subscribe();
+    const unregister = registerRealtimeChannel(channelId);
 
     return () => {
-      supabase.removeChannel(channel);
+      unregister();
+      void supabase.removeChannel(channel);
     };
-  }, [currentPage, hasAccess]);
+  }, [currentPage, hasAccess, isRealtimeAvailable]);
 
   const scrollToBottom = () => {
     setTimeout(() => {

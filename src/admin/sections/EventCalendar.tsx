@@ -1,4 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
+import {
+  deleteManagedOptimizedImage,
+  deleteManagedOptimizedImageByUrl,
+  uploadOptimizedImage,
+  type MediaAsset,
+} from '../../lib/media';
 import { ChevronLeft, ChevronRight, Plus, List, Grid3X3, Trash, Trophy, GraduationCap, Image as ImageIcon, Calendar as CalendarIcon, Clock, MapPin } from 'lucide-react';
 import { useAdmin } from '../AdminContext';
 import { useAuth } from '../../context/AuthContext';
@@ -17,7 +23,7 @@ export default function EventCalendar() {
   const [isCreating, setIsCreating] = useState(false);
 
   const fetchEvents = async () => {
-    const { data, error } = await supabase.from('events').select('*').order('event_date').limit(200);
+    const { data, error } = await supabase.from('events').select('id, title, description, category, event_type, event_date, event_time, location, registration_required, registration_cap, created_by, created_at, banner_url').order('event_date').limit(200);
     if (!error && data) setEvents(data as EventItem[]);
     setLoading(false);
   };
@@ -63,7 +69,7 @@ export default function EventCalendar() {
         registration_cap: form.registration_cap || null, created_by: user?.id,
         banner_url: form.banner_url || null,
       });
-      if (error) { showToast('Failed to create event', 'error'); return; }
+      if (error) { showToast('Failed to create event', 'error'); throw error; }
       showToast('Event added!');
     } else {
       const { error } = await supabase.from('events').update({
@@ -74,7 +80,7 @@ export default function EventCalendar() {
         registration_cap: form.registration_cap || null,
         banner_url: form.banner_url || null,
       }).eq('id', form.id);
-      if (error) { showToast('Failed to update event', 'error'); return; }
+      if (error) { showToast('Failed to update event', 'error'); throw error; }
       showToast('Event updated!');
     }
     setEditingEvent(null);
@@ -83,8 +89,11 @@ export default function EventCalendar() {
   };
 
   const deleteEvent = async (id: string) => {
+    const deletedEvent = events.find(event => event.id === id);
     const { error } = await supabase.from('events').delete().eq('id', id);
     if (error) { showToast('Failed to delete', 'error'); return; }
+    await deleteManagedOptimizedImageByUrl(deletedEvent?.banner_url, 'banners').catch(error =>
+      console.error('Failed to clean up managed event banner:', error));
     showToast('Event deleted', 'error');
     fetchEvents();
   };
@@ -92,6 +101,7 @@ export default function EventCalendar() {
   const handleDeleteAll = async () => {
     const { error } = await supabase.from('events').delete().not('id', 'is', null);
     if (error) { showToast('Failed to delete all', 'error'); return; }
+    await Promise.allSettled(events.map(event => deleteManagedOptimizedImageByUrl(event.banner_url, 'banners')));
     setEvents([]);
     showToast('All events deleted', 'error');
   };
@@ -225,13 +235,23 @@ export default function EventCalendar() {
 function EventForm({ event, isCreating, onSave, onDelete, onClose }: {
   event: Partial<EventItem>;
   isCreating: boolean;
-  onSave: (e: Partial<EventItem>) => void;
+  onSave: (e: Partial<EventItem>) => Promise<void>;
   onDelete: (id: string) => void;
   onClose: () => void;
 }) {
   const [form, setForm] = useState({ ...event });
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const pendingAssetRef = useRef<MediaAsset | null>(null);
+  const committedRef = useRef(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => () => {
+    mountedRef.current = false;
+    if (!committedRef.current && pendingAssetRef.current) {
+      void deleteManagedOptimizedImage(pendingAssetRef.current).catch(() => undefined);
+    }
+  }, []);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -248,26 +268,59 @@ function EventForm({ event, isCreating, onSave, onDelete, onClose }: {
 
     setUploading(true);
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `events/${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
-      
-      const { data, error } = await supabase.storage
-        .from('banners')
-        .upload(fileName, file);
-
-      if (error) throw error;
-
-      const { data: urlData } = supabase.storage
-        .from('banners')
-        .getPublicUrl(fileName);
-
-      setForm({ ...form, banner_url: urlData.publicUrl });
-    } catch (err: any) {
+      const result = await uploadOptimizedImage(file, {
+        category: 'banner',
+        bucket: 'banners',
+        folder: 'events',
+        entityType: 'events',
+        entityId: event?.id,
+      });
+      if (!mountedRef.current) {
+        await deleteManagedOptimizedImage(result.asset).catch(() => undefined);
+        return;
+      }
+      const previousPendingAsset = pendingAssetRef.current;
+      pendingAssetRef.current = result.asset;
+      const cardUrl = result.asset.variants.find(variant => variant.label === 'card')?.publicUrl ?? result.asset.publicUrl;
+      setForm({ ...form, banner_url: cardUrl });
+      alert(`Optimized ${(result.originalSizeBytes / 1024).toFixed(0)} KB to ${(result.optimizedSizeBytes / 1024).toFixed(0)} KB (${result.percentageSaved.toFixed(0)}% saved).`);
+      if (previousPendingAsset) {
+        await deleteManagedOptimizedImage(previousPendingAsset).catch(error => console.error('Failed to clean up replaced draft event banner:', error));
+      }
+    } catch (err: unknown) {
       console.error(err);
-      alert('Upload failed: ' + err.message);
+      alert(`Upload failed: ${err instanceof Error ? err.message : 'Unknown image error'}`);
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleSave = async () => {
+    if (uploading) return;
+    committedRef.current = true;
+    try {
+      await onSave(form);
+      if (event.banner_url && event.banner_url !== form.banner_url) {
+        await deleteManagedOptimizedImageByUrl(event.banner_url, 'banners').catch(error =>
+          console.error('Failed to clean up replaced event banner:', error));
+      }
+    } catch (error) {
+      committedRef.current = false;
+      if (pendingAssetRef.current) {
+        await deleteManagedOptimizedImage(pendingAssetRef.current).catch(() => undefined);
+        pendingAssetRef.current = null;
+      }
+      setForm(previous => ({ ...previous, banner_url: event.banner_url || null }));
+      alert(error instanceof Error ? error.message : 'The event could not be saved.');
+    }
+  };
+
+  const handleRemoveBanner = () => {
+    if (pendingAssetRef.current) {
+      void deleteManagedOptimizedImage(pendingAssetRef.current).catch(() => undefined);
+      pendingAssetRef.current = null;
+    }
+    setForm(previous => ({ ...previous, banner_url: null }));
   };
 
   return (
@@ -278,7 +331,7 @@ function EventForm({ event, isCreating, onSave, onDelete, onClose }: {
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-lg bg-gray-50 border border-gray-200 overflow-hidden flex items-center justify-center relative flex-shrink-0">
             {form.banner_url ? (
-              <img src={form.banner_url} alt="Banner Preview" className="w-full h-full object-cover" />
+              <img src={form.banner_url} alt="Banner Preview" width={960} height={400} loading="lazy" decoding="async" className="w-full h-full object-cover" />
             ) : (
               <ImageIcon size={22} className="text-stone-300" />
             )}
@@ -308,7 +361,7 @@ function EventForm({ event, isCreating, onSave, onDelete, onClose }: {
               {form.banner_url && (
                 <button 
                   type="button"
-                  onClick={() => setForm({ ...form, banner_url: null })}
+                  onClick={handleRemoveBanner}
                   className="px-3 py-1.5 border border-rose-200 hover:border-rose-300 text-[11px] font-bold rounded-lg text-rose-600 hover:bg-rose-50 transition-colors uppercase tracking-wider cursor-pointer"
                 >
                   Remove
@@ -406,7 +459,7 @@ function EventForm({ event, isCreating, onSave, onDelete, onClose }: {
         )}
       </div>
       <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
-        <button onClick={() => onSave(form)} className="px-5 py-2.5 bg-[#F5B400] hover:bg-[#ffc522] text-[#1A3C2E] rounded-lg font-bold text-xs uppercase tracking-wider shadow-sm transition-colors cursor-pointer">
+        <button onClick={() => void handleSave()} disabled={uploading} className="px-5 py-2.5 bg-[#F5B400] hover:bg-[#ffc522] text-[#1A3C2E] rounded-lg font-bold text-xs uppercase tracking-wider shadow-sm transition-colors cursor-pointer disabled:opacity-50">
           {isCreating ? 'Add Event' : 'Save Changes'}
         </button>
         {!isCreating && form.id && (

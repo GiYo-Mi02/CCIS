@@ -3,11 +3,16 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=22 <25"
+  },
   "scripts": {
     "dev": "node dev.js",
     "build": "vite build",
     "check:bundle": "node scripts/check-bundle-size.mjs",
     "preview": "vite preview",
+    "audit:supabase-usage": "tsx scripts/audit-supabase-usage.ts",
+    "optimize:storage": "tsx scripts/optimize-existing-storage-assets.ts --dry-run",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
     "lint:edge": "deno check supabase/functions/process-email-queue/index.ts supabase/functions/send-ticket-email/index.ts supabase/functions/delete-user/index.ts supabase/functions/report-client-error/index.ts",
@@ -22,8 +27,9 @@
     "test:email-queue-recovery": "psql \"$SUPABASE_DB_URL\" --set ON_ERROR_STOP=1 --file supabase/tests/email_queue_recovery.sql",
     "test:security-contract": "psql \"$SUPABASE_DB_URL\" --set ON_ERROR_STOP=1 --file supabase/tests/security_contract.sql",
     "test:client-error-events": "psql \"$SUPABASE_DB_URL\" --set ON_ERROR_STOP=1 --file supabase/tests/client_error_events.sql",
+    "test:scaling-performance": "psql \"$SUPABASE_DB_URL\" --set ON_ERROR_STOP=1 --file supabase/tests/scaling_performance.sql",
     "test:db:local-postgres": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-db-local-postgres.ps1",
-    "test:db": "npm run test:security-contract && npm run test:public-content-rls && npm run test:profile-least-privilege && npm run test:gallery-rls && npm run test:messages-rls && npm run test:attendance-rpc && npm run test:email-queue-recovery && npm run test:registration-checkin-rpc && npm run test:email-worker-outcomes && npm run test:client-error-events",
+    "test:db": "npm run test:security-contract && npm run test:public-content-rls && npm run test:profile-least-privilege && npm run test:gallery-rls && npm run test:messages-rls && npm run test:attendance-rpc && npm run test:email-queue-recovery && npm run test:registration-checkin-rpc && npm run test:email-worker-outcomes && npm run test:client-error-events && npm run test:scaling-performance",
     "test:all": "npm run lint && npm run test && npm run build && npm run check:bundle",
     "validate": "npm run test:all && npm run lint:edge"
   },
@@ -44,6 +50,7 @@
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
     "recharts": "^3.8.1",
+    "sharp": "0.35.3",
     "vite": "^6.2.3"
   },
   "devDependencies": {

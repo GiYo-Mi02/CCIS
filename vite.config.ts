@@ -1,16 +1,36 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import {defineConfig} from 'vite';
+import {defineConfig, loadEnv, type Plugin} from 'vite';
 
-export default defineConfig(() => {
+function localMediaApi(): Plugin {
+  return {
+    name: 'ccis-local-media-api',
+    configureServer(server) {
+      server.middlewares.use(async (request, response, next) => {
+        const pathname = request.url?.split('?')[0];
+        if (pathname !== '/api/media/optimize') {
+          next();
+          return;
+        }
+        const { default: handler } = await import('./api/media/optimize.ts');
+        await handler(request, response);
+      });
+    },
+  };
+}
+
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
+  process.env.VITE_SUPABASE_URL ??= env.VITE_SUPABASE_URL;
+  process.env.VITE_SUPABASE_PUBLISHABLE_KEY ??= env.VITE_SUPABASE_PUBLISHABLE_KEY;
   const release = process.env.VITE_APP_RELEASE || process.env.VERCEL_GIT_COMMIT_SHA || 'local';
 
   return {
     define: {
       'import.meta.env.VITE_APP_RELEASE': JSON.stringify(release),
     },
-    plugins: [react(), tailwindcss()],
+    plugins: [localMediaApi(), react(), tailwindcss()],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

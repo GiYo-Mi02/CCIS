@@ -13,7 +13,7 @@ export default function FaqSection() {
     const fetchFaqs = async () => {
       const { data, error } = await supabase
         .from('faqs')
-        .select('*')
+        .select('id, question, answer, display_order, is_active, created_at, updated_at')
         .eq('is_active', true)
         .order('display_order')
         .limit(100);

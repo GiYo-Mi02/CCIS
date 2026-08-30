@@ -2,6 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Upload, X, Plus, Trash2, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import {
+  deleteManagedOptimizedImage,
+  deleteManagedOptimizedImageByUrl,
+  getManagedImagePathsFromUrl,
+  uploadOptimizedImage,
+  type MediaAsset,
+  type UploadOptimizedImageResult,
+} from '../../lib/media';
 import { GalleryItem, AdminFormState, GalleryCategory } from '../../types/gallery';
 
 interface AdminFormProps {
@@ -180,25 +188,19 @@ export default function AdminForm({
     return cat.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
   };
 
-  const uploadToStorage = async (file: File, categorySlug: string): Promise<string> => {
-    const uuid = crypto.randomUUID();
-    const cleanFileName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
-    const path = `${categorySlug}/${uuid}-${cleanFileName}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('gallery-images')
-      .upload(path, file, {
-        cacheControl: '3600',
-        upsert: false
-      });
-
-    if (uploadError) throw uploadError;
-
-    const { data } = supabase.storage.from('gallery-images').getPublicUrl(path);
-    if (!data || !data.publicUrl) {
-      throw new Error('Failed to retrieve public URL for uploaded file.');
-    }
-    return data.publicUrl;
+  const uploadToStorage = async (file: File, categorySlug: string): Promise<UploadOptimizedImageResult> => {
+    const result = await uploadOptimizedImage(file, {
+      category: 'gallery',
+      bucket: 'gallery-images',
+      folder: categorySlug,
+      entityType: 'gallery_items',
+      entityId: formState.editTargetId || undefined,
+    });
+    triggerToast(
+      `${file.name}: ${(result.originalSizeBytes / 1024).toFixed(0)} KB to ${(result.optimizedSizeBytes / 1024).toFixed(0)} KB (${result.percentageSaved.toFixed(0)}% saved).`,
+      'success',
+    );
+    return result;
   };
 
   const handleFormSubmit = async (e: React.FormEvent) => {
@@ -216,6 +218,7 @@ export default function AdminForm({
 
     setIsSubmitting(true);
     setUploadProgress(10);
+    const newlyUploadedAssets: MediaAsset[] = [];
 
     try {
       const categorySlug = getCategorySlug(formState.category);
@@ -224,15 +227,18 @@ export default function AdminForm({
       // 1. Upload main image if modified
       if (formState.imageFile) {
         setUploadProgress(30);
-        mainImageUrl = await uploadToStorage(formState.imageFile, categorySlug);
+        const mainUpload = await uploadToStorage(formState.imageFile, categorySlug);
+        newlyUploadedAssets.push(mainUpload.asset);
+        mainImageUrl = mainUpload.asset.publicUrl;
       }
 
       // 2. Upload new thumbnails
       setUploadProgress(60);
       const newThumbUrls: string[] = [];
       for (const file of formState.thumbnailFiles) {
-        const url = await uploadToStorage(file, categorySlug);
-        newThumbUrls.push(url);
+        const thumbnailUpload = await uploadToStorage(file, categorySlug);
+        newlyUploadedAssets.push(thumbnailUpload.asset);
+        newThumbUrls.push(thumbnailUpload.asset.publicUrl);
       }
 
       const combinedThumbnails = [
@@ -260,23 +266,20 @@ export default function AdminForm({
 
         if (dbError) throw dbError;
 
-        // Cleanup replaced items in storage now that database write succeeded
-        
-        // A. If main image was updated, delete the old file
-        if (formState.imageFile && itemToEdit?.imageUrl) {
-          const oldMainPath = getStoragePathFromUrl(itemToEdit.imageUrl);
-          if (oldMainPath) {
-            try {
-              await supabase.storage.from('gallery-images').remove([oldMainPath]);
-            } catch (err) {
-              console.error('Failed to remove replaced main image:', err);
-            }
-          }
+        if (formState.imageFile && itemToEdit?.imageUrl && itemToEdit.imageUrl !== mainImageUrl) {
+          await deleteManagedOptimizedImageByUrl(itemToEdit.imageUrl, 'gallery-images').catch(error =>
+            console.error('Failed to clean up replaced managed gallery image:', error));
         }
 
-        // B. Delete removed thumbnails
+        // Explicitly removed gallery images are cleaned up only after the row update.
+        // Replaced originals are retained for the staged optimization rollback window.
         if (formState.removedThumbnails.length > 0) {
+          await Promise.allSettled(formState.removedThumbnails
+            .filter(url => getManagedImagePathsFromUrl(url, 'gallery-images') !== null)
+            .map(url => deleteManagedOptimizedImageByUrl(url, 'gallery-images')));
+
           const pathsToDelete = formState.removedThumbnails
+            .filter(url => getManagedImagePathsFromUrl(url, 'gallery-images') === null)
             .map(url => getStoragePathFromUrl(url))
             .filter((p): p is string => p !== null);
 
@@ -343,9 +346,10 @@ export default function AdminForm({
       }
 
       handleCancel();
-    } catch (err: any) {
+    } catch (err: unknown) {
+      await Promise.allSettled(newlyUploadedAssets.map(asset => deleteManagedOptimizedImage(asset)));
       console.error('Error submitting form:', err);
-      triggerToast(err.message || 'An error occurred while uploading. Please try again.', 'error');
+      triggerToast(err instanceof Error ? err.message : 'An error occurred while uploading. Please try again.', 'error');
     } finally {
       setIsSubmitting(false);
       setUploadProgress(null);

@@ -2,6 +2,7 @@ import React, { lazy, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
+import { CHAT_MESSAGE_FIELDS, toChatMessages } from '../lib/chatLifecycle';
 import { EventRegistration, Conversation, Message } from '../types/database';
 import { Registration } from '../types';
 import {
@@ -181,7 +182,7 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
       setLoadingData(true);
       const { data, error } = await supabase
         .from('event_registrations')
-        .select('*, events(title, event_date, location)')
+        .select('id, event_id, profile_id, status, registered_at, attended_at, attendance_origin, events(title, event_date, location)')
         .eq('profile_id', user.id)
         .order('registered_at', { ascending: false })
         .limit(20);
@@ -190,7 +191,11 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
         if (error) {
           console.error('Error fetching registrations:', error.message);
         } else {
-          setRegistrations((data as EventRegistration[]) || []);
+          const normalized = (data || []).map(row => ({
+            ...row,
+            events: Array.isArray(row.events) ? (row.events[0] || null) : row.events,
+          }));
+          setRegistrations(normalized as unknown as EventRegistration[]);
         }
         setLoadingData(false);
       }
@@ -202,7 +207,7 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
 
   // Fetch conversation and latest 2 messages
   useEffect(() => {
-    if (!user) return;
+    if (!user || activeTab !== 'messages') return;
     let cancelled = false;
 
     const fetchConversationAndMessages = async () => {
@@ -210,7 +215,7 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
       try {
         const { data: con, error: conErr } = await supabase
           .from('conversations')
-          .select('*')
+          .select('id, profile_id, created_at, last_message_at')
           .eq('profile_id', user.id)
           .maybeSingle();
 
@@ -225,7 +230,7 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
 
           const { data: msgs, error: msgsErr } = await supabase
             .from('messages')
-            .select('*')
+            .select(CHAT_MESSAGE_FIELDS)
             .eq('conversation_id', con.id)
             .order('created_at', { ascending: false })
             .limit(2);
@@ -235,7 +240,7 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
           if (msgsErr) {
             console.error('Error fetching latest messages:', msgsErr.message);
           } else if (msgs) {
-            setLastMessages([...msgs].reverse() as Message[]);
+            setLastMessages([...toChatMessages(msgs)].reverse());
           }
         }
       } catch (err) {
@@ -249,7 +254,7 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
 
     fetchConversationAndMessages();
     return () => { cancelled = true; };
-  }, [user]);
+  }, [user?.id, activeTab]);
 
   // Mark messages as read when the Messages tab is opened on AccountPage
   useEffect(() => {

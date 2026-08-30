@@ -32,3 +32,8 @@ verify_jwt = true
 
 [functions.report-client-error]
 verify_jwt = false
+
+[db.migrations]
+schema_paths = [
+  "schemas",
+]

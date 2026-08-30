@@ -118,6 +118,10 @@ export default function Announcements({ previewMode = false, onViewAllClick }: A
                     <img 
                       src={ann.banner_url} 
                       alt={ann.title} 
+                      width={960}
+                      height={540}
+                      loading="lazy"
+                      decoding="async"
                       className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
                     />
                   ) : (
@@ -285,6 +289,10 @@ export default function Announcements({ previewMode = false, onViewAllClick }: A
                     <img 
                       src={ann.banner_url} 
                       alt={ann.title} 
+                      width={960}
+                      height={540}
+                      loading="lazy"
+                      decoding="async"
                       className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
                     />
                   ) : (
@@ -404,6 +412,10 @@ function AnnouncementModal({ announcement, onClose, getCategoryColor }: ModalPro
             <img 
               src={announcement.banner_url} 
               alt={announcement.title} 
+              width={1920}
+              height={1080}
+              loading="eager"
+              decoding="async"
               className="absolute inset-0 w-full h-full object-cover" 
             />
           ) : (

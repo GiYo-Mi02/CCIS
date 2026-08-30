@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Edit, Trash2 } from 'lucide-react';
 import { GalleryItem } from '../../types/gallery';
+import OptimizedImage from '../OptimizedImage';
 
 interface DetailModalProps {
   item: GalleryItem;
@@ -151,9 +152,12 @@ export default function DetailModal({
           
           {/* Main Featured Image Container */}
           <div className="relative w-full flex-1 min-h-[220px] md:min-h-[380px] rounded-2xl overflow-hidden border border-stone-200/55 bg-black flex items-center justify-center shadow-inner">
-            <img
+            <OptimizedImage
               src={featuredImage}
               alt=""
+              width={1600}
+              height={1200}
+              loading="eager"
               className="max-w-full max-h-full object-contain"
             />
           </div>
@@ -176,7 +180,7 @@ export default function DetailModal({
                         : 'border-white/50 hover:border-[#1A3C2E]/40 opacity-80 hover:opacity-100'
                     }`}
                   >
-                    <img src={imgUrl} alt="" className="w-full h-full object-cover" />
+                    <OptimizedImage src={imgUrl} alt="" width={160} height={120} className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>
