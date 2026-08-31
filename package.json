@@ -31,7 +31,8 @@
     "test:db:local-postgres": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-db-local-postgres.ps1",
     "test:db": "npm run test:security-contract && npm run test:public-content-rls && npm run test:profile-least-privilege && npm run test:gallery-rls && npm run test:messages-rls && npm run test:attendance-rpc && npm run test:email-queue-recovery && npm run test:registration-checkin-rpc && npm run test:email-worker-outcomes && npm run test:client-error-events && npm run test:scaling-performance",
     "test:all": "npm run lint && npm run test && npm run build && npm run check:bundle",
-    "validate": "npm run test:all && npm run lint:edge"
+    "validate": "npm run test:all && npm run lint:edge",
+    "doctor": "npx react-doctor@latest"
   },
   "dependencies": {
     "@emnapi/core": "^1.11.3",
@@ -62,6 +63,7 @@
     "autoprefixer": "^10.4.21",
     "deno": "2.9.5",
     "esbuild": "^0.25.0",
+    "react-doctor": "^0.9.12",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
