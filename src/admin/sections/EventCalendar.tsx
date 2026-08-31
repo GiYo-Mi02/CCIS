@@ -150,8 +150,9 @@ export default function EventCalendar() {
               const isToday = day === new Date().getDate() && month === new Date().getMonth() && year === new Date().getFullYear();
                return (
                  <div key={day} className={`relative min-h-[110px] border-b border-r border-[#1A3C2E]/20 p-2 hover:bg-[#F5B400]/[0.05] transition-colors ${isToday ? 'bg-[#F5B400]/10' : 'bg-white'}`}>
-                   <div className="relative z-10 flex items-center justify-between">
-                    <button type="button" aria-label={`Add event on ${monthName.split(' ')[0]} ${day}, ${year}`} onClick={() => openCreateForDate(day)} className={`text-xs font-bold inline-flex items-center justify-center w-6 h-6 rounded-full ${isToday ? 'bg-[#1A3C2E] text-[#F5B400]' : 'text-stone-700 hover:bg-stone-100'}`}>
+                   <button type="button" aria-label={`Add event on ${monthName.split(' ')[0]} ${day}, ${year}`} onClick={() => openCreateForDate(day)} className="absolute inset-0 z-0" />
+                   <div className="relative z-10 pointer-events-none flex items-center justify-between">
+                    <button type="button" aria-label={`Add event on ${monthName.split(' ')[0]} ${day}, ${year}`} onClick={() => openCreateForDate(day)} className={`pointer-events-auto text-xs font-bold inline-flex items-center justify-center w-6 h-6 rounded-full ${isToday ? 'bg-[#1A3C2E] text-[#F5B400]' : 'text-stone-700 hover:bg-stone-100'}`}>
                       {day}
                     </button>
                     {dayEvents.length > 0 && (
@@ -163,7 +164,7 @@ export default function EventCalendar() {
                       const isComp = ev.event_type === 'competition';
                       return (
                          <button type="button" key={ev.id} onClick={() => { setIsCreating(false); setEditingEvent(ev); }} aria-label={`Edit event: ${ev.title}`}
-                          className={`text-[9.5px] font-bold px-2 py-1 rounded-md truncate cursor-pointer transition-colors border flex items-center gap-1 ${
+                           className={`pointer-events-auto text-[9.5px] font-bold px-2 py-1 rounded-md truncate cursor-pointer transition-colors border flex items-center gap-1 ${
                             isComp
                               ? 'bg-amber-50 text-amber-900 border-amber-200 hover:bg-amber-100'
                               : 'bg-emerald-50 text-emerald-900 border-emerald-200 hover:bg-emerald-100'
