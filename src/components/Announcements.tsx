@@ -36,18 +36,21 @@ export default function Announcements({ previewMode = false, onViewAllClick }: A
         query = query.eq('pinned', true).limit(3);
       }
 
-      const { data, error } = await query;
-      if (cancelled) return;
+      try {
+        const { data, error } = await query;
+        if (cancelled) return;
 
-      if (!error && data) {
-        // Map data to ensure profiles field is correctly parsed
-        const mapped = data.map((ann: any) => ({
-          ...ann,
-          profiles: Array.isArray(ann.profiles) ? ann.profiles[0] : ann.profiles
-        }));
-        setAnnouncements(mapped);
+        if (!error && data) {
+          // Map data to ensure profiles field is correctly parsed
+          const mapped = data.map((ann: any) => ({
+            ...ann,
+            profiles: Array.isArray(ann.profiles) ? ann.profiles[0] : ann.profiles
+          }));
+          setAnnouncements(mapped);
+        }
+      } finally {
+        setLoading((current) => cancelled ? current : false);
       }
-      setLoading(false);
     };
 
     fetchAnnouncements();
