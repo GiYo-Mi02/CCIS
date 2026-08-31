@@ -24,12 +24,6 @@ export default function HeroCarousel({
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Reset active index if list size changes
-  useEffect(() => {
-    setActiveIndex(0);
-    setDeleteConfirmId(null);
-  }, [items.length]);
-
   // Auto-advance logic (10s)
   useEffect(() => {
     if (prefersReducedMotion || items.length <= 1) return;

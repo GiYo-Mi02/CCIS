@@ -376,6 +376,7 @@ export default function GalleryPage({ isAdmin = false }: GalleryPageProps) {
         </div>
 
         <HeroCarousel 
+          key={items.filter(item => item.featured).length}
           items={items.filter(item => item.featured)}
           onEditClick={(item) => {
             setEditTargetItem(item);
