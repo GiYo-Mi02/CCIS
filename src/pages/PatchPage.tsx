@@ -143,7 +143,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
   const [videos, setVideos] = useState<PatchVideo[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const [isUsingMockData, setIsUsingMockData] = useState<boolean>(false);
+  const isUsingMockDataRef = useRef(false);
 
   // Detail Modal & Lightbox
   const [selectedVideo, setSelectedVideo] = useState<PatchVideo | null>(null);
@@ -168,7 +168,6 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
   // Admin Video Form States
   const [showFormModal, setShowFormModal] = useState<boolean>(false);
   const [editTarget, setEditTarget] = useState<PatchVideo | null>(null);
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const [formTitle, setFormTitle] = useState('');
   const [formDescription, setFormDescription] = useState('');
@@ -176,7 +175,6 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
   const [formEpisodeNumber, setFormEpisodeNumber] = useState<string>('1');
   const [formFacebookPermalink, setFormFacebookPermalink] = useState('');
   const [formThumbnailUrl, setFormThumbnailUrl] = useState('');
-  const formThumbnailObjectUrlRef = useRef<string | null>(null);
   const [formIsFeatured, setFormIsFeatured] = useState<boolean>(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [formSubmitting, setFormSubmitting] = useState(false);
@@ -185,15 +183,6 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
   const [formSourceType, setFormSourceType] = useState<'facebook' | 'direct' | 'upload'>('facebook');
   const [formVideoUrl, setFormVideoUrl] = useState<string>('');
   const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (formThumbnailObjectUrlRef.current) {
-        URL.revokeObjectURL(formThumbnailObjectUrlRef.current);
-        formThumbnailObjectUrlRef.current = null;
-      }
-    };
-  }, []);
 
   // Autoplay-on-hover & Carousel logic states & refs
   const [hoveredItem, setHoveredItem] = useState<{ id: string; type: 'hero' | 'card' } | null>(null);
@@ -368,7 +357,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
       if (error) {
         console.error('Supabase patch videos table load error:', error.message);
         setVideos([]);
-        setIsUsingMockData(false);
+        isUsingMockDataRef.current = false;
       } else if (data && data.length > 0) {
         const mapped: PatchVideo[] = data.map((v) => ({
           id: v.id,
@@ -383,16 +372,16 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
           createdAt: v.created_at
         }));
         setVideos(mapped);
-        setIsUsingMockData(false);
+        isUsingMockDataRef.current = false;
       } else {
         // Table is empty
         setVideos([]);
-        setIsUsingMockData(false);
+        isUsingMockDataRef.current = false;
       }
     } catch (err) {
       console.error('Failed to load patch videos:', err);
       setVideos([]);
-      setIsUsingMockData(false);
+      isUsingMockDataRef.current = false;
     } finally {
       setLoading(false);
     }
@@ -401,12 +390,6 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
   useEffect(() => {
     fetchVideos();
   }, []);
-
-  useEffect(() => {
-    if (customVideoRef.current) {
-      customVideoRef.current.volume = volume;
-    }
-  }, [isPlayerActive, volume]);
 
   // Netflix-style Custom Video Player Control Methods
   const togglePlay = useCallback(() => {
@@ -637,10 +620,6 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
 
   // Initialize form for adding / editing
   const openForm = (video: PatchVideo | null = null) => {
-    if (formThumbnailObjectUrlRef.current) {
-      URL.revokeObjectURL(formThumbnailObjectUrlRef.current);
-      formThumbnailObjectUrlRef.current = null;
-    }
     if (video) {
       setEditTarget(video);
       setFormTitle(video.title);
@@ -694,13 +673,8 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
         triggerToast('Thumbnail image cannot exceed 5MB.', 'error');
         return;
       }
-      if (formThumbnailObjectUrlRef.current) {
-        URL.revokeObjectURL(formThumbnailObjectUrlRef.current);
-      }
-      const previewUrl = URL.createObjectURL(file);
-      formThumbnailObjectUrlRef.current = previewUrl;
       setSelectedFile(file);
-      setFormThumbnailUrl(previewUrl);
+      setFormThumbnailUrl(file.name);
     }
   };
 
@@ -723,7 +697,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isUsingMockData) {
+    if (isUsingMockDataRef.current) {
       triggerToast('Local Mock Fallback enabled. Connect Supabase database to write patch records.', 'warning');
       return;
     }
@@ -849,7 +823,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
   };
 
   const handleDeleteVideo = async (video: PatchVideo) => {
-    if (isUsingMockData) {
+    if (isUsingMockDataRef.current) {
       triggerToast('Mock fallback active. Delete functions locked.', 'warning');
       return;
     }
@@ -866,7 +840,6 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
         console.error('Failed to clean up managed Patch thumbnail:', cleanupError));
 
       triggerToast('Patch video deleted successfully.', 'success');
-      setDeleteConfirmId(null);
       if (selectedVideo?.id === video.id) {
         setLightboxOpen(false);
       }
@@ -1172,7 +1145,10 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
               <div className="relative w-screen h-screen bg-black flex items-center justify-center overflow-hidden">
                 {selectedVideo.videoUrl ? (
                   <video
-                    ref={customVideoRef}
+                    ref={(element) => {
+                      customVideoRef.current = element;
+                      if (element) element.volume = volume;
+                    }}
                     src={selectedVideo.videoUrl}
                     autoPlay
                     loop
@@ -1184,6 +1160,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                 ) : (
                   <iframe
                     src={getFbEmbedUrl(selectedVideo.facebookPermalink)}
+                    title={`${selectedVideo.title} Facebook video`}
                     width="100%"
                     height="100%"
                     className="absolute inset-0 w-full h-full"
