@@ -33,11 +33,6 @@ function isUploadResult(value: unknown): value is UploadOptimizedImageResult {
   );
 }
 
-async function removeStagedImage(path: string): Promise<void> {
-  const { error } = await supabase.storage.from(STAGING_BUCKET).remove([path]);
-  if (error) throw error;
-}
-
 export async function uploadOptimizedImage(
   file: File,
   options: UploadOptimizedImageOptions,
@@ -60,28 +55,23 @@ export async function uploadOptimizedImage(
   });
   if (stageError) throw new Error(`The image could not be staged securely: ${stageError.message}`);
 
-  try {
-    const response = await fetch('/api/media/optimize', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${session.access_token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ sourcePath, ...options }),
-      signal: AbortSignal.timeout(PROCESSING_TIMEOUT_MS),
-    });
-    const payload = await response.json().catch(() => null) as OptimizeApiEnvelope | null;
-    if (!response.ok) {
-      throw new Error(payload?.error?.message || 'The image could not be optimized.');
-    }
-    if (!isUploadResult(payload?.data)) {
-      throw new Error('The image service returned an invalid response.');
-    }
-    return payload.data;
-  } finally {
-    // The server removes staging objects before success. This retry covers timeouts and failed requests.
-    await removeStagedImage(sourcePath).catch(() => undefined);
+  const response = await fetch('/api/media/optimize', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ sourcePath, ...options }),
+    signal: AbortSignal.timeout(PROCESSING_TIMEOUT_MS),
+  });
+  const payload = await response.json().catch(() => null) as OptimizeApiEnvelope | null;
+  if (!response.ok) {
+    throw new Error(payload?.error?.message || 'The image could not be optimized.');
   }
+  if (!isUploadResult(payload?.data)) {
+    throw new Error('The image service returned an invalid response.');
+  }
+  return payload.data;
 }
 
 export function getManagedImagePaths(asset: MediaAsset): string[] {
@@ -95,15 +85,12 @@ async function updateCleanupState(
   cleanupStatus: 'pending' | 'failed',
   cleanupError: string | null,
 ): Promise<void> {
-  const { error } = await supabase
-    .from('media_assets')
-    .update({
-      cleanup_status: cleanupStatus,
-      cleanup_requested_at: new Date().toISOString(),
-      cleanup_error: cleanupError,
-    })
-    .eq('bucket', bucket)
-    .eq('storage_path', mainPath);
+  const { error } = await supabase.rpc('mark_media_asset_cleanup', {
+    p_bucket: bucket,
+    p_storage_path: mainPath,
+    p_cleanup_status: cleanupStatus,
+    p_cleanup_error: cleanupError,
+  });
   if (error) throw error;
 }
 
