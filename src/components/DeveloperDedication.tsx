@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Github, Linkedin, Mail, Code, ShieldCheck, X, Sparkles, CheckCircle2 } from 'lucide-react';
 
@@ -76,6 +76,46 @@ const QA_DEVELOPER: Developer = {
 
 export default function DeveloperDedication() {
   const [selectedDev, setSelectedDev] = useState<Developer | null>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const lastTriggerRef = useRef<HTMLButtonElement>(null);
+
+  const closeDialog = () => {
+    dialogRef.current?.close();
+    setSelectedDev(null);
+    lastTriggerRef.current?.focus();
+  };
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    const handleBackdropClick = (event: MouseEvent) => {
+      if (event.target === dialog) closeDialog();
+    };
+    const handleCancel = (event: Event) => {
+      event.preventDefault();
+      closeDialog();
+    };
+
+    dialog.addEventListener('click', handleBackdropClick);
+    dialog.addEventListener('cancel', handleCancel);
+    return () => {
+      dialog.removeEventListener('click', handleBackdropClick);
+      dialog.removeEventListener('cancel', handleCancel);
+    };
+  }, [selectedDev]);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    if (selectedDev) {
+      if (!dialog.open) dialog.showModal();
+      dialog.querySelector<HTMLButtonElement>('[data-dialog-close]')?.focus();
+    } else if (dialog.open) {
+      dialog.close();
+    }
+  }, [selectedDev]);
 
   return (
     <section className="py-16 bg-[#FAF7EA]/50 border-b border-[#1A3C2E]/10 font-sans" id="developer-dedication">
@@ -133,9 +173,13 @@ export default function DeveloperDedication() {
           <div className="lg:col-span-7 flex flex-wrap gap-6 md:gap-8 justify-center items-center">
             
             {/* Card 1: Lead Developer */}
-            <div
-              onClick={() => setSelectedDev(LEAD_DEVELOPER)}
-              className="relative w-[280px] max-w-[calc(100vw-3rem)] h-[395px] group overflow-visible mt-16 mb-6 flex flex-col justify-end transition-colors duration-500 cursor-pointer"
+            <button
+              type="button"
+              onClick={(event) => {
+                lastTriggerRef.current = event.currentTarget;
+                setSelectedDev(LEAD_DEVELOPER);
+              }}
+              className="relative w-[280px] max-w-[calc(100vw-3rem)] h-[395px] group overflow-visible mt-16 mb-6 flex flex-col justify-end text-left transition-colors duration-500 cursor-pointer"
               id="dev-card-lead"
             >
               {/* 1. Offset Angled Accent Border Frame */}
@@ -188,12 +232,16 @@ export default function DeveloperDedication() {
                   <Sparkles size={10} className="text-[#F5B400] animate-pulse" />
                 </div>
               </div>
-            </div>
+            </button>
 
             {/* Card 2: QA Specialist */}
-            <div
-              onClick={() => setSelectedDev(QA_DEVELOPER)}
-              className="relative w-[280px] max-w-[calc(100vw-3rem)] h-[395px] group overflow-visible mt-16 mb-6 flex flex-col justify-end transition-colors duration-500 cursor-pointer"
+            <button
+              type="button"
+              onClick={(event) => {
+                lastTriggerRef.current = event.currentTarget;
+                setSelectedDev(QA_DEVELOPER);
+              }}
+              className="relative w-[280px] max-w-[calc(100vw-3rem)] h-[395px] group overflow-visible mt-16 mb-6 flex flex-col justify-end text-left transition-colors duration-500 cursor-pointer"
               id="dev-card-qa"
             >
               {/* 1. Offset Angled Accent Border Frame */}
@@ -246,7 +294,7 @@ export default function DeveloperDedication() {
                   <Sparkles size={10} className="text-[#F5B400] animate-pulse" />
                 </div>
               </div>
-            </div>
+            </button>
 
           </div>
 
@@ -255,20 +303,20 @@ export default function DeveloperDedication() {
 
       {/* PORTFOLIO MODAL (Rendered at Root using Portal to avoid animated stacking context bugs) */}
       {selectedDev && createPortal(
-        <div 
+        <dialog
+          ref={dialogRef}
           className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto bg-black/70 p-3 font-sans backdrop-blur-xs animate-fade-in sm:items-center sm:p-4"
-          onClick={() => setSelectedDev(null)}
+          aria-label="Developer details"
         >
           <div 
             className="relative my-auto grid max-h-[calc(100svh-1.5rem)] w-full max-w-5xl grid-cols-1 overflow-y-auto rounded-3xl border border-white/10 bg-[#123524] text-[#FAF7EA] shadow-2xl shadow-[0_0_50px_rgba(255,188,0,0.15)] md:max-h-[min(90svh,52rem)] md:grid-cols-[minmax(17rem,0.8fr)_minmax(0,1.7fr)] md:overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
             aria-labelledby="developer-modal-title"
           >
             {/* Close Button */}
-            <button 
-              onClick={() => setSelectedDev(null)}
+            <button
+              type="button"
+              data-dialog-close
+              onClick={closeDialog}
               className="absolute right-3 top-3 z-20 rounded-full border border-white/20 bg-[#07130F]/80 p-2 text-stone-200 shadow-lg backdrop-blur-sm transition-colors hover:bg-white/15 hover:text-white sm:right-4 sm:top-4"
               aria-label="Close Modal"
             >
@@ -366,7 +414,7 @@ export default function DeveloperDedication() {
               </div>
             </div>
           </div>
-        </div>,
+        </dialog>,
         document.body
       )}
     </section>

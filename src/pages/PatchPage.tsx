@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useReducer } from 'react';
 import { createPortal } from 'react-dom';
 import { Play, Pause, Plus, Edit, Trash2, X, FileVideo, Loader2, Eye, Film, ArrowLeft, Volume2, VolumeX, Maximize, Minimize, RotateCcw, RotateCw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -40,6 +40,56 @@ interface FilmCredits {
   specialThanks?: string;
   sponsoredBy?: string;
   editedBy?: string;
+}
+
+interface FormState {
+  showFormModal: boolean;
+  editTarget: PatchVideo | null;
+  formTitle: string;
+  formDescription: string;
+  formCategory: string;
+  formEpisodeNumber: string;
+  formFacebookPermalink: string;
+  formThumbnailUrl: string;
+  formIsFeatured: boolean;
+  selectedFile: File | null;
+  formSubmitting: boolean;
+  formSourceType: 'facebook' | 'direct' | 'upload';
+  formVideoUrl: string;
+  selectedVideoFile: File | null;
+}
+
+const initialFormState: FormState = {
+  showFormModal: false,
+  editTarget: null,
+  formTitle: '',
+  formDescription: '',
+  formCategory: 'Full Episodes',
+  formEpisodeNumber: '1',
+  formFacebookPermalink: '',
+  formThumbnailUrl: '',
+  formIsFeatured: false,
+  selectedFile: null,
+  formSubmitting: false,
+  formSourceType: 'facebook',
+  formVideoUrl: '',
+  selectedVideoFile: null,
+};
+
+type FormAction =
+  | { type: 'open'; values: Omit<FormState, 'showFormModal' | 'formSubmitting'> }
+  | { type: 'close' }
+  | { type: 'update'; changes: Partial<FormState> };
+
+function formReducer(state: FormState, action: FormAction): FormState {
+  switch (action.type) {
+    case 'open':
+      return { ...initialFormState, ...action.values, showFormModal: true };
+    case 'close':
+      return { ...state, showFormModal: false };
+    case 'update':
+      return { ...state, ...action.changes };
+  }
 }
 
 const PATCH_CREDITS: Record<string, FilmCredits> = {
@@ -165,24 +215,13 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const controlsTimeoutRef = useRef<any>(null);
 
-  // Admin Video Form States
-  const [showFormModal, setShowFormModal] = useState<boolean>(false);
-  const [editTarget, setEditTarget] = useState<PatchVideo | null>(null);
-
-  const [formTitle, setFormTitle] = useState('');
-  const [formDescription, setFormDescription] = useState('');
-  const [formCategory, setFormCategory] = useState('Full Episodes');
-  const [formEpisodeNumber, setFormEpisodeNumber] = useState<string>('1');
-  const [formFacebookPermalink, setFormFacebookPermalink] = useState('');
-  const [formThumbnailUrl, setFormThumbnailUrl] = useState('');
-  const [formIsFeatured, setFormIsFeatured] = useState<boolean>(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [formSubmitting, setFormSubmitting] = useState(false);
-
-  // Direct video upload states
-  const [formSourceType, setFormSourceType] = useState<'facebook' | 'direct' | 'upload'>('facebook');
-  const [formVideoUrl, setFormVideoUrl] = useState<string>('');
-  const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null);
+  // Form fields are initialized and submitted as one add/edit transition.
+  const [formState, dispatchForm] = useReducer(formReducer, initialFormState);
+  const {
+    showFormModal, editTarget, formTitle, formDescription, formCategory,
+    formEpisodeNumber, formFacebookPermalink, formThumbnailUrl, formIsFeatured,
+    selectedFile, formSubmitting, formSourceType, formVideoUrl, selectedVideoFile,
+  } = formState;
 
   // Autoplay-on-hover & Carousel logic states & refs
   const [hoveredItem, setHoveredItem] = useState<{ id: string; type: 'hero' | 'card' } | null>(null);
@@ -621,44 +660,30 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
   // Initialize form for adding / editing
   const openForm = (video: PatchVideo | null = null) => {
     if (video) {
-      setEditTarget(video);
-      setFormTitle(video.title);
-      setFormDescription(video.description);
-      setFormCategory(video.category);
-      setFormEpisodeNumber(String(video.episodeNumber));
-      setFormFacebookPermalink(video.facebookPermalink || '');
-      setFormThumbnailUrl(video.thumbnailUrl);
-      setFormIsFeatured(video.isFeatured);
-      setFormVideoUrl(video.videoUrl || '');
-      if (video.videoUrl) {
-        if (video.videoUrl.startsWith('http') && !video.videoUrl.includes('supabase.co')) {
-          setFormSourceType('direct');
-        } else {
-          setFormSourceType('upload');
-        }
-      } else {
-        setFormSourceType('facebook');
-      }
-      setSelectedFile(null);
-      setSelectedVideoFile(null);
+      dispatchForm({ type: 'open', values: {
+        editTarget: video,
+        formTitle: video.title,
+        formDescription: video.description,
+        formCategory: video.category,
+        formEpisodeNumber: String(video.episodeNumber),
+        formFacebookPermalink: video.facebookPermalink || '',
+        formThumbnailUrl: video.thumbnailUrl,
+        formIsFeatured: video.isFeatured,
+        formVideoUrl: video.videoUrl || '',
+        formSourceType: video.videoUrl
+          ? video.videoUrl.startsWith('http') && !video.videoUrl.includes('supabase.co') ? 'direct' : 'upload'
+          : 'facebook',
+        selectedFile: null,
+        selectedVideoFile: null,
+      } });
     } else {
-      setEditTarget(null);
-      setFormTitle('');
-      setFormDescription('');
-      setFormCategory('Full Episodes');
-      
       // Auto increment episode number
       const maxEp = videos.reduce((max, v) => (v.episodeNumber > max ? v.episodeNumber : max), 0);
-      setFormEpisodeNumber(String(maxEp + 1));
-      setFormFacebookPermalink('');
-      setFormThumbnailUrl('');
-      setFormIsFeatured(false);
-      setFormVideoUrl('');
-      setFormSourceType('facebook');
-      setSelectedFile(null);
-      setSelectedVideoFile(null);
+      dispatchForm({ type: 'open', values: {
+        ...initialFormState,
+        formEpisodeNumber: String(maxEp + 1),
+      } });
     }
-    setShowFormModal(true);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -673,8 +698,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
         triggerToast('Thumbnail image cannot exceed 5MB.', 'error');
         return;
       }
-      setSelectedFile(file);
-      setFormThumbnailUrl(file.name);
+      dispatchForm({ type: 'update', changes: { selectedFile: file, formThumbnailUrl: file.name } });
     }
   };
 
@@ -690,8 +714,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
         triggerToast('Video file size cannot exceed 500MB.', 'error');
         return;
       }
-      setSelectedVideoFile(file);
-      setFormVideoUrl(file.name);
+      dispatchForm({ type: 'update', changes: { selectedVideoFile: file, formVideoUrl: file.name } });
     }
   };
 
@@ -731,7 +754,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
       return;
     }
 
-    setFormSubmitting(true);
+    dispatchForm({ type: 'update', changes: { formSubmitting: true } });
     let uploadedThumbnailAsset: MediaAsset | null = null;
     let uploadedVideoPath: string | null = null;
 
@@ -806,7 +829,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
         triggerToast('New Patch video published successfully.', 'success');
       }
 
-      setShowFormModal(false);
+      dispatchForm({ type: 'close' });
       fetchVideos();
     } catch (err: unknown) {
       if (uploadedThumbnailAsset) {
@@ -818,7 +841,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
       console.error('Submission failed:', err);
       triggerToast(err instanceof Error ? err.message : 'Failed to submit video metadata.', 'error');
     } finally {
-      setFormSubmitting(false);
+      dispatchForm({ type: 'update', changes: { formSubmitting: false } });
     }
   };
 
@@ -1076,10 +1099,11 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                 {/* Horizontal scrolling strip */}
                 <div className="flex gap-6 overflow-x-auto scrollbar-none py-4 px-2 scroll-smooth">
                   {categoryVideos.map(video => (
-                    <div
+                    <button
+                      type="button"
                       key={video.id}
                       onClick={() => openVideoLightbox(video)}
-                      className="w-72 sm:w-80 aspect-video bg-[#1A3C2E] border border-stone-250/10 rounded-2xl overflow-hidden relative shrink-0 shadow-md hover:shadow-xl hover:shadow-[#F5B400]/10 transition-[background-color,border-color,color,box-shadow,transform] duration-300 transform hover:scale-[1.04] cursor-pointer group"
+                      className="w-72 sm:w-80 aspect-video bg-[#1A3C2E] border border-stone-250/10 rounded-2xl overflow-hidden relative shrink-0 text-left shadow-md hover:shadow-xl hover:shadow-[#F5B400]/10 transition-[background-color,border-color,color,box-shadow,transform] duration-300 transform hover:scale-[1.04] cursor-pointer group"
                     >
                       {/* Video Thumbnail */}
                       {video.thumbnailUrl ? (
@@ -1119,7 +1143,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                           </span>
                         )}
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -1133,9 +1157,10 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
           ============================================================ */}
       {lightboxOpen && selectedVideo && createPortal(
         <div
-          ref={playerContainerRef}
-          onClick={() => setLightboxOpen(false)}
-          className="fixed inset-0 bg-[#0B1512] z-[9999] overflow-y-auto flex flex-col animate-fade-in font-sans text-[#FAF7EA]"
+           ref={playerContainerRef}
+           onClick={() => setLightboxOpen(false)}
+           role="presentation"
+           className="fixed inset-0 bg-[#0B1512] z-[9999] overflow-y-auto flex flex-col animate-fade-in font-sans text-[#FAF7EA]"
         >
           {/* Main Fullscreen Toggle Wrapper */}
           <div onClick={(e) => e.stopPropagation()} className="w-full min-h-screen flex flex-col relative">
@@ -1262,16 +1287,18 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                   </div>
 
                   {/* Center Play/Pause Floating Assist */}
-                  <div 
+                  <button
+                    type="button"
                     onClick={togglePlay}
                     className="flex-grow flex-1 flex items-center justify-center cursor-pointer pointer-events-auto"
+                    aria-label={isPlaying ? 'Pause video' : 'Play video'}
                   >
                     {!isPlaying && selectedVideo.videoUrl && (
                       <div className="p-6 rounded-full bg-black/50 border border-white/10 text-[#FAF7EA] hover:scale-110 transition-transform duration-300">
                         <Play size={44} className="fill-current translate-x-0.5" />
                       </div>
                     )}
-                  </div>
+                  </button>
 
                   {/* Bottom Controls (Only for HTML5 Video URL) */}
                   {selectedVideo.videoUrl ? (
@@ -1592,18 +1619,20 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                   <div className="absolute inset-0 bg-gradient-to-t from-[#0B1512] via-[#0B1512]/40 to-transparent lg:hidden pointer-events-none" />
 
                   {/* Floating click to play button overlay */}
-                  <div 
+                  <button
+                    type="button"
                     onClick={() => {
                       setIsPlayerActive(true);
                       setIsPlaying(true);
                     }}
                     className="absolute inset-0 flex items-center justify-center group/play cursor-pointer z-10"
                     title="Play Movie"
+                    aria-label="Play movie"
                   >
                     <div className="bg-[#0B1512]/40 backdrop-blur-md border border-white/20 text-[#FAF7EA] p-6 rounded-full shadow-2xl group-hover/play:bg-[#F5B400] group-hover/play:text-[#11241C] group-hover/play:scale-110 transition-[background-color,border-color,color,box-shadow,transform] duration-500">
                       <Play size={36} className="fill-current translate-x-0.5" />
                     </div>
-                  </div>
+                  </button>
                 </div>
 
               </div>
@@ -1627,7 +1656,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                 {editTarget ? 'Edit Patch Video details' : 'Publish Patch Video'}
               </h3>
               <button
-                onClick={() => setShowFormModal(false)}
+                 onClick={() => dispatchForm({ type: 'close' })}
                 className="text-stone-400 hover:text-white p-1 rounded-full hover:bg-white/5 transition-colors cursor-pointer"
                 disabled={formSubmitting}
               >
@@ -1645,7 +1674,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                 </label>
                 <select id="patch-category"
                   value={formCategory}
-                  onChange={(e) => setFormCategory(e.target.value)}
+                   onChange={(e) => dispatchForm({ type: 'update', changes: { formCategory: e.target.value } })}
                   className="w-full bg-[#11241C] border border-stone-200/10 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#F5B400] text-xs text-[#FAF7EA] cursor-pointer"
                   disabled={formSubmitting}
                 >
@@ -1666,7 +1695,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                     type="text"
                     required
                     value={formTitle}
-                    onChange={(e) => setFormTitle(e.target.value)}
+                     onChange={(e) => dispatchForm({ type: 'update', changes: { formTitle: e.target.value } })}
                     placeholder="e.g. Laban CCIS Congress"
                     className="w-full bg-[#11241C] border border-stone-200/10 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#F5B400] text-xs text-white"
                     disabled={formSubmitting}
@@ -1683,7 +1712,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                     required
                     min="1"
                     value={formEpisodeNumber}
-                    onChange={(e) => setFormEpisodeNumber(e.target.value)}
+                     onChange={(e) => dispatchForm({ type: 'update', changes: { formEpisodeNumber: e.target.value } })}
                     placeholder="e.g. 3"
                     className="w-full bg-[#11241C] border border-stone-200/10 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#F5B400] text-xs text-white text-center font-mono font-bold"
                     disabled={formSubmitting}
@@ -1699,7 +1728,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                 <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
-                    onClick={() => setFormSourceType('facebook')}
+                     onClick={() => dispatchForm({ type: 'update', changes: { formSourceType: 'facebook' } })}
                     className={`py-2 text-center rounded-xl font-bold uppercase tracking-wider transition-colors cursor-pointer border text-[9px] ${
                       formSourceType === 'facebook'
                         ? 'bg-[#F5B400] border-[#F5B400] text-[#11241C]'
@@ -1710,7 +1739,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setFormSourceType('direct')}
+                     onClick={() => dispatchForm({ type: 'update', changes: { formSourceType: 'direct' } })}
                     className={`py-2 text-center rounded-xl font-bold uppercase tracking-wider transition-colors cursor-pointer border text-[9px] ${
                       formSourceType === 'direct'
                         ? 'bg-[#F5B400] border-[#F5B400] text-[#11241C]'
@@ -1721,7 +1750,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setFormSourceType('upload')}
+                     onClick={() => dispatchForm({ type: 'update', changes: { formSourceType: 'upload' } })}
                     className={`py-2 text-center rounded-xl font-bold uppercase tracking-wider transition-colors cursor-pointer border text-[9px] ${
                       formSourceType === 'upload'
                         ? 'bg-[#F5B400] border-[#F5B400] text-[#11241C]'
@@ -1744,7 +1773,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                     type="url"
                     required
                     value={formFacebookPermalink}
-                    onChange={(e) => setFormFacebookPermalink(e.target.value)}
+                     onChange={(e) => dispatchForm({ type: 'update', changes: { formFacebookPermalink: e.target.value } })}
                     placeholder="https://www.facebook.com/umakccissc/videos/..."
                     className="w-full bg-[#11241C] border border-stone-200/10 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#F5B400] text-xs text-white"
                     disabled={formSubmitting}
@@ -1763,7 +1792,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                     type="url"
                     required
                     value={formVideoUrl}
-                    onChange={(e) => setFormVideoUrl(e.target.value)}
+                     onChange={(e) => dispatchForm({ type: 'update', changes: { formVideoUrl: e.target.value } })}
                     placeholder="https://res.cloudinary.com/...mp4"
                     className="w-full bg-[#11241C] border border-stone-200/10 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#F5B400] text-xs text-white font-mono"
                     disabled={formSubmitting}
@@ -1816,7 +1845,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                 <textarea id="patch-description"
                   required
                   value={formDescription}
-                  onChange={(e) => setFormDescription(e.target.value)}
+                   onChange={(e) => dispatchForm({ type: 'update', changes: { formDescription: e.target.value } })}
                   placeholder="Write a short summary about this episode..."
                   rows={4}
                   className="w-full bg-[#11241C] border border-stone-200/10 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#F5B400] text-xs text-white resize-none leading-relaxed"
@@ -1835,7 +1864,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                       id="patch-thumbnail-url"
                       type="text"
                       value={formThumbnailUrl}
-                      onChange={(e) => setFormThumbnailUrl(e.target.value)}
+                       onChange={(e) => dispatchForm({ type: 'update', changes: { formThumbnailUrl: e.target.value } })}
                       placeholder="Input public image URL..."
                       className="w-full bg-[#11241C] border border-stone-200/10 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#F5B400] text-xs text-white"
                       disabled={formSubmitting || !!selectedFile}
@@ -1867,7 +1896,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                   type="checkbox"
                   id="formIsFeatured"
                   checked={formIsFeatured}
-                  onChange={(e) => setFormIsFeatured(e.target.checked)}
+                   onChange={(e) => dispatchForm({ type: 'update', changes: { formIsFeatured: e.target.checked } })}
                   className="rounded border-stone-200/10 text-[#F5B400] focus:ring-[#F5B400] cursor-pointer"
                   disabled={formSubmitting}
                 />
@@ -1880,7 +1909,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
               <div className="pt-4 flex gap-3 border-t border-stone-200/10 shrink-0">
                 <button
                   type="button"
-                  onClick={() => setShowFormModal(false)}
+                   onClick={() => dispatchForm({ type: 'close' })}
                   className="flex-1 py-3 text-center border border-stone-200/10 hover:bg-[#11241C] rounded-xl font-bold uppercase tracking-wider text-stone-300 cursor-pointer"
                   disabled={formSubmitting}
                 >
