@@ -399,7 +399,7 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
       return;
     }
 
-    revokeObjectUrl(previewUrl, ownedPreviewUrlsRef.current);
+    if (ownedPreviewUrlsRef.current.delete(previewUrl)) URL.revokeObjectURL(previewUrl);
     const objectUrl = URL.createObjectURL(file);
     ownedPreviewUrlsRef.current.add(objectUrl);
     setSelectedFile(file);

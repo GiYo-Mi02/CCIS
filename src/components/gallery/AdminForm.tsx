@@ -62,12 +62,6 @@ export default function AdminForm({
     previewUrlsRef.current.clear();
   }, []);
 
-  const createPreviewUrl = (file: File) => {
-    const preview = URL.createObjectURL(file);
-    previewUrlsRef.current.add(preview);
-    return preview;
-  };
-
   const cleanPreviews = () => {
     previewUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
     previewUrlsRef.current.clear();
@@ -103,8 +97,9 @@ export default function AdminForm({
         if (mainImageInputRef.current) mainImageInputRef.current.value = '';
         return;
       }
-       revokeObjectUrl(formState.imagePreview, previewUrlsRef.current);
-       const preview = createPreviewUrl(file);
+      if (previewUrlsRef.current.delete(formState.imagePreview)) URL.revokeObjectURL(formState.imagePreview);
+      const preview = URL.createObjectURL(file);
+      previewUrlsRef.current.add(preview);
       setFormState(prev => {
         return {
           ...prev,
@@ -136,8 +131,15 @@ export default function AdminForm({
         }
       }
 
-       formState.thumbnailPreviews.forEach(url => revokeObjectUrl(url, previewUrlsRef.current));
-       const newPreviews = filesArray.map(createPreviewUrl);
+        formState.thumbnailPreviews.forEach(url => {
+          if (previewUrlsRef.current.delete(url)) URL.revokeObjectURL(url);
+        });
+        const newPreviews: string[] = [];
+        for (const file of filesArray) {
+          const preview = URL.createObjectURL(file);
+          previewUrlsRef.current.add(preview);
+          newPreviews.push(preview);
+        }
       setFormState(prev => {
         return {
           ...prev,
@@ -499,7 +501,7 @@ export default function AdminForm({
                   <div className="mt-3 relative w-full h-40 rounded-2xl border border-stone-200 overflow-hidden bg-black flex items-center justify-center">
                     <img 
                       src={formState.imagePreview} 
-                      alt="Featured image preview" 
+                       alt="Featured preview"
                       className="max-w-full max-h-full object-contain"
                     />
                     <button
