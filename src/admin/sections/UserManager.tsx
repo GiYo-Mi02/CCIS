@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Search, Ban, ShieldAlert, CheckCircle, Unlock, Lock, Trash2, 
   Clock, X, Shield, AlertTriangle 
@@ -47,7 +47,7 @@ export default function UserManager() {
   }, [searchQuery]);
 
   // Fetch users with search and pagination filters
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
       const from = (currentPage - 1) * PAGE_SIZE;
@@ -82,11 +82,11 @@ export default function UserManager() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, debouncedSearch, showToast]);
 
   useEffect(() => {
     fetchUsers();
-  }, [currentPage, debouncedSearch]);
+  }, [fetchUsers]);
 
   // Toggle Profile complete status (Unlock student profile for editing)
   const handleToggleProfileLock = async (user: Profile) => {
@@ -282,12 +282,12 @@ export default function UserManager() {
       if (targetError) throw targetError;
       const targetIds = new Set((targets || []).map((target: { user_id: string }) => target.user_id));
 
-      for (const userId of targetIds) {
+      await Promise.all([...targetIds].map(async userId => {
         const { data, error } = await supabase.functions.invoke('delete-user', {
           body: { userId },
         });
         if (error || !data?.deleted) throw error || new Error(`Account purge failed for ${userId}.`);
-      }
+      }));
 
       showToast(`Clean deletion complete: Purged ${targetIds.size} accounts.`, 'success');
       fetchUsers();

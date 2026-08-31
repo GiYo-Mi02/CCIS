@@ -128,7 +128,7 @@ export function UpcomingEventsSkeleton() {
 }
 
 /** Skeleton for Calendar Grid */
-export function CalendarGridSkeleton() {
+function CalendarGridSkeleton() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-4">
@@ -139,8 +139,8 @@ export function CalendarGridSkeleton() {
         </div>
       </div>
       <div className="grid grid-cols-7 gap-2">
-        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
-          <div key={i} className="text-center py-1">
+        {['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'].map(day => (
+          <div key={day} className="text-center py-1">
             <Skeleton className="h-3 w-4 mx-auto bg-stone-200" />
           </div>
         ))}
@@ -214,7 +214,7 @@ export function FaqSkeleton() {
 }
 
 /** Skeleton for Gallery Page */
-export function GallerySkeleton() {
+function GallerySkeleton() {
   return (
     <div className="min-h-screen bg-[#FAF7EA] py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -240,7 +240,7 @@ export function GallerySkeleton() {
 }
 
 /** Skeleton for Bukas Kaban / Transparency Page */
-export function TransparencySkeleton() {
+function TransparencySkeleton() {
   return (
     <div className="min-h-screen bg-[#FAF7EA] py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -279,7 +279,7 @@ export function TransparencySkeleton() {
 }
 
 /** Skeleton for Patches Page */
-export function PatchSkeleton() {
+function PatchSkeleton() {
   return (
     <div className="min-h-screen bg-[#FAF7EA] py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto space-y-8">
@@ -307,7 +307,7 @@ export function PatchSkeleton() {
 }
 
 /** Skeleton for Account Profile & Pass */
-export function AccountSkeleton() {
+function AccountSkeleton() {
   return (
     <div className="min-h-screen bg-[#FAF7EA] py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto space-y-8">

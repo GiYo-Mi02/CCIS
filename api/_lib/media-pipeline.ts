@@ -68,9 +68,7 @@ export async function processStagedImage(
 
     const optimized = await optimizer(input, request.category);
     const version = randomUUID();
-    const uploadedVariants: MediaVariant[] = [];
-
-    for (const variant of optimized.variants) {
+    const uploadedVariants = await Promise.all(optimized.variants.map(async variant => {
       const path = `${request.folder}/v2/${version}/${variant.label}.webp`;
       await gateway.upload(request.bucket, path, variant.buffer, {
         contentType: 'image/webp',
@@ -78,7 +76,7 @@ export async function processStagedImage(
         upsert: false,
       });
       uploadedPaths.push(path);
-      uploadedVariants.push({
+      return {
         label: variant.label,
         path,
         publicUrl: gateway.getPublicUrl(request.bucket, path),
@@ -86,8 +84,8 @@ export async function processStagedImage(
         height: variant.height,
         sizeBytes: variant.sizeBytes,
         mimeType: variant.mimeType,
-      });
-    }
+      };
+    }));
 
     const mainVariant = uploadedVariants.find(variant => variant.label === 'main');
     if (!mainVariant) {
@@ -146,6 +144,6 @@ export async function processStagedImage(
   }
 }
 
-export function toBuffer(value: ArrayBuffer): Buffer {
+function toBuffer(value: ArrayBuffer): Buffer {
   return Buffer.from(value);
 }

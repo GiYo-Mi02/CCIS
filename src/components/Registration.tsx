@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Ticket, Calendar, MapPin, Clock, ArrowRight, Shield, X, Lock, CheckCircle2, Info, Trophy, QrCode, Sparkles, GraduationCap } from 'lucide-react';
 import { EventItem, Registration } from '../types';
@@ -72,7 +72,7 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
       setIsModalOpen(true);
       if (onClearPreselected) onClearPreselected();
     }
-  }, [preselectedEventId]);
+  }, [preselectedEventId, onClearPreselected]);
 
   const handleGoogleSignIn = async () => {
     setSigningIn(true);
@@ -91,7 +91,7 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
   };
 
   // Fetch events and registrations from Supabase
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     setRegistrationError(null);
     const today = new Date().toISOString().split('T')[0];
@@ -175,16 +175,11 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, filter, profile, user]);
 
   useEffect(() => {
     fetchData();
-  }, [user, profile, currentPage, filter]);
-
-  // Clear registration error when selected event changes
-  useEffect(() => {
-    setRegistrationError(null);
-  }, [selectedEventId]);
+  }, [fetchData]);
 
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -443,7 +438,8 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
                               ) : (
                                 <button
                                   onClick={() => {
-                                    setSelectedEventId(ev.id);
+                                     setSelectedEventId(ev.id);
+                                     setRegistrationError(null);
                                     setIsModalOpen(true);
                                   }}
                                   className="w-full bg-[#1A3C2E] hover:bg-[#255541] active:bg-[#123524] text-white hover:text-white font-sans text-xs font-bold uppercase tracking-wider py-2.5 rounded-xl transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"

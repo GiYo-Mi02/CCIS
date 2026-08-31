@@ -329,8 +329,8 @@ export default function DeveloperDedication() {
               <div className="mt-7 space-y-3">
                 <span className="block font-mono text-[10px] font-black uppercase tracking-[0.18em] text-[#FFBC00]">Key Contributions</span>
                 <div className="grid grid-cols-1 gap-2.5 xl:grid-cols-2">
-                {selectedDev.contributions.map((contrib, idx) => (
-                    <div key={idx} className="flex items-start gap-3 rounded-xl border border-white/5 bg-white/5 p-3 transition-colors hover:border-white/15">
+                {selectedDev.contributions.map(contrib => (
+                    <div key={`${selectedDev.name}-${contrib}`} className="flex items-start gap-3 rounded-xl border border-white/5 bg-white/5 p-3 transition-colors hover:border-white/15">
                       <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-[#FFBC00]" />
                       <span className="font-sans text-xs leading-relaxed text-stone-200">{contrib}</span>
                   </div>

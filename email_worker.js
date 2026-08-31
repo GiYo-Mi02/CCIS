@@ -81,7 +81,7 @@ async function processQueue() {
     if (dequeuedItems && dequeuedItems.length > 0) {
       console.log(`[Email Worker] Processing batch of ${dequeuedItems.length} queued email(s)...`);
 
-      for (const item of dequeuedItems) {
+      await Promise.all(dequeuedItems.map(async item => {
         try {
           const maskedEmail = (item.recipient_email || '').replace(/(?<=^.{2}).*(?=@)/, '***');
           console.log(`[Email Worker] Dispatching item ${item.id} (${item.email_type}) to ${maskedEmail}...`);
@@ -140,7 +140,7 @@ async function processQueue() {
             console.error(`[Email Worker] Failed to mark item ${item.id} as failed:`, updateError.message);
           }
         }
-      }
+      }));
     }
   } catch (err) {
     console.error('[Email Worker] Queue loop execution error:', err.message || err);

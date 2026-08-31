@@ -159,7 +159,7 @@ export default function MessagesInbox() {
   }, [currentPage, fetchConversationsList, hasAccess, searchQuery]);
 
   // Fetch messages inside selected conversation
-  const fetchThreadMessages = async (conversationId: string, currentOffset: number, append: boolean = false) => {
+  const fetchThreadMessages = useCallback(async (conversationId: string, currentOffset: number, append: boolean = false) => {
     setLoadingMessages(currentOffset === 0);
     try {
       const { data, error } = await supabase
@@ -220,7 +220,7 @@ export default function MessagesInbox() {
     } finally {
       setLoadingMessages(false);
     }
-  };
+  }, [showToast, unreadCounts]);
 
   // Trigger loading of conversation messages on selection
   useEffect(() => {
@@ -232,7 +232,7 @@ export default function MessagesInbox() {
     } else {
       setMessages([]);
     }
-  }, [selectedCon]);
+  }, [fetchThreadMessages, selectedCon]);
 
   // Realtime subscription setup
   useEffect(() => {

@@ -7,6 +7,13 @@ import { getManagedImagePathsFromUrl } from '../../lib/media/managedPaths';
 import type { MediaAsset, UploadOptimizedImageResult } from '../../lib/media/types';
 import { GalleryItem, AdminFormState, GalleryCategory } from '../../types/gallery';
 
+const INITIAL_FORM_STATE: AdminFormState = {
+  title: '', category: 'Student Council', description: '', postedBy: '',
+  aspectRatio: 'landscape', imageFile: null, imagePreview: '',
+  thumbnailFiles: [], thumbnailPreviews: [], existingThumbnails: [],
+  removedThumbnails: [], isEditing: false, editTargetId: null, featured: false,
+};
+
 interface AdminFormProps {
   itemToEdit: GalleryItem | null;
   onSuccess: (item: GalleryItem, isEditing: boolean) => void;
@@ -20,24 +27,7 @@ export default function AdminForm({
   onClose,
   triggerToast
 }: AdminFormProps) {
-  const initialFormState: AdminFormState = {
-    title: '',
-    category: 'Student Council',
-    description: '',
-    postedBy: '',
-    aspectRatio: 'landscape',
-    imageFile: null,
-    imagePreview: '',
-    thumbnailFiles: [],
-    thumbnailPreviews: [],
-    existingThumbnails: [],
-    removedThumbnails: [],
-    isEditing: false,
-    editTargetId: null,
-    featured: false
-  };
-
-  const [formState, setFormState] = useState<AdminFormState>(initialFormState);
+  const [formState, setFormState] = useState<AdminFormState>(INITIAL_FORM_STATE);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
@@ -67,7 +57,7 @@ export default function AdminForm({
       if (mainImageInputRef.current) mainImageInputRef.current.value = '';
       if (thumbnailsInputRef.current) thumbnailsInputRef.current.value = '';
     } else {
-      setFormState(initialFormState);
+      setFormState(INITIAL_FORM_STATE);
       if (mainImageInputRef.current) mainImageInputRef.current.value = '';
       if (thumbnailsInputRef.current) thumbnailsInputRef.current.value = '';
     }
@@ -84,7 +74,7 @@ export default function AdminForm({
 
   const handleCancel = () => {
     cleanPreviews(formState);
-    setFormState(initialFormState);
+    setFormState(INITIAL_FORM_STATE);
     if (mainImageInputRef.current) mainImageInputRef.current.value = '';
     if (thumbnailsInputRef.current) thumbnailsInputRef.current.value = '';
     onClose();
@@ -564,8 +554,8 @@ export default function AdminForm({
                           Current Event Photos
                         </span>
                         <div className="flex flex-wrap gap-2">
-                          {formState.existingThumbnails.map((thumbUrl, idx) => (
-                            <div key={idx} className="relative w-14 h-14 rounded-xl overflow-hidden border border-stone-200/50 bg-black flex-shrink-0 group">
+                           {formState.existingThumbnails.map(thumbUrl => (
+                             <div key={thumbUrl} className="relative w-14 h-14 rounded-xl overflow-hidden border border-stone-200/50 bg-black flex-shrink-0 group">
                               <img src={thumbUrl} alt="" className="w-full h-full object-cover" />
                               <button
                                 type="button"
@@ -587,8 +577,8 @@ export default function AdminForm({
                           New Photos to Upload
                         </span>
                         <div className="flex flex-wrap gap-2">
-                          {formState.thumbnailPreviews.map((previewUrl, idx) => (
-                            <div key={idx} className="relative w-14 h-14 rounded-xl overflow-hidden border border-stone-200/50 bg-black flex-shrink-0">
+                           {formState.thumbnailPreviews.map((previewUrl, idx) => (
+                             <div key={previewUrl} className="relative w-14 h-14 rounded-xl overflow-hidden border border-stone-200/50 bg-black flex-shrink-0">
                               <img src={previewUrl} alt="" className="w-full h-full object-cover" />
                               <button
                                 type="button"

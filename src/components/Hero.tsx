@@ -102,16 +102,16 @@ export default function Hero({ onLearnMoreClick, onAnnouncementsClick }: HeroPro
 
       {/* Image indicator dots */}
       <div className="absolute bottom-5 right-4 sm:bottom-6 sm:right-6 lg:bottom-8 lg:right-8 z-10 flex items-center gap-2">
-        {HERO_IMAGES.map((_, idx) => (
+        {HERO_IMAGES.map(src => (
           <button
-            key={idx}
-            onClick={() => setCurrentImage(idx)}
+            key={src}
+            onClick={() => setCurrentImage(HERO_IMAGES.indexOf(src))}
             className={`w-2.5 h-2.5 rounded-full transition-all duration-500 ${
-              currentImage === idx
+              currentImage === HERO_IMAGES.indexOf(src)
                 ? 'bg-[#F5B400] scale-125 shadow-lg shadow-[#F5B400]/40'
                 : 'bg-white/40 hover:bg-white/60'
             }`}
-            aria-label={`Show hero image ${idx + 1}`}
+             aria-label={`Show hero image ${HERO_IMAGES.indexOf(src) + 1}`}
           />
         ))}
       </div>

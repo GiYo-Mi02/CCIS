@@ -224,15 +224,15 @@ export default function HeroCarousel({
       {/* Pagination Dots overlaid at bottom-center */}
       {items.length > 1 && (
         <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1.5 bg-black/40 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/10">
-          {items.map((_, idx) => (
+          {items.map((item, idx) => (
             <button
-              key={idx}
+              key={item.id}
               onClick={() => {
                 if (timerRef.current) clearInterval(timerRef.current);
                 setActiveIndex(idx);
               }}
               className={`h-2 rounded-full transition-all duration-300 focus:outline-none focus:ring-1 focus:ring-white cursor-pointer ${
-                idx === activeIndex ? 'w-4 bg-[#F5B400]' : 'w-2 bg-white/60 hover:bg-white'
+                 idx === activeIndex ? 'w-4 bg-[#F5B400]' : 'w-2 bg-white/60 hover:bg-white'
               }`}
               aria-label={`Go to slide ${idx + 1}`}
             />

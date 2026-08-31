@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   CheckCircle, XCircle, Search, Clock, ShieldAlert, FileText, Send, UserCheck, UserX, AlertCircle
 } from 'lucide-react';
@@ -40,7 +40,7 @@ export default function VerificationManager() {
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
-  const fetchPendingUsers = async () => {
+  const fetchPendingUsers = useCallback(async () => {
     setLoading(true);
     try {
       const offset = (currentPage - 1) * PAGE_SIZE;
@@ -63,11 +63,11 @@ export default function VerificationManager() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, debouncedSearch, showToast]);
 
   useEffect(() => {
     fetchPendingUsers();
-  }, [currentPage, debouncedSearch]);
+  }, [fetchPendingUsers]);
 
   const handleApprove = async (user: Profile) => {
     if (!currentAdmin) return;

@@ -180,7 +180,7 @@ serve(async (req) => {
         const { error: storageError } = await admin.storage.from("gallery-images").remove(galleryPaths);
         if (storageError) throw storageError;
 
-        for (const path of galleryPaths) {
+        await Promise.all(galleryPaths.map(async (path: string) => {
           const separator = path.lastIndexOf('/');
           const folder = separator >= 0 ? path.slice(0, separator) : '';
           const fileName = separator >= 0 ? path.slice(separator + 1) : path;
@@ -191,7 +191,7 @@ serve(async (req) => {
           if (remainingObjects?.some((object) => object.name === fileName)) {
             throw new Error("STORAGE_OBJECT_REMAINS");
           }
-        }
+        }));
       }
 
       const { error: galleryDeleteError } = await admin
@@ -281,7 +281,7 @@ serve(async (req) => {
       if (queuedEmailCount) throw new Error("EMAIL_QUEUE_DATA_REMAINS");
     }
 
-    for (const [table, column] of [
+    await Promise.all([
       ["profiles", "id"],
       ["event_registrations", "profile_id"],
       ["conversations", "profile_id"],
@@ -289,14 +289,14 @@ serve(async (req) => {
       ["gallery_items", "profile_id"],
       ["messages", "student_id"],
       ["messages", "sender_id"],
-    ] as const) {
+    ].map(async ([table, column]) => {
       const { count, error: relatedError } = await admin
         .from(table)
         .select("id", { count: "exact", head: true })
         .eq(column, userId);
       if (relatedError) throw relatedError;
       if (count) throw new Error("PUBLIC_ACCOUNT_DATA_REMAINS");
-    }
+    }));
 
     const { data: finalState, error: finalStateError } = await admin
       .from("account_deletion_tombstones")

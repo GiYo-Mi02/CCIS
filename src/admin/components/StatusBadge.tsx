@@ -28,7 +28,7 @@ export default function StatusBadge({ variant, label, className = '' }: StatusBa
 }
 
 // Helper to determine badge variant from status strings
-export function getAnnouncementBadge(status: string): { variant: BadgeVariant; label: string } {
+function getAnnouncementBadge(status: string): { variant: BadgeVariant; label: string } {
   switch (status) {
     case 'published': return { variant: 'success', label: 'Published' };
     case 'pinned': return { variant: 'info', label: '📌 Pinned' };
@@ -47,7 +47,7 @@ export function getRegistrationBadge(status: string): { variant: BadgeVariant; l
   }
 }
 
-export function getConcernBadge(status: string): { variant: BadgeVariant; label: string } {
+function getConcernBadge(status: string): { variant: BadgeVariant; label: string } {
   switch (status) {
     case 'new': return { variant: 'info', label: 'New' };
     case 'in_progress': return { variant: 'warning', label: 'In Progress' };
