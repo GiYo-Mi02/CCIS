@@ -302,6 +302,8 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
            !committeeHeads.some(c => c.id === o.id);
   });
 
+  const com = committees.find(c => c.id === activeCommitteeTab);
+
   const renderOfficerCard = (off: Officer) => (
     <div
       key={off.id}
@@ -1105,7 +1107,7 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
 
             {/* Details Content Box */}
             <div className="lg:col-span-8 bg-white p-6 md:p-8 rounded-2xl border border-[#1A3C2E]/25 shadow-xs min-h-[300px]">
-              {committees.filter(c => c.id === activeCommitteeTab).map((com) => (
+              {com && (
                 <div key={com.id} className="space-y-6 animate-fade-in">
                   <div className="flex items-center gap-3">
                     <div className="p-2.5 bg-[#FAF7EA] rounded-xl border border-[#1A3C2E]/20 flex items-center justify-center">
@@ -1189,7 +1191,7 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
                     </div>
                   )}
                 </div>
-              ))}
+              )}
             </div>
 
           </div>
