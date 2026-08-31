@@ -2,15 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FileText, Plus, X, Edit, Trash2, Loader2, Download, AlertTriangle, CheckCircle2, Info, Eye } from 'lucide-react';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { supabase } from '../lib/supabase';
-import {
-  deleteManagedOptimizedImage,
-  deleteManagedOptimizedImageByUrl,
-  getManagedImagePathsFromUrl,
-  LONG_LIVED_CACHE_CONTROL,
-  uploadOptimizedImage,
-  validatePdfFile,
-  type MediaAsset,
-} from '../lib/media';
+import { deleteManagedOptimizedImage, deleteManagedOptimizedImageByUrl, uploadOptimizedImage } from '../lib/media/uploadOptimizedImage';
+import { getManagedImagePathsFromUrl } from '../lib/media/managedPaths';
+import { LONG_LIVED_CACHE_CONTROL } from '../lib/media/presets';
+import { validatePdfFile } from '../lib/media/fileValidation';
+import type { MediaAsset } from '../lib/media/types';
 
 // ============================================================
 // SUPABASE SCHEMA CONVENTION REFERENCES

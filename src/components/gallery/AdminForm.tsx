@@ -2,14 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Upload, X, Plus, Trash2, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import {
-  deleteManagedOptimizedImage,
-  deleteManagedOptimizedImageByUrl,
-  getManagedImagePathsFromUrl,
-  uploadOptimizedImage,
-  type MediaAsset,
-  type UploadOptimizedImageResult,
-} from '../../lib/media';
+import { deleteManagedOptimizedImage, deleteManagedOptimizedImageByUrl, uploadOptimizedImage } from '../../lib/media/uploadOptimizedImage';
+import { getManagedImagePathsFromUrl } from '../../lib/media/managedPaths';
+import type { MediaAsset, UploadOptimizedImageResult } from '../../lib/media/types';
 import { GalleryItem, AdminFormState, GalleryCategory } from '../../types/gallery';
 
 interface AdminFormProps {
@@ -234,12 +229,9 @@ export default function AdminForm({
 
       // 2. Upload new thumbnails
       setUploadProgress(60);
-      const newThumbUrls: string[] = [];
-      for (const file of formState.thumbnailFiles) {
-        const thumbnailUpload = await uploadToStorage(file, categorySlug);
-        newlyUploadedAssets.push(thumbnailUpload.asset);
-        newThumbUrls.push(thumbnailUpload.asset.publicUrl);
-      }
+      const thumbnailUploads = await Promise.all(formState.thumbnailFiles.map(file => uploadToStorage(file, categorySlug)));
+      newlyUploadedAssets.push(...thumbnailUploads.map(upload => upload.asset));
+      const newThumbUrls = thumbnailUploads.map(upload => upload.asset.publicUrl);
 
       const combinedThumbnails = [
         ...formState.existingThumbnails,

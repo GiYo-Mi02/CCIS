@@ -1,10 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import {
-  deleteManagedOptimizedImage,
-  deleteManagedOptimizedImageByUrl,
-  uploadOptimizedImage,
-  type MediaAsset,
-} from '../../lib/media';
+import { deleteManagedOptimizedImage, deleteManagedOptimizedImageByUrl } from '../../lib/media/uploadOptimizedImage';
+import { uploadOptimizedImage } from '../../lib/media/uploadOptimizedImage';
+import type { MediaAsset } from '../../lib/media/types';
 import { Plus, Search, Edit3, Pin, Trash2, Megaphone, Trash, ImageIcon } from 'lucide-react';
 import { useAdmin } from '../AdminContext';
 import { useAuth } from '../../context/AuthContext';
@@ -276,7 +273,7 @@ function AnnouncementForm({ announcement, isCreating, onSave, onClose }: {
   const [pinned, setPinned] = useState(announcement.pinned);
   const [uploading, setUploading] = useState(false);
   const [uploadSummary, setUploadSummary] = useState<string | null>(null);
-  const [pendingAsset, setPendingAsset] = useState<MediaAsset | null>(null);
+  const pendingAssetRef = useRef<MediaAsset | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -301,8 +298,8 @@ function AnnouncementForm({ announcement, isCreating, onSave, onClose }: {
         entityType: 'announcements',
         entityId: announcement.id,
       });
-      const previousPendingAsset = pendingAsset;
-      setPendingAsset(result.asset);
+      const previousPendingAsset = pendingAssetRef.current;
+      pendingAssetRef.current = result.asset;
       setBannerUrl(result.asset.variants.find(variant => variant.label === 'card')?.publicUrl ?? result.asset.publicUrl);
       setUploadSummary(`${(result.originalSizeBytes / 1024).toFixed(0)} KB to ${(result.optimizedSizeBytes / 1024).toFixed(0)} KB (${result.percentageSaved.toFixed(0)}% saved)`);
       if (previousPendingAsset) {
@@ -328,10 +325,10 @@ function AnnouncementForm({ announcement, isCreating, onSave, onClose }: {
         await deleteManagedOptimizedImageByUrl(announcement.banner_url, 'banners').catch(error =>
           console.error('Failed to clean up replaced announcement banner:', error));
       }
-      setPendingAsset(null);
+      pendingAssetRef.current = null;
     } catch (error) {
-      if (pendingAsset) await deleteManagedOptimizedImage(pendingAsset).catch(() => undefined);
-      setPendingAsset(null);
+      if (pendingAssetRef.current) await deleteManagedOptimizedImage(pendingAssetRef.current).catch(() => undefined);
+      pendingAssetRef.current = null;
       setBannerUrl(announcement.banner_url || '');
       alert(error instanceof Error ? error.message : 'The announcement could not be saved.');
     }
@@ -339,14 +336,14 @@ function AnnouncementForm({ announcement, isCreating, onSave, onClose }: {
 
   const handleClose = () => {
     if (uploading) return;
-    if (pendingAsset) void deleteManagedOptimizedImage(pendingAsset).catch(() => undefined);
-    setPendingAsset(null);
+    if (pendingAssetRef.current) void deleteManagedOptimizedImage(pendingAssetRef.current).catch(() => undefined);
+    pendingAssetRef.current = null;
     onClose();
   };
 
   const handleRemoveBanner = () => {
-    if (pendingAsset) void deleteManagedOptimizedImage(pendingAsset).catch(() => undefined);
-    setPendingAsset(null);
+    if (pendingAssetRef.current) void deleteManagedOptimizedImage(pendingAssetRef.current).catch(() => undefined);
+    pendingAssetRef.current = null;
     setBannerUrl('');
     setUploadSummary(null);
   };

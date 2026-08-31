@@ -122,7 +122,6 @@ export async function optimizeImageBuffer(input: Buffer, category: MediaCategory
     ['card', preset.card],
     ['mobile', preset.mobile],
   ];
-  const variants: OptimizedVariantBuffer[] = [];
   const sourceLongEdge = Math.max(metadata.width, metadata.height);
   const source = sharp(input, {
     animated: false,
@@ -131,11 +130,10 @@ export async function optimizeImageBuffer(input: Buffer, category: MediaCategory
     sequentialRead: true,
   }).rotate();
 
-  for (const [label, variantPreset] of requested) {
-    if (!variantPreset) continue;
-    if (label !== 'main' && sourceLongEdge <= variantPreset.maxLongEdge) continue;
-    variants.push(await renderVariant(source, variantPreset, label));
-  }
+  const variants = await Promise.all(requested.flatMap(([label, variantPreset]) => {
+    if (!variantPreset || (label !== 'main' && sourceLongEdge <= variantPreset.maxLongEdge)) return [];
+    return [renderVariant(source, variantPreset, label)];
+  }));
 
   return {
     originalSizeBytes: input.byteLength,
