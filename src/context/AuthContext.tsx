@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef, useReducer } from 'react';
 import { AuthChangeEvent, Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { Profile, isAdminRole } from '../types/database';
@@ -63,6 +63,29 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const PROFILE_FIELDS = 'id, email, full_name, avatar_url, student_number, year_level, program, section, role, position, committee_id, profile_complete, banned, banned_until, subscribe_announcements_events, email_subscription_decided, status, privacy_agreed_at, submitted_at, approved_at, approved_by, rejection_reason, contact_number, attendance_qr_code, attendance_qr_generated_at, last_ip, created_at, updated_at';
 const PROFILE_CACHE_MS = 5 * 60_000;
 
+type AuthState = { session: Session | null; user: User | null; profile: Profile | null; loading: boolean };
+type AuthAction =
+  | { type: 'sessionChanged'; session: Session; isNewUser: boolean }
+  | { type: 'hydrated'; session: Session; profile: Profile | null }
+  | { type: 'profileUpdated'; profile: Profile }
+  | { type: 'clear' }
+  | { type: 'failed' }
+  | { type: 'loadingComplete' };
+
+const authReducer = (state: AuthState, action: AuthAction): AuthState => {
+  switch (action.type) {
+    case 'sessionChanged': return { ...state, session: action.session, user: action.session.user, ...(action.isNewUser ? { profile: null, loading: true } : {}) };
+    case 'hydrated': return { session: action.session, user: action.session.user, profile: action.profile, loading: false };
+    case 'profileUpdated': return { ...state, profile: action.profile };
+    case 'clear': return { session: null, user: null, profile: null, loading: false };
+    case 'failed': return { ...state, profile: null, loading: false };
+    case 'loadingComplete': return { ...state, loading: false };
+  }
+};
+
+type VerificationState = { accountAgeHours: number; verificationCountdown: number };
+type LoginState = { attempts: number; cooldownUntil: number | null };
+
 export function useAuth(): AuthContextType {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error('useAuth must be used within AuthProvider');
@@ -70,21 +93,24 @@ export function useAuth(): AuthContextType {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [authState, dispatchAuth] = useReducer(authReducer, { session: null, user: null, profile: null, loading: true });
   const [banNotice, setBanNotice] = useState<{ bannedUntil: string | null } | null>(null);
   const [emailValidationError, setEmailValidationError] = useState<string | null>(null);
-  const [accountAgeHours, setAccountAgeHours] = useState<number>(0);
-  const [verificationCountdown, setVerificationCountdown] = useState<number>(0);
+  const [verificationState, dispatchVerification] = useReducer(
+    (state: VerificationState, update: VerificationState) => update,
+    { accountAgeHours: 0, verificationCountdown: 0 },
+  );
   // Login rate limiting — 5 attempts then 60s cooldown
-  const [loginAttempts, setLoginAttempts] = useState(0);
-  const [loginCooldownUntil, setLoginCooldownUntil] = useState<number | null>(null);
+  const [loginState, dispatchLogin] = useReducer(
+    (state: LoginState, update: LoginState) => update,
+    { attempts: 0, cooldownUntil: null },
+  );
   const MAX_LOGIN_ATTEMPTS = 5;
   const COOLDOWN_MS = 60_000; // 60 seconds
   const profileCacheRef = useRef(new Map<string, { profile: Profile; expiresAt: number }>());
   const profileRequestsRef = useRef(new Map<string, Promise<Profile | null>>());
+  const { session, user, profile, loading } = authState;
+  const { accountAgeHours, verificationCountdown } = verificationState;
 
 
   const clearBanNotice = useCallback(() => setBanNotice(null), []);
@@ -154,7 +180,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refreshProfile = useCallback(async () => {
     if (!user) return;
     const p = await fetchProfile(user.id, true);
-    if (p) setProfile(p);
+    if (p) dispatchAuth({ type: 'profileUpdated', profile: p });
   }, [user, fetchProfile]);
 
   const updateProfile = useCallback(async (updates: Partial<Profile>) => {
@@ -253,10 +279,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const clearSessionState = () => {
       clearHydrationSafetyTimer();
       hydratedUserId = null;
-      setSession(null);
-      setUser(null);
-      setProfile(null);
-      setLoading(false);
+      dispatchAuth({ type: 'clear' });
     };
 
     const processAuthSession = async (
@@ -298,10 +321,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         hydratedUserId = newSession.user.id;
         clearHydrationSafetyTimer();
-        setProfile(nextProfile);
-        setSession(newSession);
-        setUser(newSession.user);
-        setLoading(false);
+        dispatchAuth({ type: 'hydrated', session: newSession, profile: nextProfile });
 
         // Strip the one-time PKCE code only after the session and profile have
         // completed their automatic transition.
@@ -314,9 +334,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.error('[AuthContext] Auth session processing failed:', err);
         // Keep the valid session snapshot so AuthPage can offer an automatic
         // profile retry instead of trapping the student behind a global loader.
-        setProfile(null);
+        dispatchAuth({ type: 'failed' });
         clearHydrationSafetyTimer();
-        setLoading(false);
       }
     };
 
@@ -331,17 +350,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Make the authenticated session visible immediately. Profile hydration
       // happens after the auth callback has returned and released its lock.
       const isNewUser = hydratedUserId !== newSession.user.id;
-      setSession(newSession);
-      setUser(newSession.user);
-      if (isNewUser) {
-        setProfile(null);
-        setLoading(true);
-      }
+      dispatchAuth({ type: 'sessionChanged', session: newSession, isNewUser });
 
       clearHydrationSafetyTimer();
       hydrationSafetyTimer = window.setTimeout(() => {
         hydrationSafetyTimer = null;
-        if (isCurrentRevision(revision)) setLoading(false);
+        if (isCurrentRevision(revision)) dispatchAuth({ type: 'loadingComplete' });
       }, 8000);
 
       const timer = window.setTimeout(() => {
@@ -373,7 +387,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .catch((err) => {
           if (!mounted || receivedAuthEvent) return;
           console.error('[AuthContext] Session fallback failed:', err);
-          setLoading(false);
+          dispatchAuth({ type: 'loadingComplete' });
         });
     }, 1500);
 
@@ -403,25 +417,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithEmail = useCallback(async (email: string, password: string) => {
     // Rate limit check
-    if (loginCooldownUntil && Date.now() < loginCooldownUntil) {
-      const secsLeft = Math.ceil((loginCooldownUntil - Date.now()) / 1000);
+    if (loginState.cooldownUntil && Date.now() < loginState.cooldownUntil) {
+      const secsLeft = Math.ceil((loginState.cooldownUntil - Date.now()) / 1000);
       throw new Error(`Too many login attempts. Please wait ${secsLeft}s before trying again.`);
     }
 
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
-      const next = loginAttempts + 1;
-      setLoginAttempts(next);
+      const next = loginState.attempts + 1;
       if (next >= MAX_LOGIN_ATTEMPTS) {
-        setLoginCooldownUntil(Date.now() + COOLDOWN_MS);
-        setLoginAttempts(0);
+        dispatchLogin({ attempts: 0, cooldownUntil: Date.now() + COOLDOWN_MS });
+      } else {
+        dispatchLogin({ attempts: next, cooldownUntil: loginState.cooldownUntil });
       }
       throw error;
     }
     // Reset on success
-    setLoginAttempts(0);
-    setLoginCooldownUntil(null);
-  }, [loginAttempts, loginCooldownUntil]);
+    dispatchLogin({ attempts: 0, cooldownUntil: null });
+  }, [loginState]);
 
   const signUpWithEmail = useCallback(async (email: string, password: string, fullName: string) => {
     const { error } = await supabase.auth.signUp({
@@ -445,9 +458,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Sign out error:', error.message);
       throw error;
     }
-    setSession(null);
-    setUser(null);
-    setProfile(null);
+    dispatchAuth({ type: 'clear' });
     profileCacheRef.current.clear();
     profileRequestsRef.current.clear();
   }, []);
@@ -459,19 +470,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const now = new Date().getTime();
         const diffMs = now - submittedTime;
         const diffHours = diffMs / (1000 * 60 * 60);
-        setAccountAgeHours(diffHours);
-        
         const limitMs = 24 * 60 * 60 * 1000;
         const remainingMs = Math.max(0, limitMs - diffMs);
-        setVerificationCountdown(Math.floor(remainingMs / 1000));
+        dispatchVerification({ accountAgeHours: diffHours, verificationCountdown: Math.floor(remainingMs / 1000) });
       };
 
       updateTime();
       const interval = setInterval(updateTime, 1000);
       return () => clearInterval(interval);
     } else {
-      setAccountAgeHours(0);
-      setVerificationCountdown(0);
+      dispatchVerification({ accountAgeHours: 0, verificationCountdown: 0 });
     }
   }, [profile]);
 
