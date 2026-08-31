@@ -71,6 +71,7 @@ try {
     'security_contract.sql',
     'public_content_rls.sql',
     'profile_least_privilege.sql',
+    'profile_role_management.sql',
     'gallery_rls.sql',
     'messages_rls.sql',
     'attendance_rpc.sql',
