@@ -52,7 +52,7 @@ jobs:
           for attempt in {1..30}; do
             if psql \
               --host=127.0.0.1 \
-              --port=54322 \
+              --port=55322 \
               --username=postgres \
               --dbname=postgres \
               --command="select 1" \
@@ -69,7 +69,7 @@ jobs:
           exit 1
       - name: Run database security contracts
         env:
-          SUPABASE_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+          SUPABASE_DB_URL: postgresql://postgres:postgres@127.0.0.1:55322/postgres
         run: npm run test:db
       - name: Stop local Supabase stack
         if: always()
