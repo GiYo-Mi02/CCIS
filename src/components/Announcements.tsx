@@ -20,6 +20,8 @@ export default function Announcements({ previewMode = false, onViewAllClick }: A
   const [activeCategory, setActiveCategory] = useState<string>('all');
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchAnnouncements = async () => {
       setLoading(true);
       // Query published announcements
@@ -35,6 +37,8 @@ export default function Announcements({ previewMode = false, onViewAllClick }: A
       }
 
       const { data, error } = await query;
+      if (cancelled) return;
+
       if (!error && data) {
         // Map data to ensure profiles field is correctly parsed
         const mapped = data.map((ann: any) => ({
@@ -47,6 +51,9 @@ export default function Announcements({ previewMode = false, onViewAllClick }: A
     };
 
     fetchAnnouncements();
+    return () => {
+      cancelled = true;
+    };
   }, [previewMode]);
 
   const categories = [

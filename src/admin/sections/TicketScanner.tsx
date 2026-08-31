@@ -84,6 +84,8 @@ export default function TicketScanner() {
 
   // Fetch active events list on mount
   useEffect(() => {
+    let cancelled = false;
+
     const fetchEvents = async () => {
       const { data, error } = await withSessionRefreshRetry(() =>
         supabase
@@ -92,7 +94,9 @@ export default function TicketScanner() {
           .order('event_date', { ascending: false })
           .limit(20)
       );
-      
+
+      if (cancelled) return;
+
       if (!error && data) {
         setEvents(data);
         if (data.length > 0) {
@@ -103,6 +107,9 @@ export default function TicketScanner() {
       }
     };
     fetchEvents();
+    return () => {
+      cancelled = true;
+    };
   }, [showToast]);
 
   // Discover every available camera. Laptop webcams are normally user-facing,
