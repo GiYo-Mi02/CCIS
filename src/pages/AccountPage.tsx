@@ -466,13 +466,13 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
             <div className="flex gap-3 pt-2">
               <button
                 onClick={() => setShowConfirmModal(false)}
-                className="flex-1 bg-white/10 hover:bg-white/20 text-white py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all"
+                className="flex-1 bg-white/10 hover:bg-white/20 text-white py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-colors"
               >
                 Go Back
               </button>
               <button
                 onClick={handleConfirmLock}
-                className="flex-1 bg-[#F5B400] hover:bg-[#ffc522] text-[#1A3C2E] py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all"
+                className="flex-1 bg-[#F5B400] hover:bg-[#ffc522] text-[#1A3C2E] py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-colors"
               >
                 Confirm &amp; Lock
               </button>
@@ -727,13 +727,13 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
                   <button 
                     onClick={handleSaveProfileSubmit} 
                     disabled={saving}
-                    className="w-full bg-[var(--color-accent-gold,#F5B400)] hover:bg-[#ffc522] text-[var(--color-primary-green,#1A3C2E)] py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-60"
+                    className="w-full bg-[var(--color-accent-gold,#F5B400)] hover:bg-[#ffc522] text-[var(--color-primary-green,#1A3C2E)] py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors disabled:opacity-60"
                   >
                     {saving ? 'Saving...' : 'Save Changes'}
                   </button>
                   <button 
                     onClick={() => { setEditing(false); setStudentIdError(''); }}
-                    className="w-full bg-zinc-100 hover:bg-zinc-200 text-zinc-600 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all"
+                    className="w-full bg-zinc-100 hover:bg-zinc-200 text-zinc-600 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors"
                   >
                     Cancel
                   </button>
@@ -743,7 +743,7 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
                   {!profile.profile_complete ? (
                     <button 
                       onClick={() => setEditing(true)}
-                      className="w-full bg-[var(--color-primary-green,#1A3C2E)] hover:bg-[#255541] text-white py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all"
+                      className="w-full bg-[var(--color-primary-green,#1A3C2E)] hover:bg-[#255541] text-white py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors"
                     >
                       Edit Profile
                     </button>
@@ -760,14 +760,14 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
                   {isAdmin && onNavigate && (
                     <button 
                       onClick={() => onNavigate('admin')}
-                      className="w-full bg-[var(--color-accent-gold,#F5B400)]/15 border border-[var(--color-accent-gold,#F5B400)]/30 text-[var(--color-primary-green,#1A3C2E)] py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all hover:bg-[var(--color-accent-gold,#F5B400)]/25 flex items-center justify-center gap-1.5"
+                      className="w-full bg-[var(--color-accent-gold,#F5B400)]/15 border border-[var(--color-accent-gold,#F5B400)]/30 text-[var(--color-primary-green,#1A3C2E)] py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors hover:bg-[var(--color-accent-gold,#F5B400)]/25 flex items-center justify-center gap-1.5"
                     >
                       <Shield size={12} />Admin Panel
                     </button>
                   )}
                   <button 
                     onClick={handleSignOut}
-                    className="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5"
+                    className="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5"
                   >
                     <LogOut size={12} />Sign Out
                   </button>
@@ -846,7 +846,7 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
                     onChange={(e) => setConcernMessage(e.target.value)}
                     rows={3}
                     placeholder="Describe your concern here (e.g. 'I submitted my profile but my COR verification email hasn't arrived' or 'Why was my profile rejected?')"
-                    className="w-full bg-zinc-50 border border-[#1A3C2E]/30 focus:border-[#1A3C2E] focus:ring-1 focus:ring-[#1A3C2E] rounded-xl px-4 py-3 text-xs text-stone-800 placeholder-stone-400 outline-none transition-all resize-none"
+                    className="w-full bg-zinc-50 border border-[#1A3C2E]/30 focus:border-[#1A3C2E] focus:ring-1 focus:ring-[#1A3C2E] rounded-xl px-4 py-3 text-xs text-stone-800 placeholder-stone-400 outline-none transition-colors resize-none"
                     required
                   />
                   {concernStatus && (
@@ -857,7 +857,7 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
                   <button
                     type="submit"
                     disabled={sendingConcern || !concernMessage.trim()}
-                    className="bg-[#1A3C2E] hover:bg-[#255541] text-white px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+                    className="bg-[#1A3C2E] hover:bg-[#255541] text-white px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
                   >
                     {sendingConcern ? (
                       <>
@@ -876,7 +876,7 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
             <div className="flex flex-nowrap items-center gap-2 border-b border-[#1A3C2E]/20 pb-3 max-w-full overflow-x-auto">
               <button
                 onClick={() => setActiveTab('attendance-pass')}
-                className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-full text-xs uppercase tracking-wider font-bold transition-all border shrink-0 cursor-pointer select-none ${
+                className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-full text-xs uppercase tracking-wider font-bold transition-colors border shrink-0 cursor-pointer select-none ${
                   activeTab === 'attendance-pass'
                     ? 'bg-[#1A3C2E] text-white shadow-md border-[#1A3C2E] ring-2 ring-[#F5B400]'
                     : 'bg-white text-[#5E6E64] border-[#1A3C2E]/25 hover:bg-zinc-50'
@@ -889,7 +889,7 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
 
               <button
                 onClick={() => setActiveTab('registrations')}
-                className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-full text-xs uppercase tracking-wider font-bold transition-all border shrink-0 cursor-pointer select-none ${
+                className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-full text-xs uppercase tracking-wider font-bold transition-colors border shrink-0 cursor-pointer select-none ${
                   activeTab === 'registrations'
                     ? 'bg-[#1A3C2E] text-white shadow-md border-[#1A3C2E] ring-2 ring-[#F5B400]'
                     : 'bg-white text-[#5E6E64] border-[#1A3C2E]/25 hover:bg-zinc-50'
@@ -1066,7 +1066,7 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
                   <button
                     onClick={handleRegeneratePass}
                     disabled={isRegenerating}
-                    className="bg-white hover:bg-stone-50 text-[#1A3C2E] border border-stone-300 px-4 py-2.5 rounded-xl font-sans font-bold text-xs uppercase tracking-wider transition-all shadow-xs flex items-center gap-2 cursor-pointer disabled:opacity-60"
+                    className="bg-white hover:bg-stone-50 text-[#1A3C2E] border border-stone-300 px-4 py-2.5 rounded-xl font-sans font-bold text-xs uppercase tracking-wider transition-colors shadow-xs flex items-center gap-2 cursor-pointer disabled:opacity-60"
                     id="btn-regenerate-qr"
                   >
                     <RefreshCw size={14} className={isRegenerating ? 'animate-spin' : ''} />
@@ -1076,7 +1076,7 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
                   <button
                     onClick={downloadAudiencePass}
                     disabled={passDownloadLoading}
-                    className="bg-[#F5B400] hover:bg-[#ffc522] text-[#1A3C2E] px-5 py-2.5 rounded-xl font-sans font-bold text-xs uppercase tracking-wider transition-all shadow-xs flex items-center gap-2 cursor-pointer disabled:opacity-60"
+                    className="bg-[#F5B400] hover:bg-[#ffc522] text-[#1A3C2E] px-5 py-2.5 rounded-xl font-sans font-bold text-xs uppercase tracking-wider transition-colors shadow-xs flex items-center gap-2 cursor-pointer disabled:opacity-60"
                     id="btn-download-pass"
                   >
                     {passDownloadLoading ? (
@@ -1094,7 +1094,7 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
 
                   <button
                     onClick={handlePrintAudiencePass}
-                    className="bg-[#1A3C2E] hover:bg-[#255541] text-[#FAF7EA] px-4 py-2.5 rounded-xl font-sans font-bold text-xs uppercase tracking-wider transition-all shadow-xs flex items-center gap-2 cursor-pointer"
+                    className="bg-[#1A3C2E] hover:bg-[#255541] text-[#FAF7EA] px-4 py-2.5 rounded-xl font-sans font-bold text-xs uppercase tracking-wider transition-colors shadow-xs flex items-center gap-2 cursor-pointer"
                     id="btn-print-pass"
                   >
                     <Printer size={14} />
@@ -1142,7 +1142,7 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
                           </div>
                           <button
                             onClick={() => onNavigate && onNavigate('registration')}
-                            className="bg-[var(--color-accent-gold,#F5B400)] hover:bg-[#ffc522] text-[var(--color-primary-green,#1A3C2E)] px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-xs"
+                            className="bg-[var(--color-accent-gold,#F5B400)] hover:bg-[#ffc522] text-[var(--color-primary-green,#1A3C2E)] px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors shadow-xs"
                           >
                             Explore Events
                           </button>
@@ -1152,7 +1152,7 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
                           <div 
                             key={reg.id} 
                             onClick={() => setActiveTicket(reg)}
-                            className="bg-white rounded-2xl border border-[#1A3C2E]/25 p-5 shadow-xs hover:shadow-md hover:border-[#1A3C2E]/60 cursor-pointer select-none transition-all duration-200"
+                            className="bg-white rounded-2xl border border-[#1A3C2E]/25 p-5 shadow-xs hover:shadow-md hover:border-[#1A3C2E]/60 cursor-pointer select-none transition-[background-color,border-color,color,box-shadow] duration-200"
                           >
                             <div className="flex items-center justify-between gap-2 flex-wrap mb-2">
                               <h3 className="font-marcellus text-base text-[#1A3C2E]">
@@ -1388,14 +1388,14 @@ function TicketDashboard({ registration }: { registration: Registration; key?: s
           <div className="grid grid-cols-2 gap-2" data-html2canvas-ignore="true">
             <button
               onClick={handlePrint}
-              className="bg-[#1A3C2E] hover:bg-neutral-800 text-white font-mono text-[9px] uppercase font-bold tracking-wider py-2 rounded transition-all shadow cursor-pointer flex items-center justify-center gap-1"
+              className="bg-[#1A3C2E] hover:bg-neutral-800 text-white font-mono text-[9px] uppercase font-bold tracking-wider py-2 rounded transition-colors shadow cursor-pointer flex items-center justify-center gap-1"
             >
               <Printer size={10} /> PRINT
             </button>
             <button
               onClick={downloadPng}
               disabled={isDownloading}
-              className="bg-[#F5B400] hover:bg-[#ffc522] text-[#1A3C2E] font-mono text-[9px] uppercase font-bold tracking-wider py-2 rounded transition-all shadow cursor-pointer flex items-center justify-center gap-1 disabled:opacity-60"
+              className="bg-[#F5B400] hover:bg-[#ffc522] text-[#1A3C2E] font-mono text-[9px] uppercase font-bold tracking-wider py-2 rounded transition-colors shadow cursor-pointer flex items-center justify-center gap-1 disabled:opacity-60"
             >
               {isDownloading ? (
                 <><div className="w-3 h-3 border-2 border-[#1A3C2E] border-t-transparent rounded-full animate-spin" /> SAVING...</>

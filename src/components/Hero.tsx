@@ -83,7 +83,7 @@ export default function Hero({ onLearnMoreClick, onAnnouncementsClick }: HeroPro
           <div className="flex flex-col sm:flex-row items-start gap-4 animate-hero-fade-up" style={{ animationDelay: '0.8s' }}>
             <button
               onClick={onAnnouncementsClick}
-              className="bg-[#F5B400] text-[#1A3C2E] hover:bg-[#ffc522] px-7 py-3 text-xs font-black uppercase tracking-widest transition-all duration-300 shadow-lg hover:shadow-xl cursor-pointer"
+              className="bg-[#F5B400] text-[#1A3C2E] hover:bg-[#ffc522] px-7 py-3 text-xs font-black uppercase tracking-widest transition-[background-color,box-shadow] duration-300 shadow-lg hover:shadow-xl cursor-pointer"
               id="hero-cta-announcements"
             >
               EXPLORE BULLETINS
@@ -91,7 +91,7 @@ export default function Hero({ onLearnMoreClick, onAnnouncementsClick }: HeroPro
             
             <button
               onClick={onLearnMoreClick}
-              className="border border-white/30 text-white/80 hover:text-white hover:border-white/60 px-6 py-3 text-xs font-semibold uppercase tracking-widest flex items-center gap-2 transition-all duration-300 cursor-pointer backdrop-blur-sm"
+              className="border border-white/30 text-white/80 hover:text-white hover:border-white/60 px-6 py-3 text-xs font-semibold uppercase tracking-widest flex items-center gap-2 transition-colors duration-300 cursor-pointer backdrop-blur-sm"
               id="hero-cta-learn-more"
             >
               About the Council <ArrowRight size={13} />
@@ -106,7 +106,7 @@ export default function Hero({ onLearnMoreClick, onAnnouncementsClick }: HeroPro
           <button
             key={src}
             onClick={() => setCurrentImage(HERO_IMAGES.indexOf(src))}
-            className={`w-2.5 h-2.5 rounded-full transition-all duration-500 ${
+            className={`w-2.5 h-2.5 rounded-full transition-colors duration-500 ${
               currentImage === HERO_IMAGES.indexOf(src)
                 ? 'bg-[#F5B400] scale-125 shadow-lg shadow-[#F5B400]/40'
                 : 'bg-white/40 hover:bg-white/60'

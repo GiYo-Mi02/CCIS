@@ -560,7 +560,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             </div>
             <button
               onClick={clearEmailValidationError}
-              className="w-full bg-[#1A3C2E] hover:bg-[#255541] text-white py-3 rounded-2xl font-bold text-xs uppercase tracking-wider transition-all shadow-md active:scale-98 cursor-pointer"
+               className="w-full bg-[#1A3C2E] hover:bg-[#255541] text-white py-3 rounded-2xl font-bold text-xs uppercase tracking-wider transition-[background-color,transform] shadow-md active:scale-98 cursor-pointer"
             >
               Try Again
             </button>

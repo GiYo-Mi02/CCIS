@@ -39,14 +39,14 @@ export default function NotFoundPage({ onNavigate }: NotFoundPageProps) {
         <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
           <button
             onClick={() => onNavigate('home')}
-            className="w-full sm:w-auto bg-[#1A3C2E] hover:bg-[#123524] text-white px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-lg active:scale-[0.98]"
+            className="w-full sm:w-auto bg-[#1A3C2E] hover:bg-[#123524] text-white px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-[background-color,border-color,color,box-shadow,transform] shadow-md hover:shadow-lg active:scale-[0.98]"
           >
             <Home size={16} /> Return to Home
           </button>
           
           <button
             onClick={() => onNavigate('messages')}
-            className="w-full sm:w-auto bg-stone-100 hover:bg-stone-200 text-[#1A3C2E] border border-stone-200 px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+            className="w-full sm:w-auto bg-stone-100 hover:bg-stone-200 text-[#1A3C2E] border border-stone-200 px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-[background-color,border-color,color,box-shadow,transform] active:scale-[0.98]"
           >
             <MessageSquare size={16} /> Contact Support Desk
           </button>

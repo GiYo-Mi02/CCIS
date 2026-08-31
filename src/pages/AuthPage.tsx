@@ -259,14 +259,14 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
           <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
             <button
               onClick={() => refreshProfile()}
-              className="flex-1 bg-[#F5B400] hover:bg-[#ffc522] text-[#1A3C2E] py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+              className="flex-1 bg-[#F5B400] hover:bg-[#ffc522] text-[#1A3C2E] py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
             >
               <RefreshCw size={14} />
               Retry Connection
             </button>
             <button
               onClick={() => signOut()}
-              className="flex-1 bg-rose-950/20 hover:bg-rose-900/40 border border-rose-500/20 text-rose-300 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              className="flex-1 bg-rose-950/20 hover:bg-rose-900/40 border border-rose-500/20 text-rose-300 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <LogOut size={14} />
               Sign Out
@@ -344,7 +344,7 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
                 <button
                   type="button"
                   onClick={() => signOut()}
-                  className="flex-1 bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl font-sans font-black text-xs uppercase tracking-wider transition-all cursor-pointer"
+                  className="flex-1 bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl font-sans font-black text-xs uppercase tracking-wider transition-colors cursor-pointer"
                 >
                   Disagree &amp; Sign Out
                 </button>
@@ -352,7 +352,7 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
                   type="button"
                   onClick={handleAcceptPrivacy}
                   disabled={!privacyChecked || completing}
-                  className="flex-1 bg-[var(--color-accent-gold,#F5B400)] hover:bg-[#ffc522] text-[var(--color-primary-green,#1A3C2E)] py-3 rounded-xl font-sans font-black text-xs uppercase tracking-wider shadow-lg transition-all disabled:opacity-50 cursor-pointer"
+                  className="flex-1 bg-[var(--color-accent-gold,#F5B400)] hover:bg-[#ffc522] text-[var(--color-primary-green,#1A3C2E)] py-3 rounded-xl font-sans font-black text-xs uppercase tracking-wider shadow-lg transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   {completing ? 'Logging consent...' : 'Accept & Proceed'}
                 </button>
@@ -386,13 +386,13 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => setShowConfirmModal(false)}
-                  className="flex-1 bg-white/10 hover:bg-white/20 text-white py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all"
+                  className="flex-1 bg-white/10 hover:bg-white/20 text-white py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-colors"
                 >
                   Go Back
                 </button>
                 <button
                   onClick={handleConfirmLock}
-                  className="flex-1 bg-[#F5B400] hover:bg-[#ffc522] text-[#1A3C2E] py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all"
+                  className="flex-1 bg-[#F5B400] hover:bg-[#ffc522] text-[#1A3C2E] py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-colors"
                 >
                   Confirm &amp; Lock
                 </button>
@@ -431,7 +431,7 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
                     setStudentNumber(e.target.value);
                     if (studentIdError) setStudentIdError('');
                   }}
-                  className={`w-full bg-white/5 border ${studentIdError ? 'border-red-500 focus:ring-red-500' : 'border-white/10 focus:border-[var(--color-accent-gold,#F5B400)]'} focus:ring-1 focus:ring-[var(--color-accent-gold,#F5B400)] rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 outline-none transition-all`}
+                  className={`w-full bg-white/5 border ${studentIdError ? 'border-red-500 focus:ring-red-500' : 'border-white/10 focus:border-[var(--color-accent-gold,#F5B400)]'} focus:ring-1 focus:ring-[var(--color-accent-gold,#F5B400)] rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 outline-none transition-colors`}
                   placeholder="e.g. K12345678"
                   required
                 />
@@ -449,7 +449,7 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
                 <select
                   value={yearLevel}
                   onChange={(e) => setYearLevel(Number(e.target.value))}
-                  className="w-full bg-white/5 border border-white/10 focus:border-[var(--color-accent-gold,#F5B400)] rounded-xl px-4 py-3 text-sm text-white outline-none transition-all"
+                  className="w-full bg-white/5 border border-white/10 focus:border-[var(--color-accent-gold,#F5B400)] rounded-xl px-4 py-3 text-sm text-white outline-none transition-colors"
                 >
                   <option value={1} className="text-black">1st Year</option>
                   <option value={2} className="text-black">2nd Year</option>
@@ -465,7 +465,7 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
                 <select
                   value={program}
                   onChange={(e) => setProgram(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 focus:border-[var(--color-accent-gold,#F5B400)] rounded-xl px-4 py-3 text-sm text-white outline-none transition-all"
+                  className="w-full bg-white/5 border border-white/10 focus:border-[var(--color-accent-gold,#F5B400)] rounded-xl px-4 py-3 text-sm text-white outline-none transition-colors"
                 >
                   <option value="BSCS" className="text-black">B.S. in Computer Science (BSCS)</option>
                   <option value="BSIT" className="text-black">B.S. in Information Technology (BSIT)</option>
@@ -483,7 +483,7 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
                   type="text"
                   value={section}
                   onChange={(e) => setSection(e.target.value.toUpperCase().replace(/\s/g, ''))}
-                  className="w-full bg-white/5 border border-white/10 focus:border-[var(--color-accent-gold,#F5B400)] focus:ring-1 focus:ring-[var(--color-accent-gold,#F5B400)] rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 outline-none transition-all"
+                  className="w-full bg-white/5 border border-white/10 focus:border-[var(--color-accent-gold,#F5B400)] focus:ring-1 focus:ring-[var(--color-accent-gold,#F5B400)] rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 outline-none transition-colors"
                   placeholder={program === 'DAD' ? 'e.g. A-APPDEV' : program === 'DNA' ? 'e.g. A-NETAD' : program === 'BSIT' ? 'e.g. AINS' : 'e.g. ACSAD'}
                   required
                 />
@@ -497,7 +497,7 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
                   type="tel"
                   value={contactNumber}
                   onChange={(e) => setContactNumber(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 focus:border-[var(--color-accent-gold,#F5B400)] focus:ring-1 focus:ring-[var(--color-accent-gold,#F5B400)] rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 outline-none transition-all"
+                  className="w-full bg-white/5 border border-white/10 focus:border-[var(--color-accent-gold,#F5B400)] focus:ring-1 focus:ring-[var(--color-accent-gold,#F5B400)] rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 outline-none transition-colors"
                   placeholder="e.g. 09123456789"
                 />
               </div>
@@ -511,7 +511,7 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
               <button
                 type="submit"
                 disabled={completing}
-                className="w-full bg-[var(--color-accent-gold,#F5B400)] hover:bg-[#ffc522] text-[var(--color-primary-green,#1A3C2E)] py-3 rounded-xl font-sans font-black text-sm uppercase tracking-wider shadow-lg transition-all disabled:opacity-60"
+                className="w-full bg-[var(--color-accent-gold,#F5B400)] hover:bg-[#ffc522] text-[var(--color-primary-green,#1A3C2E)] py-3 rounded-xl font-sans font-black text-sm uppercase tracking-wider shadow-lg transition-colors disabled:opacity-60"
               >
                 {completing ? (
                   <span className="flex items-center justify-center gap-2">
@@ -563,7 +563,7 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
           <div className="space-y-3">
             <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden border border-white/5 p-0.5">
               <div 
-                className="h-full bg-[#F5B400] rounded-full transition-all duration-75 ease-out shadow-[0_0_8px_rgba(245,180,0,0.5)]"
+                className="h-full bg-[#F5B400] rounded-full transition-colors duration-75 ease-out shadow-[0_0_8px_rgba(245,180,0,0.5)]"
                 style={{ width: `${transitionProgress}%` }}
               />
             </div>
@@ -640,14 +640,14 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
                   if (btn) btn.classList.remove('animate-spin');
                 }
               }}
-              className="flex-1 bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              className="flex-1 bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <RefreshCw size={14} id="refresh-btn" />
               Check Status
             </button>
             <button
               onClick={() => signOut()}
-              className="flex-1 bg-rose-950/20 hover:bg-rose-900/40 border border-rose-500/20 text-rose-300 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              className="flex-1 bg-rose-950/20 hover:bg-rose-900/40 border border-rose-500/20 text-rose-300 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <LogOut size={14} />
               Sign Out
@@ -704,7 +704,7 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
             <button
               onClick={handleGoogleSignIn}
               disabled={signingIn}
-              className="w-full bg-white hover:bg-gray-50 text-gray-800 py-3.5 rounded-xl font-sans font-bold text-sm tracking-wide shadow-lg transition-all disabled:opacity-60 flex items-center justify-center gap-3 cursor-pointer"
+              className="w-full bg-white hover:bg-gray-50 text-gray-800 py-3.5 rounded-xl font-sans font-bold text-sm tracking-wide shadow-lg transition-colors disabled:opacity-60 flex items-center justify-center gap-3 cursor-pointer"
             >
               {signingIn ? (
                 <span className="flex items-center gap-2">
@@ -771,7 +771,7 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
               </div>
               <button
                 onClick={clearBanNotice}
-                className="w-full bg-[#1A3C2E] hover:bg-[#1A3C2E]/90 text-white py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shadow-xs"
+                className="w-full bg-[#1A3C2E] hover:bg-[#1A3C2E]/90 text-white py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-colors shadow-xs"
               >
                 Close Notice
               </button>

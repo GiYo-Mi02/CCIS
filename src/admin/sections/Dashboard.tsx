@@ -232,7 +232,7 @@ export default function Dashboard() {
             {recentAnnouncements.length === 0 ? (
               <p className="p-5 text-sm text-gray-400 text-center">No announcements yet</p>
             ) : recentAnnouncements.map(ann => (
-              <div key={ann.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50 transition-colors group">
+               <div key={ann.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50 transition-colors group">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-[#222B26] truncate group-hover:text-[#1A3C2E]">{ann.title}</p>
                   <p className="text-[11px] text-gray-400 font-mono mt-0.5">
@@ -245,7 +245,7 @@ export default function Dashboard() {
                 />
                 <button
                   onClick={() => setActiveSection('announcements')}
-                  className="p-1.5 rounded-lg text-gray-300 hover:text-[#F5B400] hover:bg-[#F5B400]/10 transition-colors opacity-0 group-hover:opacity-100"
+                  className="p-1.5 rounded-lg text-gray-300 hover:text-[#F5B400] hover:bg-[#F5B400]/10 transition-[width,height,margin-top,opacity] opacity-0 group-hover:opacity-100"
                 >
                   <Edit3 size={14} />
                 </button>
@@ -271,7 +271,7 @@ export default function Dashboard() {
                 <p className="p-5 text-sm text-gray-400 text-center">No active student conversations</p>
               ) : recentConversations.map(con => {
                 return (
-                  <div key={con.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50 transition-colors group">
+                   <div key={con.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50 transition-colors group">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         {(con.unread_count || 0) > 0 && <div className="w-2 h-2 rounded-full bg-[#F5B400] shrink-0" />}
@@ -290,7 +290,7 @@ export default function Dashboard() {
                     )}
                     <button
                       onClick={() => setActiveSection('messages')}
-                      className="px-3 py-1 rounded-lg bg-[#F5B400]/10 text-[#F5B400] text-[10px] font-bold uppercase tracking-wider hover:bg-[#F5B400]/20 transition-colors opacity-0 group-hover:opacity-100"
+                      className="px-3 py-1 rounded-lg bg-[#F5B400]/10 text-[#F5B400] text-[10px] font-bold uppercase tracking-wider hover:bg-[#F5B400]/20 transition-[width,height,margin-top,opacity] opacity-0 group-hover:opacity-100"
                     >
                       Open
                     </button>

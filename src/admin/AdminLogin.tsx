@@ -70,7 +70,7 @@ export default function AdminLogin() {
           <button
             onClick={handleGoogleSignIn}
             disabled={signingIn}
-            className="w-full bg-white hover:bg-gray-50 text-gray-800 py-3.5 rounded-xl font-sans font-bold text-sm tracking-wide shadow-lg transition-all disabled:opacity-60 flex items-center justify-center gap-3"
+            className="w-full bg-white hover:bg-gray-50 text-gray-800 py-3.5 rounded-xl font-sans font-bold text-sm tracking-wide shadow-lg transition-colors disabled:opacity-60 flex items-center justify-center gap-3"
             id="admin-login-google"
           >
             {signingIn ? (

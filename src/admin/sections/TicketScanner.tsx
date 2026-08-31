@@ -714,7 +714,7 @@ export default function TicketScanner() {
                   startScanning(selectedCameraId);
                 }
               }}
-              className={`px-5 py-2 rounded-xl font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shrink-0 flex items-center justify-center gap-1.5 ${
+              className={`px-5 py-2 rounded-xl font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer shrink-0 flex items-center justify-center gap-1.5 ${
                 isScanning
                   ? 'bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100'
                   : 'bg-[#1A3C2E] hover:bg-[#255541] text-white shadow-xs'
@@ -741,7 +741,7 @@ export default function TicketScanner() {
 
             {/* Scan result overlay — appears on top of live camera without stopping it */}
             {isScanning && result.status !== 'scanning' && result.status !== 'idle' && (
-              <div className={`absolute inset-x-0 bottom-0 p-3 pointer-events-none transition-all duration-300 ${
+              <div className={`absolute inset-x-0 bottom-0 p-3 pointer-events-none transition-colors duration-300 ${
                 result.status === 'success' ? 'bg-emerald-900/85' :
                 result.status === 'warning' ? 'bg-amber-900/85' :
                 result.status === 'error' ? 'bg-rose-900/85' :
@@ -783,7 +783,7 @@ export default function TicketScanner() {
               <span className="text-[10px] font-bold uppercase tracking-wider text-[#5E6E64]">
                 Alternative Entry Options
               </span>
-              <label className="text-[11px] font-bold text-[#1A3C2E] hover:text-[#255541] cursor-pointer flex items-center gap-1.5 bg-stone-100 hover:bg-stone-200 px-3 py-1.5 rounded-xl transition-all shadow-2xs">
+               <label className="text-[11px] font-bold text-[#1A3C2E] hover:text-[#255541] cursor-pointer flex items-center gap-1.5 bg-stone-100 hover:bg-stone-200 px-3 py-1.5 rounded-xl transition-colors shadow-2xs">
                 <FileImage size={13} className="text-[#F5B400]" />
                 <span>Upload QR Photo</span>
                 <input 
@@ -806,7 +806,7 @@ export default function TicketScanner() {
               />
               <button
                 type="submit"
-                className="bg-[#1A3C2E] hover:bg-[#255541] text-white p-2.5 rounded-xl transition-all cursor-pointer flex items-center justify-center shrink-0"
+                 className="bg-[#1A3C2E] hover:bg-[#255541] text-white p-2.5 rounded-xl transition-colors cursor-pointer flex items-center justify-center shrink-0"
                 title="Validate Manual Ticket ID"
               >
                 <Send size={14} />

@@ -305,22 +305,22 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
   const renderOfficerCard = (off: Officer) => (
     <div
       key={off.id}
-      className="relative w-[280px] max-w-[calc(100vw-3rem)] h-[395px] group overflow-visible mt-16 mb-6 flex flex-col justify-end transition-all duration-500"
+      className="relative w-[280px] max-w-[calc(100vw-3rem)] h-[395px] group overflow-visible mt-16 mb-6 flex flex-col justify-end transition-colors duration-500"
       id={`officer-card-${off.id}`}
     >
       {/* 1. Offset Angled Accent Border Frame */}
-      <div className="absolute inset-x-0 bottom-0 top-10 rounded-3xl border-2 border-[#F5B400]/15 translate-x-3 translate-y-3 -rotate-3 pointer-events-none group-hover:translate-x-0 group-hover:translate-y-0 group-hover:rotate-0 group-hover:border-[#F5B400]/35 transition-all duration-500" />
+      <div className="absolute inset-x-0 bottom-0 top-10 rounded-3xl border-2 border-[#F5B400]/15 translate-x-3 translate-y-3 -rotate-3 pointer-events-none group-hover:translate-x-0 group-hover:translate-y-0 group-hover:rotate-0 group-hover:border-[#F5B400]/35 transition-[background-color,border-color,color,box-shadow,transform] duration-500" />
 
       {/* 2. Main Skewed/Tilted Background Panel Card */}
-      <div className="absolute inset-x-0 bottom-0 top-10 bg-gradient-to-br from-[#163628] via-[#0E2219] to-[#060D0A] rounded-3xl border border-white/10 shadow-2xl group-hover:shadow-[0_30px_60px_rgba(0,0,0,0.6)] group-hover:shadow-[#123524]/30 transition-all duration-500 origin-bottom transform group-hover:scale-[1.02] group-hover:-translate-y-3.5 -rotate-1 group-hover:rotate-0 overflow-hidden" />
+      <div className="absolute inset-x-0 bottom-0 top-10 bg-gradient-to-br from-[#163628] via-[#0E2219] to-[#060D0A] rounded-3xl border border-white/10 shadow-2xl group-hover:shadow-[0_30px_60px_rgba(0,0,0,0.6)] group-hover:shadow-[#123524]/30 transition-[background-color,border-color,color,box-shadow,transform] duration-500 origin-bottom transform group-hover:scale-[1.02] group-hover:-translate-y-3.5 -rotate-1 group-hover:rotate-0 overflow-hidden" />
 
       {/* 3. Rotated/Vertical Department Label */}
-      <div className="absolute top-16 right-4 font-mono font-black text-[#F5B400]/10 group-hover:text-[#F5B400]/30 text-[9px] uppercase tracking-[0.3em] transition-all duration-500 [writing-mode:vertical-lr] select-none pointer-events-none group-hover:translate-y-2">
+      <div className="absolute top-16 right-4 font-mono font-black text-[#F5B400]/10 group-hover:text-[#F5B400]/30 text-[9px] uppercase tracking-[0.3em] transition-[background-color,border-color,color,box-shadow,transform] duration-500 [writing-mode:vertical-lr] select-none pointer-events-none group-hover:translate-y-2">
         {off.committee === 'Executive Board' ? 'EXEBOARD' : `EXECOM - ${off.committee.replace('Committee', '').trim()}`}
       </div>
 
       {/* 4. Overlapping 3D Pop-out Portrait Frame */}
-      <div className="absolute bottom-20 left-1/2 -translate-x-1/2 w-[88%] h-[98%] overflow-hidden rounded-2xl border border-white/10 shadow-lg bg-white/5 pointer-events-none z-10 group-hover:shadow-2xl group-hover:scale-106 group-hover:-translate-y-4 group-hover:border-[#F5B400]/30 transition-all duration-500 origin-bottom">
+      <div className="absolute bottom-20 left-1/2 -translate-x-1/2 w-[88%] h-[98%] overflow-hidden rounded-2xl border border-white/10 shadow-lg bg-white/5 pointer-events-none z-10 group-hover:shadow-2xl group-hover:scale-106 group-hover:-translate-y-4 group-hover:border-[#F5B400]/30 transition-[background-color,border-color,color,box-shadow,transform] duration-500 origin-bottom">
         {off.photoUrl ? (
           <div className="relative w-full h-full">
             <OptimizedImage
@@ -340,7 +340,7 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
       </div>
 
       {/* 5. Floating Glassmorphic Footer Info Plate */}
-      <div className="absolute bottom-4 left-4 right-4 bg-[#07130F]/90 backdrop-blur-md border border-white/10 p-3.5 rounded-2xl z-20 text-left shadow-2xl group-hover:shadow-[0_15px_30px_rgba(0,0,0,0.5)] group-hover:border-[#F5B400]/40 group-hover:-translate-y-4 transition-all duration-500 flex flex-col justify-between">
+      <div className="absolute bottom-4 left-4 right-4 bg-[#07130F]/90 backdrop-blur-md border border-white/10 p-3.5 rounded-2xl z-20 text-left shadow-2xl group-hover:shadow-[0_15px_30px_rgba(0,0,0,0.5)] group-hover:border-[#F5B400]/40 group-hover:-translate-y-4 transition-[background-color,border-color,color,box-shadow,transform] duration-500 flex flex-col justify-between">
         <div>
           <h3 className="font-sans font-black text-white text-xs md:text-sm group-hover:text-[#F5B400] transition-colors leading-tight mb-0.5 truncate">
             {off.name}
@@ -351,7 +351,7 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
         </div>
         
         {/* Hover-reveal Contact / Quote row */}
-        <div className="h-0 opacity-0 group-hover:h-auto group-hover:opacity-100 group-hover:mt-2 border-t border-white/5 pt-1.5 transition-all duration-500 overflow-hidden flex flex-col gap-1">
+        <div className="h-0 opacity-0 group-hover:h-auto group-hover:opacity-100 group-hover:mt-2 border-t border-white/5 pt-1.5 transition-[width,height,margin-top,opacity] duration-500 overflow-hidden flex flex-col gap-1">
           {off.quote && (
             <p className="font-sans text-[9px] text-stone-300 leading-tight italic truncate">
               "{off.quote}"
@@ -436,7 +436,7 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
               {/* 1. UMak Logo Button */}
               <div
                 onClick={() => handleTabSelect('umak')}
-                className={`flex items-center gap-2 px-2.5 py-2 rounded-md transition-all cursor-pointer hover:bg-[#eaecf4] shrink-0 select-none ${
+                className={`flex items-center gap-2 px-2.5 py-2 rounded-md transition-colors cursor-pointer hover:bg-[#eaecf4] shrink-0 select-none ${
                   activeInfoTab === 'umak' ? 'border-2 border-[#111c4e] bg-[#eaecf4]' : 'border border-transparent'
                 }`}
                 id="pagination-btn-umak"
@@ -452,7 +452,7 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
               {/* 2. CCIS Logo Button */}
               <div
                 onClick={() => handleTabSelect('college')}
-                className={`flex items-center gap-2 px-2.5 py-2 rounded-md transition-all cursor-pointer hover:bg-stone-50 shrink-0 select-none ${
+                className={`flex items-center gap-2 px-2.5 py-2 rounded-md transition-colors cursor-pointer hover:bg-stone-50 shrink-0 select-none ${
                   activeInfoTab === 'college' ? 'border-2 border-[#1A3C2E] bg-[#FAF7EA]' : 'border border-transparent'
                 }`}
                 id="pagination-btn-college"
@@ -469,7 +469,7 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
               <button
                 type="button"
                 onClick={() => setIsOrgMenuOpen(open => !open)}
-                className={`flex items-center gap-2 px-2.5 py-2 rounded-md transition-all cursor-pointer hover:bg-[#FAF7EA] shrink-0 select-none ${
+                className={`flex items-center gap-2 px-2.5 py-2 rounded-md transition-colors cursor-pointer hover:bg-[#FAF7EA] shrink-0 select-none ${
                   activeInfoTab === 'org' ? 'border-2 border-[#123524] bg-[#FAF7EA]' : 'border border-transparent'
                 }`}
                 id="pagination-btn-org"
@@ -525,7 +525,7 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
                           handleTabSelect('org');
                           setIsOrgMenuOpen(false);
                         }}
-                        className={`w-full rounded-xl border p-3 text-left transition-all cursor-pointer flex items-center gap-3 ${
+                        className={`w-full rounded-xl border p-3 text-left transition-colors cursor-pointer flex items-center gap-3 ${
                           isSelected
                             ? 'bg-[#FAF7EA] shadow-sm'
                             : 'border-[#123524]/15 bg-white hover:border-[#123524]/45 hover:bg-stone-50'
@@ -962,7 +962,7 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
                     <button
                       key={org.id}
                       onClick={() => setSelectedOrgId(org.id)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
                         selectedOrgId === org.id
                           ? 'shadow-xs'
                           : 'text-stone-600 hover:text-[#1A3C2E]'
@@ -988,7 +988,7 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
                   <select
                     value={selectedTerm}
                     onChange={(e) => setSelectedTerm(e.target.value)}
-                    className="appearance-none bg-[#FAF7EA] hover:bg-white text-[#1A3C2E] text-xs font-bold font-sans rounded-full border border-stone-200 pl-4 pr-9 py-2 shadow-xs outline-none focus:border-[#F5B400] transition-all cursor-pointer"
+                    className="appearance-none bg-[#FAF7EA] hover:bg-white text-[#1A3C2E] text-xs font-bold font-sans rounded-full border border-stone-200 pl-4 pr-9 py-2 shadow-xs outline-none focus:border-[#F5B400] transition-colors cursor-pointer"
                     id="officer-year-select"
                   >
                     {['2026-2027', '2025-2026', '2024-2025'].map((t) => (
@@ -1091,7 +1091,7 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
                 <button
                   key={com.id}
                   onClick={() => setActiveCommitteeTab(com.id)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl text-left border font-sans font-bold text-xs tracking-wide transition-all cursor-pointer ${
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl text-left border font-sans font-bold text-xs tracking-wide transition-colors cursor-pointer ${
                     activeCommitteeTab === com.id
                       ? 'bg-white border-[#1A3C2E]/40 text-[#1A3C2E] shadow-sm'
                       : 'bg-stone-50 border-[#1A3C2E]/20 text-stone-600 hover:bg-white hover:text-[#1A3C2E]'

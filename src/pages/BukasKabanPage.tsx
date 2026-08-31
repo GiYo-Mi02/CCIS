@@ -702,7 +702,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
           <div>
             <button
               onClick={() => openForm(null)}
-              className="px-4 py-1.5 text-xs font-black uppercase tracking-wider text-[#1A3C2E] bg-[#FAF7EA] border border-white hover:bg-stone-100 rounded-full flex items-center gap-1.5 transition-all shadow-sm cursor-pointer focus:ring-2 focus:ring-[#F5B400] outline-none"
+              className="px-4 py-1.5 text-xs font-black uppercase tracking-wider text-[#1A3C2E] bg-[#FAF7EA] border border-white hover:bg-stone-100 rounded-full flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer focus:ring-2 focus:ring-[#F5B400] outline-none"
             >
               <Plus size={12} />
               Publish Document
@@ -773,7 +773,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
               <button
                 key={sem}
                 onClick={() => setSelectedSemester(sem)}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all focus:ring-2 focus:ring-[#1A3C2E] outline-none cursor-pointer border ${
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors focus:ring-2 focus:ring-[#1A3C2E] outline-none cursor-pointer border ${
                   selectedSemester === sem
                     ? 'bg-[#1A3C2E] text-white border-[#1A3C2E] shadow-xs'
                     : 'text-stone-600 border-transparent hover:text-[#1A3C2E] hover:bg-[#FAF7EA]'
@@ -857,13 +857,13 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
                   {/* Document Card Entry */}
                   <div 
                     onClick={() => openDetailModal(report)}
-                    className="relative ml-6 sm:ml-12 mb-10 flex flex-col sm:flex-row gap-6 bg-white p-6 sm:p-8 rounded-3xl border border-[#1A3C2E]/25 shadow-xs hover:shadow-lg hover:-translate-y-1 hover:bg-[#1A3C2E] hover:border-[#1A3C2E] hover:text-white cursor-pointer transition-all duration-300 group"
+                    className="relative ml-6 sm:ml-12 mb-10 flex flex-col sm:flex-row gap-6 bg-white p-6 sm:p-8 rounded-3xl border border-[#1A3C2E]/25 shadow-xs hover:shadow-lg hover:-translate-y-1 hover:bg-[#1A3C2E] hover:border-[#1A3C2E] hover:text-white cursor-pointer transition-[background-color,border-color,color,box-shadow,transform] duration-300 group"
                   >
                     {/* Spine anchor node */}
-                    <div className="absolute -left-[30px] sm:-left-[42px] top-8 w-2.5 h-2.5 rounded-full bg-stone-300 border-2 border-[#FAF7EA] group-hover:bg-[#1A3C2E] group-hover:scale-110 transition-all shadow-xs" />
+                    <div className="absolute -left-[30px] sm:-left-[42px] top-8 w-2.5 h-2.5 rounded-full bg-stone-300 border-2 border-[#FAF7EA] group-hover:bg-[#1A3C2E] group-hover:scale-110 transition-[background-color,border-color,color,box-shadow,transform] shadow-xs" />
 
                     {/* Left side preview thumbnail */}
-                    <div className="w-28 sm:w-36 h-36 sm:h-48 bg-stone-100 rounded-2xl border border-[#1A3C2E]/20 shadow-2xs shrink-0 flex items-center justify-center relative overflow-hidden transition-all duration-300 hover:scale-[1.02] group-hover:border-[#F5B400]/20">
+                    <div className="w-28 sm:w-36 h-36 sm:h-48 bg-stone-100 rounded-2xl border border-[#1A3C2E]/20 shadow-2xs shrink-0 flex items-center justify-center relative overflow-hidden transition-[background-color,border-color,color,box-shadow,transform] duration-300 hover:scale-[1.02] group-hover:border-[#F5B400]/20">
                       {report.thumbnailUrl ? (
                         <img
                           src={report.thumbnailUrl}
@@ -985,7 +985,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
               </h3>
               <button
                 onClick={() => setShowFormModal(false)}
-                className="text-white/70 hover:text-white p-1 rounded-full hover:bg-white/10 transition-all cursor-pointer"
+                className="text-white/70 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors cursor-pointer"
                 disabled={formSubmitting}
               >
                 <X size={18} />
@@ -1006,7 +1006,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
                   value={formTitle}
                   onChange={(e) => setFormTitle(e.target.value)}
                   placeholder="e.g. Orgfee Collection Summary — 1st Semester A.Y. 2025-2026"
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E] transition-all text-xs"
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E] transition-colors text-xs"
                   disabled={formSubmitting}
                 />
               </div>
@@ -1023,7 +1023,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
                   placeholder="Summarize what this report covers (1-2 sentences)..."
                   maxLength={250}
                   rows={3}
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E] transition-all text-xs resize-none"
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E] transition-colors text-xs resize-none"
                   disabled={formSubmitting}
                 />
                 <span className="text-[9px] text-stone-400 block text-right font-mono mt-1">
@@ -1045,7 +1045,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
                     value={formTotalBudgetRequested}
                     onChange={(e) => setFormTotalBudgetRequested(e.target.value)}
                     placeholder="0.00"
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E] transition-all text-xs"
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E] transition-colors text-xs"
                     disabled={formSubmitting}
                   />
                 </div>
@@ -1062,7 +1062,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
                     value={formTotalExpenses}
                     onChange={(e) => setFormTotalExpenses(e.target.value)}
                     placeholder="0.00"
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E] transition-all text-xs"
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E] transition-colors text-xs"
                     disabled={formSubmitting}
                   />
                 </div>
@@ -1096,7 +1096,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
                         setFormSemester(e.target.value);
                       }
                     }}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E] transition-all text-xs font-mono"
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E] transition-colors text-xs font-mono"
                     disabled={formSubmitting}
                   >
                     {formSemestersOptions.map(opt => (
@@ -1112,7 +1112,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
                       value={formCustomSemester}
                       onChange={(e) => setFormCustomSemester(e.target.value)}
                       placeholder="e.g. 1st Semester A.Y. 2026-2027"
-                      className="w-full bg-[#FAF7EA]/50 border border-[#F5B400]/40 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E] transition-all text-xs font-mono"
+                      className="w-full bg-[#FAF7EA]/50 border border-[#F5B400]/40 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E] transition-colors text-xs font-mono"
                       disabled={formSubmitting}
                     />
                   )}
@@ -1124,7 +1124,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
                 <label className="block text-[10px] font-mono uppercase font-bold text-stone-400 mb-1.5">
                   PDF Document {editTarget ? '(Optional replacement)' : '*'}
                 </label>
-                <div className="border-2 border-dashed border-stone-200 hover:border-stone-400 rounded-2xl p-4 transition-all text-center relative bg-stone-50">
+                <div className="border-2 border-dashed border-stone-200 hover:border-stone-400 rounded-2xl p-4 transition-colors text-center relative bg-stone-50">
                   <input
                     type="file"
                     accept="application/pdf"
@@ -1166,7 +1166,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
                 <button
                   type="button"
                   onClick={() => setShowFormModal(false)}
-                  className="flex-1 py-3 text-center border border-stone-200 rounded-xl hover:bg-stone-50 font-black uppercase tracking-wider text-stone-600 transition-all cursor-pointer"
+                  className="flex-1 py-3 text-center border border-stone-200 rounded-xl hover:bg-stone-50 font-black uppercase tracking-wider text-stone-600 transition-colors cursor-pointer"
                   disabled={formSubmitting}
                 >
                   Cancel
@@ -1174,7 +1174,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
                 <button
                   type="submit"
                   disabled={formSubmitting || isGeneratingThumbnail}
-                  className="flex-1 py-3 text-center bg-[#1A3C2E] hover:bg-[#123524] disabled:bg-stone-300 text-white rounded-xl font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md border border-[#F5B400]/20"
+                  className="flex-1 py-3 text-center bg-[#1A3C2E] hover:bg-[#123524] disabled:bg-stone-300 text-white rounded-xl font-black uppercase tracking-wider transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-md border border-[#F5B400]/20"
                 >
                   {formSubmitting && <Loader2 className="animate-spin" size={14} />}
                   {editTarget ? 'Save Changes' : 'Publish Report'}
@@ -1264,7 +1264,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
                   href={selectedModalReport.pdfUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-6 w-full max-w-[400px] inline-flex items-center justify-center gap-2 bg-[#1A3C2E] hover:bg-[#123524] text-white py-3 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 shadow-md border border-[#F5B400]/25 cursor-pointer focus:ring-2 focus:ring-[#F5B400] outline-none"
+                  className="mt-6 w-full max-w-[400px] inline-flex items-center justify-center gap-2 bg-[#1A3C2E] hover:bg-[#123524] text-white py-3 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-colors duration-300 shadow-md border border-[#F5B400]/25 cursor-pointer focus:ring-2 focus:ring-[#F5B400] outline-none"
                 >
                   <Download size={14} />
                   Download PDF Report
