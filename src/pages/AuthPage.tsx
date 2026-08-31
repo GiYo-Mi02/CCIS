@@ -421,10 +421,11 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
           <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-8 shadow-2xl">
             <form onSubmit={handleCompleteProfileSubmit} className="space-y-5">
               <div>
-                <label className="block text-[var(--color-bg-cream,#FAF7EA)]/70 text-xs font-bold uppercase tracking-wider mb-2">
+                <label htmlFor="auth-student-number" className="block text-[var(--color-bg-cream,#FAF7EA)]/70 text-xs font-bold uppercase tracking-wider mb-2">
                   Student ID Number
                 </label>
                 <input
+                  id="auth-student-number"
                   type="text"
                   value={studentNumber}
                   onChange={(e) => {
@@ -443,10 +444,10 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
               </div>
 
               <div>
-                <label className="block text-[var(--color-bg-cream,#FAF7EA)]/70 text-xs font-bold uppercase tracking-wider mb-2">
+                <label htmlFor="auth-year-level" className="block text-[var(--color-bg-cream,#FAF7EA)]/70 text-xs font-bold uppercase tracking-wider mb-2">
                   Year Level
                 </label>
-                <select
+                <select id="auth-year-level"
                   value={yearLevel}
                   onChange={(e) => setYearLevel(Number(e.target.value))}
                   className="w-full bg-white/5 border border-white/10 focus:border-[var(--color-accent-gold,#F5B400)] rounded-xl px-4 py-3 text-sm text-white outline-none transition-colors"
@@ -459,10 +460,10 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
               </div>
 
               <div>
-                <label className="block text-[var(--color-bg-cream,#FAF7EA)]/70 text-xs font-bold uppercase tracking-wider mb-2">
+                <label htmlFor="auth-program" className="block text-[var(--color-bg-cream,#FAF7EA)]/70 text-xs font-bold uppercase tracking-wider mb-2">
                   Program
                 </label>
-                <select
+                <select id="auth-program"
                   value={program}
                   onChange={(e) => setProgram(e.target.value)}
                   className="w-full bg-white/5 border border-white/10 focus:border-[var(--color-accent-gold,#F5B400)] rounded-xl px-4 py-3 text-sm text-white outline-none transition-colors"
@@ -476,10 +477,11 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
               </div>
 
               <div>
-                <label className="block text-[var(--color-bg-cream,#FAF7EA)]/70 text-xs font-bold uppercase tracking-wider mb-2">
+                <label htmlFor="auth-section" className="block text-[var(--color-bg-cream,#FAF7EA)]/70 text-xs font-bold uppercase tracking-wider mb-2">
                   Class Section
                 </label>
                 <input
+                  id="auth-section"
                   type="text"
                   value={section}
                   onChange={(e) => setSection(e.target.value.toUpperCase().replace(/\s/g, ''))}
@@ -490,10 +492,11 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
               </div>
 
               <div>
-                <label className="block text-[var(--color-bg-cream,#FAF7EA)]/70 text-xs font-bold uppercase tracking-wider mb-2">
+                <label htmlFor="auth-contact-number" className="block text-[var(--color-bg-cream,#FAF7EA)]/70 text-xs font-bold uppercase tracking-wider mb-2">
                   Contact Number (Optional)
                 </label>
                 <input
+                  id="auth-contact-number"
                   type="tel"
                   value={contactNumber}
                   onChange={(e) => setContactNumber(e.target.value)}

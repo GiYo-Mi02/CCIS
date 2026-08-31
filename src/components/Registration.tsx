@@ -650,11 +650,12 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
                           <div className="space-y-4 text-left">
                             {/* Full Student Name */}
                             <div className="space-y-1">
-                              <label className="block text-[10px] font-bold text-stone-300 uppercase tracking-widest">
+                              <label htmlFor="registration-full-name" className="block text-[10px] font-bold text-stone-300 uppercase tracking-widest">
                                 Full Student Name
                               </label>
                               <div className="relative font-sans">
                                 <input
+                                  id="registration-full-name"
                                   type="text"
                                   disabled
                                   value={fullName}
@@ -666,11 +667,12 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
 
                             {/* CCIS Institutional Email */}
                             <div className="space-y-1">
-                              <label className="block text-[10px] font-bold text-stone-300 uppercase tracking-widest">
+                              <label htmlFor="registration-email" className="block text-[10px] font-bold text-stone-300 uppercase tracking-widest">
                                 CCIS Institutional Email
                               </label>
                               <div className="relative font-sans">
                                 <input
+                                  id="registration-email"
                                   type="text"
                                   disabled
                                   value={email}
@@ -682,11 +684,12 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
 
                             {/* Student ID Number */}
                             <div className="space-y-1">
-                              <label className="block text-[10px] font-bold text-stone-300 uppercase tracking-widest">
+                              <label htmlFor="registration-student-number" className="block text-[10px] font-bold text-stone-300 uppercase tracking-widest">
                                 Student ID Number
                               </label>
                               <div className="relative font-sans">
                                 <input
+                                  id="registration-student-number"
                                   type="text"
                                   disabled
                                   value={studentNum}
@@ -698,11 +701,12 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
 
                             {/* Academic Computer Program */}
                             <div className="space-y-1">
-                              <label className="block text-[10px] font-bold text-stone-300 uppercase tracking-widest">
+                              <label htmlFor="registration-program" className="block text-[10px] font-bold text-stone-300 uppercase tracking-widest">
                                 Academic Computer Program
                               </label>
                               <div className="relative font-sans">
                                 <input
+                                  id="registration-program"
                                   type="text"
                                   disabled
                                   value={PROGRAM_NAMES[profile?.program || ''] || profile?.program || '—'}
@@ -714,11 +718,12 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
 
                             {/* Year Level */}
                             <div className="space-y-1">
-                              <label className="block text-[10px] font-bold text-stone-300 uppercase tracking-widest">
+                              <label htmlFor="registration-year-level" className="block text-[10px] font-bold text-stone-300 uppercase tracking-widest">
                                 Year Level
                               </label>
                               <div className="relative font-sans">
                                 <input
+                                  id="registration-year-level"
                                   type="text"
                                   disabled
                                   value={YEAR_LEVELS[profile?.year_level || 0] || '—'}
@@ -730,11 +735,12 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
 
                             {/* Class Section */}
                             <div className="space-y-1">
-                              <label className="block text-[10px] font-bold text-stone-300 uppercase tracking-widest">
+                              <label htmlFor="registration-section" className="block text-[10px] font-bold text-stone-300 uppercase tracking-widest">
                                 Class Section
                               </label>
                               <div className="relative font-sans">
                                 <input
+                                  id="registration-section"
                                   type="text"
                                   disabled
                                   value={section}
