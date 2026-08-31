@@ -41,6 +41,7 @@
         "npm:pdfjs-dist@^6.2.108",
         "npm:pg@^8.22.0",
         "npm:qrcode.react@^4.2.0",
+        "npm:react-doctor@~0.9.12",
         "npm:react-dom@^19.0.1",
         "npm:react@^19.0.1",
         "npm:recharts@^3.8.1",
