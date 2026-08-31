@@ -107,7 +107,6 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
   const [activeTab, setActiveTab] = useState<'attendance-pass' | 'registrations' | 'messages'>('attendance-pass');
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [lastMessages, setLastMessages] = useState<Message[]>([]);
-  const [messagesLoading, setMessagesLoading] = useState(false);
 
   // Concern Ticket States
   const [concernMessage, setConcernMessage] = useState('');
@@ -214,7 +213,6 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
     let cancelled = false;
 
     const fetchConversationAndMessages = async () => {
-      setMessagesLoading(true);
       try {
         const { data: con, error: conErr } = await supabase
           .from('conversations')
@@ -251,9 +249,7 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
       }
     };
 
-    void fetchConversationAndMessages().finally(() => {
-      setMessagesLoading((current) => cancelled ? current : false);
-    });
+    void fetchConversationAndMessages();
     return () => { cancelled = true; };
   }, [user?.id, activeTab]);
 
