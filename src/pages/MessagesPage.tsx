@@ -32,18 +32,21 @@ export default function MessagesPage({ onNavigate }: MessagesPageProps) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [retryNonce, setRetryNonce] = useState(0);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const userGeneration = useRef(0);
 
   const scrollToBottom = useCallback(() => {
     window.setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
   }, []);
 
   useEffect(() => {
+    userGeneration.current += 1;
     setConversation(null);
     setMessages([]);
     setInputText('');
     setOffset(0);
     setHasMore(false);
     setErrorMessage(null);
+    setSending(false);
     setLoading(Boolean(user));
   }, [user?.id]);
 
@@ -67,6 +70,8 @@ export default function MessagesPage({ onNavigate }: MessagesPageProps) {
 
   const fetchMessages = useCallback(async (currentOffset: number, append = false) => {
     if (!conversation) return;
+    const generation = userGeneration.current;
+    const isCurrentUser = () => generation === userGeneration.current;
     if (currentOffset === 0) setLoading(true);
     setErrorMessage(null);
     try {
@@ -81,6 +86,7 @@ export default function MessagesPage({ onNavigate }: MessagesPageProps) {
 
       const rows = toChatMessages(data);
       const page = [...rows].reverse();
+      if (!isCurrentUser()) return;
       setMessages(current => append ? mergeChatMessages(current, page) : page);
       setHasMore(rows.length === MESSAGE_PAGE_SIZE);
 
@@ -88,14 +94,15 @@ export default function MessagesPage({ onNavigate }: MessagesPageProps) {
         const { error: readError } = await supabase.rpc('mark_conversation_messages_read_by_student', {
           p_conversation_id: conversation.id,
         });
-        if (!readError) window.dispatchEvent(new Event('student-chat-read'));
+        if (isCurrentUser() && !readError) window.dispatchEvent(new Event('student-chat-read'));
       }
-      if (currentOffset === 0) scrollToBottom();
+      if (isCurrentUser() && currentOffset === 0) scrollToBottom();
     } catch (error) {
+      if (!isCurrentUser()) return;
       console.error('Failed to load student chat:', error);
       setErrorMessage('Messages could not be loaded. Check your connection and retry.');
     } finally {
-      if (currentOffset === 0) setLoading(false);
+      if (isCurrentUser() && currentOffset === 0) setLoading(false);
     }
   }, [conversation, scrollToBottom]);
 
@@ -118,12 +125,14 @@ export default function MessagesPage({ onNavigate }: MessagesPageProps) {
       }, async payload => {
         const message = toChatMessage(payload.new);
         if (!message) return;
+        const generation = userGeneration.current;
         if (message.sender_role === 'admin' && !message.read_by_student) {
           const { error } = await supabase.rpc('mark_conversation_messages_read_by_student', {
             p_conversation_id: conversation.id,
           });
-          if (!error) window.dispatchEvent(new Event('student-chat-read'));
+          if (generation === userGeneration.current && !error) window.dispatchEvent(new Event('student-chat-read'));
         }
+        if (generation !== userGeneration.current) return;
         setMessages(current => mergeChatMessages(current, [message]));
         scrollToBottom();
       })
@@ -145,6 +154,7 @@ export default function MessagesPage({ onNavigate }: MessagesPageProps) {
     event.preventDefault();
     if (!user || !conversation || !isOnline || sending || !inputText.trim()) return;
     const content = inputText.trim();
+    const generation = userGeneration.current;
     setInputText('');
     setSending(true);
     try {
@@ -156,14 +166,16 @@ export default function MessagesPage({ onNavigate }: MessagesPageProps) {
       }).select(CHAT_MESSAGE_FIELDS).single();
       if (error) throw error;
       const message = toChatMessage(data);
+      if (generation !== userGeneration.current) return;
       if (message) setMessages(current => mergeChatMessages(current, [message]));
       scrollToBottom();
     } catch (error) {
+      if (generation !== userGeneration.current) return;
       console.error('Failed to send student message:', error);
       setInputText(content);
       setErrorMessage('Your message was not sent. Please retry.');
     } finally {
-      setSending(false);
+      if (generation === userGeneration.current) setSending(false);
     }
   };
 
