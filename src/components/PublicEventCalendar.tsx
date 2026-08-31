@@ -208,11 +208,11 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
         }
       } catch (err) {
         console.error('Error fetching calendar events:', err);
-      } finally {
-        if (!cancelled) setLoading(false);
       }
     };
-    fetchMonthEvents();
+    void fetchMonthEvents().finally(() => {
+      setLoading((current) => cancelled ? current : false);
+    });
     return () => {
       cancelled = true;
     };
