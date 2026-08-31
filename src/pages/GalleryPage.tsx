@@ -350,6 +350,7 @@ export default function GalleryPage({ isAdmin = false }: GalleryPageProps) {
       {/* ADMIN PANEL UPLOAD / EDIT FORM (Gated to real admins) */}
       {isAdmin && showAdminForm && (
         <AdminForm 
+          key={editTargetItem?.id ?? 'new'}
           itemToEdit={editTargetItem}
           onSuccess={handleFormSuccess}
           onClose={() => {
@@ -606,6 +607,7 @@ export default function GalleryPage({ isAdmin = false }: GalleryPageProps) {
       {/* DETAIL VIEW MODAL */}
       {detailItem && (
         <DetailModal 
+          key={`${detailItem.id}:${detailItem.imageUrl}`}
           item={detailItem} 
           onClose={() => setDetailItem(null)} 
           onEdit={(item) => {

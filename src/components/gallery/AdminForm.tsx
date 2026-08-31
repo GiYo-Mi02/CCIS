@@ -27,7 +27,6 @@ export default function AdminForm({
   onClose,
   triggerToast
 }: AdminFormProps) {
-  const [formState, setFormState] = useState<AdminFormState>(INITIAL_FORM_STATE);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
@@ -35,34 +34,24 @@ export default function AdminForm({
   const thumbnailsInputRef = useRef<HTMLInputElement>(null);
   const previewUrlsRef = useRef<Set<string>>(new Set());
 
-  // Sync edit item changes
-  useEffect(() => {
-    if (itemToEdit) {
-      setFormState({
-        title: itemToEdit.title,
-        category: itemToEdit.category,
-        description: itemToEdit.description,
-        postedBy: itemToEdit.postedBy,
-        aspectRatio: itemToEdit.aspectRatio,
-        imageFile: null,
-        imagePreview: itemToEdit.imageUrl,
-        thumbnailFiles: [],
-        thumbnailPreviews: [],
-        existingThumbnails: itemToEdit.thumbnails,
-        removedThumbnails: [],
-        isEditing: true,
-        editTargetId: itemToEdit.id,
-        featured: itemToEdit.featured || false
-      });
-      // Clear file inputs in DOM
-      if (mainImageInputRef.current) mainImageInputRef.current.value = '';
-      if (thumbnailsInputRef.current) thumbnailsInputRef.current.value = '';
-    } else {
-      setFormState(INITIAL_FORM_STATE);
-      if (mainImageInputRef.current) mainImageInputRef.current.value = '';
-      if (thumbnailsInputRef.current) thumbnailsInputRef.current.value = '';
-    }
-  }, [itemToEdit]);
+  const initialFormState: AdminFormState = itemToEdit ? {
+    title: itemToEdit.title,
+    category: itemToEdit.category,
+    description: itemToEdit.description,
+    postedBy: itemToEdit.postedBy,
+    aspectRatio: itemToEdit.aspectRatio,
+    imageFile: null,
+    imagePreview: itemToEdit.imageUrl,
+    thumbnailFiles: [],
+    thumbnailPreviews: [],
+    existingThumbnails: itemToEdit.thumbnails,
+    removedThumbnails: [],
+    isEditing: true,
+    editTargetId: itemToEdit.id,
+    featured: itemToEdit.featured || false
+  } : INITIAL_FORM_STATE;
+
+  const [formState, setFormState] = useState<AdminFormState>(initialFormState);
 
   useEffect(() => {
     const nextPreviewUrls = new Set([
