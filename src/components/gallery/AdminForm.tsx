@@ -7,6 +7,10 @@ import { getManagedImagePathsFromUrl } from '../../lib/media/managedPaths';
 import type { MediaAsset, UploadOptimizedImageResult } from '../../lib/media/types';
 import { GalleryItem, AdminFormState, GalleryCategory } from '../../types/gallery';
 
+function revokeObjectUrl(url: string, ownedUrls: Set<string>) {
+  if (ownedUrls.delete(url)) URL.revokeObjectURL(url);
+}
+
 const INITIAL_FORM_STATE: AdminFormState = {
   title: '', category: 'Student Council', description: '', postedBy: '',
   aspectRatio: 'landscape', imageFile: null, imagePreview: '',
@@ -53,25 +57,10 @@ export default function AdminForm({
 
   const [formState, setFormState] = useState<AdminFormState>(initialFormState);
 
-  useEffect(() => {
-    const nextPreviewUrls = new Set([
-      formState.imagePreview,
-      ...formState.thumbnailPreviews,
-    ].filter(url => url.startsWith('blob:')));
-
-    previewUrlsRef.current.forEach(url => {
-      if (!nextPreviewUrls.has(url)) revokePreviewUrl(url);
-    });
-    previewUrlsRef.current = nextPreviewUrls;
-  }, [formState.imagePreview, formState.thumbnailPreviews]);
-
   useEffect(() => () => {
-    previewUrlsRef.current.forEach(revokePreviewUrl);
+    previewUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+    previewUrlsRef.current.clear();
   }, []);
-
-  const revokePreviewUrl = (url: string) => {
-    if (previewUrlsRef.current.delete(url)) URL.revokeObjectURL(url);
-  };
 
   const createPreviewUrl = (file: File) => {
     const preview = URL.createObjectURL(file);
@@ -80,7 +69,8 @@ export default function AdminForm({
   };
 
   const cleanPreviews = () => {
-    previewUrlsRef.current.forEach(revokePreviewUrl);
+    previewUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+    previewUrlsRef.current.clear();
   };
 
   const handleCancel = () => {
@@ -113,7 +103,8 @@ export default function AdminForm({
         if (mainImageInputRef.current) mainImageInputRef.current.value = '';
         return;
       }
-      const preview = createPreviewUrl(file);
+       revokeObjectUrl(formState.imagePreview, previewUrlsRef.current);
+       const preview = createPreviewUrl(file);
       setFormState(prev => {
         return {
           ...prev,
@@ -145,7 +136,8 @@ export default function AdminForm({
         }
       }
 
-      const newPreviews = filesArray.map(createPreviewUrl);
+       formState.thumbnailPreviews.forEach(url => revokeObjectUrl(url, previewUrlsRef.current));
+       const newPreviews = filesArray.map(createPreviewUrl);
       setFormState(prev => {
         return {
           ...prev,
@@ -491,6 +483,7 @@ export default function AdminForm({
                     accept="image/jpeg,image/png,image/webp"
                     className="hidden"
                     id="main-image-file-input"
+                    aria-label="Select main featured image"
                   />
                   <label
                     htmlFor="main-image-file-input"
@@ -511,11 +504,13 @@ export default function AdminForm({
                     />
                     <button
                       type="button"
-                      onClick={() => {
-                        setFormState(prev => ({ ...prev, imageFile: null, imagePreview: '' }));
+                         onClick={() => {
+                           revokeObjectUrl(formState.imagePreview, previewUrlsRef.current);
+                           setFormState(prev => ({ ...prev, imageFile: null, imagePreview: '' }));
                         if (mainImageInputRef.current) mainImageInputRef.current.value = '';
                       }}
-                      className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black/80 rounded-full text-white transition-colors"
+                     className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black/80 rounded-full text-white transition-colors"
+                     aria-label="Remove main image"
                     >
                       <X size={14} />
                     </button>
@@ -537,6 +532,7 @@ export default function AdminForm({
                     multiple
                     className="hidden"
                     id="thumbnails-file-input"
+                    aria-label="Add gallery thumbnails"
                   />
                   <label
                     htmlFor="thumbnails-file-input"
@@ -566,7 +562,8 @@ export default function AdminForm({
                               <img src={thumbUrl} alt="" className="w-full h-full object-cover" />
                               <button
                                 type="button"
-                                onClick={() => handleRemoveExistingThumbnail(thumbUrl)}
+                                 onClick={() => handleRemoveExistingThumbnail(thumbUrl)}
+                                 aria-label="Remove existing thumbnail"
                                 className="absolute inset-0 bg-rose-600/70 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity duration-200 cursor-pointer"
                               >
                                 <Trash2 size={14} />
@@ -589,8 +586,9 @@ export default function AdminForm({
                               <img src={previewUrl} alt="" className="w-full h-full object-cover" />
                               <button
                                 type="button"
-                                onClick={() => {
-                                  const updatedFiles = [...formState.thumbnailFiles];
+                                 onClick={() => {
+                                   revokeObjectUrl(previewUrl, previewUrlsRef.current);
+                                   const updatedFiles = [...formState.thumbnailFiles];
                                   updatedFiles.splice(idx, 1);
                                   const updatedPreviews = [...formState.thumbnailPreviews];
                                   updatedPreviews.splice(idx, 1);
@@ -600,7 +598,8 @@ export default function AdminForm({
                                     thumbnailPreviews: updatedPreviews
                                   }));
                                 }}
-                                className="absolute top-0.5 right-0.5 p-0.5 bg-black/60 rounded-full text-white hover:bg-black/80 cursor-pointer"
+                                 className="absolute top-0.5 right-0.5 p-0.5 bg-black/60 rounded-full text-white hover:bg-black/80 cursor-pointer"
+                                 aria-label={`Remove thumbnail ${idx + 1}`}
                               >
                                 <X size={10} />
                               </button>
