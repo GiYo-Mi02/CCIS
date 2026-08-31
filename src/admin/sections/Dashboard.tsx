@@ -246,6 +246,7 @@ export default function Dashboard() {
                 <button
                   onClick={() => setActiveSection('announcements')}
                   className="p-1.5 rounded-lg text-gray-300 hover:text-[#F5B400] hover:bg-[#F5B400]/10 transition-[width,height,margin-top,opacity] opacity-0 group-hover:opacity-100"
+                  aria-label={`Edit announcement: ${ann.title}`}
                 >
                   <Edit3 size={14} />
                 </button>

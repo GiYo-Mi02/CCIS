@@ -350,6 +350,7 @@ export default function SupportWidget({ onNavigate }: SupportWidgetProps) {
           <button
             onClick={() => setIsOpen(false)}
             className="p-1 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+            aria-label="Close support chat"
           >
             <X size={16} />
           </button>
@@ -507,7 +508,9 @@ export default function SupportWidget({ onNavigate }: SupportWidgetProps) {
               onSubmit={handleSend}
               className="p-3 flex items-center gap-2"
             >
+              <label htmlFor="support-message" className="sr-only">Support message</label>
               <textarea
+                id="support-message"
                 value={inputText}
                 onChange={(e) => {
                   setInputText(e.target.value);
@@ -530,6 +533,7 @@ export default function SupportWidget({ onNavigate }: SupportWidgetProps) {
                 type="submit"
                 disabled={sending || !isOnline || !inputText.trim()}
                 className="w-9 h-9 rounded-full bg-[#1A3C2E] text-white hover:bg-[#123524] disabled:bg-stone-100 disabled:text-stone-300 disabled:scale-100 hover:scale-105 active:scale-95 transition-[background-color,color,transform] flex items-center justify-center shrink-0 border border-[#F5B400]/20 cursor-pointer self-end mb-0.5"
+                aria-label="Send support message"
               >
                 {sending ? (
                   <Loader2 className="animate-spin" size={14} />

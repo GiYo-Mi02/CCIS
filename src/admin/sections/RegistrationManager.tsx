@@ -222,7 +222,8 @@ export default function RegistrationManager() {
       {/* Toolbar */}
       <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 w-full">
         <div className="flex flex-wrap items-center gap-2">
-          <select value={eventFilter} onChange={(e) => handleEventFilterChange(e.target.value)}
+          <label htmlFor="registration-event-filter" className="sr-only">Filter registrations by event</label>
+          <select id="registration-event-filter" value={eventFilter} onChange={(e) => handleEventFilterChange(e.target.value)}
             className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#F5B400] text-[#222B26] flex-1 sm:flex-initial">
             <option value="ALL">All Events</option>
             {events.map(ev => (<option key={ev.id} value={ev.id}>{ev.title}</option>))}
@@ -240,8 +241,9 @@ export default function RegistrationManager() {
         </div>
         <div className="hidden md:block flex-1" />
         <div className="relative w-full md:w-64">
+          <label htmlFor="registration-search" className="sr-only">Search registrations by name or email</label>
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input type="text" value={search} onChange={(e) => handleSearchChange(e.target.value)}
+          <input id="registration-search" type="text" value={search} onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="Search by name or email..."
             className="w-full bg-white border border-gray-200 rounded-lg pl-9 pr-4 py-2 text-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400] transition-colors" />
         </div>
@@ -336,7 +338,7 @@ export default function RegistrationManager() {
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-100">
                     <th className="px-4 py-3 w-10">
-                      <input type="checkbox" checked={selectedIds.size === registrations.length && registrations.length > 0}
+                      <input type="checkbox" aria-label="Select all registrations" checked={selectedIds.size === registrations.length && registrations.length > 0}
                         onChange={toggleSelectAll} className="w-4 h-4 rounded border-gray-300 text-[#F5B400] focus:ring-[#F5B400] cursor-pointer" />
                     </th>
                     <th className="text-left px-4 py-3 font-bold text-[10px] uppercase tracking-wider text-gray-400">Name</th>
@@ -355,7 +357,7 @@ export default function RegistrationManager() {
                     return (
                       <tr key={reg.id} className="hover:bg-[#1A3C2E]/[0.02] transition-colors cursor-pointer" onClick={() => setSelectedReg(reg)}>
                         <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                          <input type="checkbox" checked={selectedIds.has(reg.id)} onChange={() => toggleSelect(reg.id)}
+                          <input type="checkbox" aria-label={`Select ${reg.profiles?.full_name || 'student registration'}`} checked={selectedIds.has(reg.id)} onChange={() => toggleSelect(reg.id)}
                             className="w-4 h-4 rounded border-gray-300 text-[#F5B400] focus:ring-[#F5B400] cursor-pointer" />
                         </td>
                         <td className="px-4 py-3 font-semibold text-[#222B26]">{reg.profiles?.full_name || 'Student'}</td>
@@ -373,10 +375,10 @@ export default function RegistrationManager() {
                           {new Date(reg.registered_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                         </td>
                         <td className="px-5 py-3 text-right space-x-1" onClick={(e) => e.stopPropagation()}>
-                          <button onClick={() => setSelectedReg(reg)} className="p-1.5 rounded-lg text-gray-400 hover:text-[#1A3C2E] hover:bg-gray-100 transition-colors" title="View Details">
+                          <button onClick={() => setSelectedReg(reg)} className="p-1.5 rounded-lg text-gray-400 hover:text-[#1A3C2E] hover:bg-gray-100 transition-colors" title="View Details" aria-label="View registration details">
                             <Eye size={14} />
                           </button>
-                          <button onClick={() => handleDelete(reg.id)} className="p-1.5 rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition-colors" title="Delete Registration">
+                          <button onClick={() => handleDelete(reg.id)} className="p-1.5 rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition-colors" title="Delete Registration" aria-label="Delete registration">
                             <Trash size={14} />
                           </button>
                         </td>
