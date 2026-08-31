@@ -15,7 +15,6 @@ import { useRealtimeAvailability } from '../hooks/useRealtimeAvailability';
 
 interface SupportWidgetProps {
   onNavigate: (tab: string) => void;
-  disabled?: boolean;
 }
 
 const MESSAGE_LIMIT = 30;
@@ -45,7 +44,7 @@ const isWorkingHours = (): boolean => {
   return isWeekday && isOfficeHours;
 };
 
-export default function SupportWidget({ onNavigate, disabled = false }: SupportWidgetProps) {
+export default function SupportWidget({ onNavigate }: SupportWidgetProps) {
   const { user } = useAuth();
   const { isOnline, isRealtimeAvailable } = useRealtimeAvailability();
   const [isOpen, setIsOpen] = useState(false);
@@ -57,7 +56,7 @@ export default function SupportWidget({ onNavigate, disabled = false }: SupportW
   const [unreadCount, setUnreadCount] = useState(0);
   const [warningMsg, setWarningMsg] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
-  const [offset, setOffset] = useState(0);
+  const offsetRef = useRef(0);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [retryNonce, setRetryNonce] = useState(0);
 
@@ -76,18 +75,14 @@ export default function SupportWidget({ onNavigate, disabled = false }: SupportW
     setMessages([]);
     setUnreadCount(0);
     setHasMore(false);
-    setOffset(0);
+    offsetRef.current = 0;
     setLoadError(null);
   }, [user?.id]);
-
-  useEffect(() => {
-    if (disabled) setIsOpen(false);
-  }, [disabled]);
 
   // Create/ensure a conversation only after the student opens chat while the
   // page is visible and online. Reopening or resuming reuses local state.
   useEffect(() => {
-    if (!user || !isOpen || disabled || !isRealtimeAvailable || conversation) return;
+    if (!user || !isOpen || !isRealtimeAvailable || conversation) return;
 
     let cancelled = false;
 
@@ -124,7 +119,7 @@ export default function SupportWidget({ onNavigate, disabled = false }: SupportW
     return () => {
       cancelled = true;
     };
-  }, [user?.id, isOpen, disabled, isRealtimeAvailable, conversation, retryNonce]);
+  }, [user?.id, isOpen, isRealtimeAvailable, conversation, retryNonce]);
 
   const fetchMessages = useCallback(async (currentOffset: number, append = false) => {
     if (!conversation) return;
@@ -179,14 +174,14 @@ export default function SupportWidget({ onNavigate, disabled = false }: SupportW
   // Refresh the latest page after opening or returning from a hidden/offline
   // state so messages missed while disconnected are reconciled once.
   useEffect(() => {
-    if (!isOpen || disabled || !conversation || !isRealtimeAvailable) return;
-    setOffset(0);
+    if (!isOpen || !conversation || !isRealtimeAvailable) return;
+    offsetRef.current = 0;
     void fetchMessages(0, false);
-  }, [isOpen, disabled, conversation, isRealtimeAvailable, fetchMessages]);
+  }, [isOpen, conversation, isRealtimeAvailable, fetchMessages]);
 
   // Realtime messages subscription
   useEffect(() => {
-    if (!isOpen || disabled || !conversation || !isRealtimeAvailable) return;
+    if (!isOpen || !conversation || !isRealtimeAvailable) return;
 
     const channelId = `widget_chat_messages_${conversation.id}`;
     const channel = supabase
@@ -229,11 +224,11 @@ export default function SupportWidget({ onNavigate, disabled = false }: SupportW
       unregisterChannel();
       void supabase.removeChannel(channel);
     };
-  }, [conversation, isOpen, disabled, isRealtimeAvailable, scrollToBottom]);
+  }, [conversation, isOpen, isRealtimeAvailable, scrollToBottom]);
 
   const handleLoadMore = async () => {
-    const nextOffset = offset + MESSAGE_LIMIT;
-    setOffset(nextOffset);
+    const nextOffset = offsetRef.current + MESSAGE_LIMIT;
+    offsetRef.current = nextOffset;
     await fetchMessages(nextOffset, true);
   };
 
@@ -287,21 +282,15 @@ export default function SupportWidget({ onNavigate, disabled = false }: SupportW
   };
 
   const handleToggle = () => {
-    if (isOpen) {
-      setIsOpen(false);
-    } else {
-      setIsOpen(true);
-    }
+    setIsOpen(open => !open);
   };
-
-  if (disabled) return null;
 
   return (
     <>
       {/* Floating Action Button (FAB) */}
       <button
         onClick={handleToggle}
-        className="fixed bottom-6 right-6 z-[9999] w-14 h-14 bg-[#1A3C2E] hover:bg-[#123524] text-white rounded-full flex items-center justify-center shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300 border border-[#F5B400]/40 cursor-pointer group"
+        className="fixed bottom-6 right-6 z-[9999] w-14 h-14 bg-[#1A3C2E] hover:bg-[#123524] text-white rounded-full flex items-center justify-center shadow-2xl hover:scale-105 active:scale-95 transition-[background-color,transform] duration-300 border border-[#F5B400]/40 cursor-pointer group"
         aria-label="Toggle chat support helpdesk"
       >
         <span className="absolute inset-0 rounded-full bg-[#FAF7EA]/10 scale-0 group-hover:scale-100 transition-transform duration-300" />
@@ -330,7 +319,7 @@ export default function SupportWidget({ onNavigate, disabled = false }: SupportW
 
       {/* Chat support popup card */}
       <div
-        className={`fixed bottom-24 right-6 z-[9999] w-[350px] sm:w-[380px] h-[500px] max-h-[75vh] flex flex-col bg-white rounded-3xl border border-stone-100 shadow-2xl overflow-hidden transition-all duration-300 origin-bottom-right ${
+        className={`fixed bottom-24 right-6 z-[9999] w-[350px] sm:w-[380px] h-[500px] max-h-[75vh] flex flex-col bg-white rounded-3xl border border-stone-100 shadow-2xl overflow-hidden transition-[opacity,transform] duration-300 origin-bottom-right ${
           isOpen
             ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
             : 'opacity-0 translate-y-4 scale-95 pointer-events-none'
@@ -534,13 +523,13 @@ export default function SupportWidget({ onNavigate, disabled = false }: SupportW
                 }}
                 placeholder="Type your message here..."
                 rows={1}
-                className="flex-1 bg-stone-50 border border-stone-100 focus:outline-none focus:ring-1 focus:ring-[#F5B400] focus:bg-white rounded-2xl px-4 py-2 text-xs font-sans transition-all resize-none min-h-[36px] max-h-[100px] overflow-y-auto leading-relaxed"
+                className="flex-1 bg-stone-50 border border-stone-100 focus:outline-none focus:ring-1 focus:ring-[#F5B400] focus:bg-white rounded-2xl px-4 py-2 text-xs font-sans transition-[background-color] resize-none min-h-[36px] max-h-[100px] overflow-y-auto leading-relaxed"
                 disabled={sending || !isOnline}
               />
               <button
                 type="submit"
                 disabled={sending || !isOnline || !inputText.trim()}
-                className="w-9 h-9 rounded-full bg-[#1A3C2E] text-white hover:bg-[#123524] disabled:bg-stone-100 disabled:text-stone-300 disabled:scale-100 hover:scale-105 active:scale-95 transition-all flex items-center justify-center shrink-0 border border-[#F5B400]/20 cursor-pointer self-end mb-0.5"
+                className="w-9 h-9 rounded-full bg-[#1A3C2E] text-white hover:bg-[#123524] disabled:bg-stone-100 disabled:text-stone-300 disabled:scale-100 hover:scale-105 active:scale-95 transition-[background-color,color,transform] flex items-center justify-center shrink-0 border border-[#F5B400]/20 cursor-pointer self-end mb-0.5"
               >
                 {sending ? (
                   <Loader2 className="animate-spin" size={14} />

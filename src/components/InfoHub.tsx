@@ -141,11 +141,12 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
   useEffect(() => {
     if (activeInfoTab !== 'org' || officersLoadedRef.current) return;
     officersLoadedRef.current = true;
-    const fetchData = async () => {
-      const [offRes, commRes] = await Promise.all([
+    let cancelled = false;
+    void Promise.all([
         supabase.from('officers').select('*, committees(name, slug)').order('display_order'),
         supabase.from('committees').select('id, name, slug, description, icon, responsibilities, display_order, head_name, created_at').order('display_order')
-      ]);
+      ]).then(([offRes, commRes]) => {
+      if (cancelled) return;
 
       if (commRes.data && commRes.data.length > 0) {
         const mappedComm = commRes.data.map((c: any) => ({
@@ -175,9 +176,13 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
         })));
       }
       setLoading(false);
-    };
-
-    void fetchData();
+    }).catch(error => {
+      if (!cancelled) {
+        console.error('Failed to load organization data:', error);
+        setLoading(false);
+      }
+    });
+    return () => { cancelled = true; };
   }, [activeInfoTab]);
 
   useEffect(() => {

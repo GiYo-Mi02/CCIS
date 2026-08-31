@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, Send, Clock, User, MessageSquare, AlertCircle, Loader2, ArrowLeft } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
@@ -65,7 +65,7 @@ export default function MessagesInbox() {
   }, [selectedCon]);
 
   // Fetch unread counts globally for all conversations
-  const fetchUnreadCounts = async () => {
+  const fetchUnreadCounts = useCallback(async () => {
     try {
       const { data, error } = await supabase.rpc('get_dashboard_unread_counts');
 
@@ -84,10 +84,10 @@ export default function MessagesInbox() {
     } catch (err) {
       console.error(err);
     }
-  };
+  }, []);
 
   // Fetch conversation list
-  const fetchConversationsList = async (page: number = 1) => {
+  const fetchConversationsList = useCallback(async (page: number = 1) => {
     if (!hasAccess) return;
     setLoadingList(true);
 
@@ -149,14 +149,14 @@ export default function MessagesInbox() {
     } finally {
       setLoadingList(false);
     }
-  };
+  }, [fetchUnreadCounts, hasAccess, searchQuery, showToast]);
 
   // Initial fetch and on search/page change
   useEffect(() => {
     if (hasAccess) {
       fetchConversationsList(currentPage);
     }
-  }, [currentPage, searchQuery, hasAccess]);
+  }, [currentPage, fetchConversationsList, hasAccess, searchQuery]);
 
   // Fetch messages inside selected conversation
   const fetchThreadMessages = async (conversationId: string, currentOffset: number, append: boolean = false) => {
@@ -186,9 +186,10 @@ export default function MessagesInbox() {
         setHasMoreMessages(rows.length === messageLimit);
 
         // Mark as read
-        const unreadStudentMsgIds = rows
-          .filter(m => m.sender_role === 'student' && !m.read_by_admin)
-          .map(m => m.id);
+        const unreadStudentMsgIds: string[] = [];
+        for (const message of rows) {
+          if (message.sender_role === 'student' && !message.read_by_admin) unreadStudentMsgIds.push(message.id);
+        }
 
         if (unreadStudentMsgIds.length > 0) {
           const currentUnread = unreadCounts[conversationId] || 0;
@@ -276,7 +277,7 @@ export default function MessagesInbox() {
       unregister();
       void supabase.removeChannel(channel);
     };
-  }, [currentPage, hasAccess, isRealtimeAvailable]);
+  }, [currentPage, fetchConversationsList, hasAccess, isRealtimeAvailable]);
 
   const scrollToBottom = () => {
     setTimeout(() => {

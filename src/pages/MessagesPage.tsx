@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useReducer, useRef } from 'react';
 import { AlertCircle, ArrowLeft, Clock, Loader2, MessageSquare, Send, User } from 'lucide-react';
 
 import { useAuth } from '../context/AuthContext';
@@ -19,18 +19,42 @@ interface MessagesPageProps {
 
 const MESSAGE_PAGE_SIZE = 30;
 
+interface ChatState {
+  conversation: Conversation | null;
+  messages: Message[];
+  inputText: string;
+  loading: boolean;
+  sending: boolean;
+  hasMore: boolean;
+  offset: number;
+  errorMessage: string | null;
+  retryNonce: number;
+}
+
+const INITIAL_CHAT_STATE: ChatState = {
+  conversation: null,
+  messages: [],
+  inputText: '',
+  loading: true,
+  sending: false,
+  hasMore: false,
+  offset: 0,
+  errorMessage: null,
+  retryNonce: 0,
+};
+
+function chatReducer(
+  state: ChatState,
+  update: Partial<ChatState> | ((state: ChatState) => Partial<ChatState>),
+): ChatState {
+  return { ...state, ...(typeof update === 'function' ? update(state) : update) };
+}
+
 export default function MessagesPage({ onNavigate }: MessagesPageProps) {
   const { user, profile } = useAuth();
   const { isOnline, isRealtimeAvailable } = useRealtimeAvailability();
-  const [conversation, setConversation] = useState<Conversation | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [inputText, setInputText] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState(false);
-  const [hasMore, setHasMore] = useState(false);
-  const [offset, setOffset] = useState(0);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [retryNonce, setRetryNonce] = useState(0);
+  const [chat, updateChat] = useReducer(chatReducer, INITIAL_CHAT_STATE);
+  const { conversation, messages, inputText, loading, sending, hasMore, offset, errorMessage, retryNonce } = chat;
   const chatEndRef = useRef<HTMLDivElement>(null);
   const userGeneration = useRef(0);
 
@@ -40,30 +64,21 @@ export default function MessagesPage({ onNavigate }: MessagesPageProps) {
 
   useEffect(() => {
     userGeneration.current += 1;
-    setConversation(null);
-    setMessages([]);
-    setInputText('');
-    setOffset(0);
-    setHasMore(false);
-    setErrorMessage(null);
-    setSending(false);
-    setLoading(Boolean(user));
+    updateChat({ ...INITIAL_CHAT_STATE, loading: Boolean(user?.id) });
   }, [user?.id]);
 
   useEffect(() => {
     if (!user || !isRealtimeAvailable || conversation) return;
     let active = true;
-    setLoading(true);
-    setErrorMessage(null);
+    updateChat({ loading: true, errorMessage: null });
 
     void supabase.rpc('ensure_conversation').single().then(({ data, error }) => {
       if (!active) return;
       if (error || !data) {
-        setErrorMessage('The support conversation could not be opened. Please try again.');
-        setLoading(false);
+        updateChat({ errorMessage: 'The support conversation could not be opened. Please try again.', loading: false });
         return;
       }
-      setConversation(data as Conversation);
+      updateChat({ conversation: data as Conversation });
     });
     return () => { active = false; };
   }, [user?.id, isRealtimeAvailable, conversation, retryNonce]);
@@ -72,8 +87,8 @@ export default function MessagesPage({ onNavigate }: MessagesPageProps) {
     if (!conversation) return;
     const generation = userGeneration.current;
     const isCurrentUser = () => generation === userGeneration.current;
-    if (currentOffset === 0) setLoading(true);
-    setErrorMessage(null);
+    if (currentOffset === 0) updateChat({ loading: true });
+    updateChat({ errorMessage: null });
     try {
       const { data, error } = await supabase
         .from('messages')
@@ -87,8 +102,10 @@ export default function MessagesPage({ onNavigate }: MessagesPageProps) {
       const rows = toChatMessages(data);
       const page = [...rows].reverse();
       if (!isCurrentUser()) return;
-      setMessages(current => append ? mergeChatMessages(current, page) : page);
-      setHasMore(rows.length === MESSAGE_PAGE_SIZE);
+      updateChat(current => ({
+        messages: append ? mergeChatMessages(current.messages, page) : page,
+        hasMore: rows.length === MESSAGE_PAGE_SIZE,
+      }));
 
       if (currentOffset === 0 && rows.some(message => message.sender_role === 'admin' && !message.read_by_student)) {
         const { error: readError } = await supabase.rpc('mark_conversation_messages_read_by_student', {
@@ -100,15 +117,15 @@ export default function MessagesPage({ onNavigate }: MessagesPageProps) {
     } catch (error) {
       if (!isCurrentUser()) return;
       console.error('Failed to load student chat:', error);
-      setErrorMessage('Messages could not be loaded. Check your connection and retry.');
+      updateChat({ errorMessage: 'Messages could not be loaded. Check your connection and retry.' });
     } finally {
-      if (isCurrentUser() && currentOffset === 0) setLoading(false);
+      if (currentOffset === 0 && generation === userGeneration.current) updateChat({ loading: false });
     }
-  }, [conversation, scrollToBottom]);
+  }, [conversation, scrollToBottom, updateChat]);
 
   useEffect(() => {
     if (!conversation || !isRealtimeAvailable) return;
-    setOffset(0);
+    updateChat({ offset: 0 });
     void fetchMessages(0);
   }, [conversation, isRealtimeAvailable, fetchMessages]);
 
@@ -133,7 +150,7 @@ export default function MessagesPage({ onNavigate }: MessagesPageProps) {
           if (generation === userGeneration.current && !error) window.dispatchEvent(new Event('student-chat-read'));
         }
         if (generation !== userGeneration.current) return;
-        setMessages(current => mergeChatMessages(current, [message]));
+        updateChat(current => ({ messages: mergeChatMessages(current.messages, [message]) }));
         scrollToBottom();
       })
       .subscribe();
@@ -142,11 +159,11 @@ export default function MessagesPage({ onNavigate }: MessagesPageProps) {
       unregister();
       void supabase.removeChannel(channel);
     };
-  }, [conversation, isRealtimeAvailable, scrollToBottom]);
+  }, [conversation, isRealtimeAvailable, scrollToBottom, updateChat]);
 
   const loadOlder = async () => {
     const nextOffset = offset + MESSAGE_PAGE_SIZE;
-    setOffset(nextOffset);
+    updateChat({ offset: nextOffset });
     await fetchMessages(nextOffset, true);
   };
 
@@ -155,8 +172,7 @@ export default function MessagesPage({ onNavigate }: MessagesPageProps) {
     if (!user || !conversation || !isOnline || sending || !inputText.trim()) return;
     const content = inputText.trim();
     const generation = userGeneration.current;
-    setInputText('');
-    setSending(true);
+    updateChat({ inputText: '', sending: true });
     try {
       const { data, error } = await supabase.from('messages').insert({
         conversation_id: conversation.id,
@@ -167,15 +183,14 @@ export default function MessagesPage({ onNavigate }: MessagesPageProps) {
       if (error) throw error;
       const message = toChatMessage(data);
       if (generation !== userGeneration.current) return;
-      if (message) setMessages(current => mergeChatMessages(current, [message]));
+      if (message) updateChat(current => ({ messages: mergeChatMessages(current.messages, [message]) }));
       scrollToBottom();
     } catch (error) {
       if (generation !== userGeneration.current) return;
       console.error('Failed to send student message:', error);
-      setInputText(content);
-      setErrorMessage('Your message was not sent. Please retry.');
+      updateChat({ inputText: content, errorMessage: 'Your message was not sent. Please retry.' });
     } finally {
-      if (generation === userGeneration.current) setSending(false);
+      if (generation === userGeneration.current) updateChat({ sending: false });
     }
   };
 
@@ -204,7 +219,7 @@ export default function MessagesPage({ onNavigate }: MessagesPageProps) {
           {errorMessage && (
             <div role="alert" className="flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
               <span>{errorMessage}</span>
-              <button onClick={() => conversation ? void fetchMessages(0) : setRetryNonce(value => value + 1)} className="font-bold underline">Retry</button>
+              <button onClick={() => conversation ? void fetchMessages(0) : updateChat({ retryNonce: retryNonce + 1 })} className="font-bold underline">Retry</button>
             </div>
           )}
           {!isOnline && <p className="rounded-xl border border-zinc-200 bg-white p-3 text-center text-xs text-zinc-500">Chat is paused while you are offline.</p>}
@@ -248,7 +263,7 @@ export default function MessagesPage({ onNavigate }: MessagesPageProps) {
 
         <form onSubmit={handleSend} className="shrink-0 border-t border-zinc-100 bg-white p-4">
           <div className="flex items-center gap-2">
-            <input value={inputText} onChange={event => setInputText(event.target.value)} disabled={loading || sending || !isOnline} maxLength={1000} placeholder={isOnline ? 'Type your message...' : 'Reconnect to send a message'} className="flex-1 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-xs outline-none focus:border-[#F5B400]" />
+            <input value={inputText} onChange={event => updateChat({ inputText: event.target.value })} disabled={loading || sending || !isOnline} maxLength={1000} placeholder={isOnline ? 'Type your message...' : 'Reconnect to send a message'} className="flex-1 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-xs outline-none focus:border-[#F5B400]" />
             <button type="submit" disabled={loading || sending || !isOnline || !inputText.trim()} className="rounded-xl bg-[#F5B400] p-2.5 text-[#1A3C2E] disabled:opacity-50" aria-label="Send message">
               {sending ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />}
             </button>
