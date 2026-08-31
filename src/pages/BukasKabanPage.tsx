@@ -1243,13 +1243,15 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
           DOCUMENT DETAIL VIEW MODAL
           ============================================================ */}
       {modalOpen && selectedModalReport && (
-        <div 
-          onClick={() => dispatchDetail({ type: 'close' })}
-          className="fixed inset-0 bg-stone-900/60 backdrop-blur-xs overflow-y-auto flex items-start md:items-center justify-center p-4 sm:p-6 z-[999] animate-fade-in"
-        >
+        <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-xs overflow-y-auto flex items-start md:items-center justify-center p-4 sm:p-6 z-[999] animate-fade-in">
+          <button
+            type="button"
+            aria-label="Close report detail"
+            onClick={() => dispatchDetail({ type: 'close' })}
+            className="absolute inset-0"
+          />
           <div 
-            onClick={(e) => e.stopPropagation()}
-            className="bg-[#FAF7EA] max-w-5xl w-full rounded-3xl border border-stone-200/80 shadow-2xl overflow-hidden flex flex-col md:flex-row my-auto h-auto md:h-[80vh] max-h-none md:max-h-[850px]"
+            className="relative z-10 bg-[#FAF7EA] max-w-5xl w-full rounded-3xl border border-stone-200/80 shadow-2xl overflow-hidden flex flex-col md:flex-row my-auto h-auto md:h-[80vh] max-h-none md:max-h-[850px]"
           >
             {/* Left Column: PDF Viewer */}
             <div className="w-full md:w-3/5 bg-stone-150 flex flex-col p-5 sm:p-6 border-r border-stone-200/80 overflow-y-auto">

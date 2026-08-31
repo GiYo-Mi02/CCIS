@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Edit, Trash2 } from 'lucide-react';
 import { GalleryItem } from '../../types/gallery';
@@ -23,28 +23,14 @@ export default function DetailModal({
 }: DetailModalProps) {
   const [featuredImage, setFeaturedImage] = useState<string>(item.imageUrl);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-  const modalContainerRef = useRef<HTMLDivElement>(null);
-  const overlayRef = useRef<HTMLDivElement>(null);
-
-  const handleOverlayClick = (e: React.MouseEvent) => {
-    if (overlayRef.current === e.target) {
-      onClose();
-    }
-  };
-
   // Combine main image + thumbnails
   const allImages = [item.imageUrl, ...item.thumbnails];
 
   return createPortal(
-    <div
-      ref={overlayRef}
-      onClick={handleOverlayClick}
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 w-screen h-screen"
-      id="gallery-detail-modal"
-    >
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 w-screen h-screen" id="gallery-detail-modal">
+      <button type="button" aria-label="Close detail modal" className="absolute inset-0" onClick={onClose} />
       <div 
-        ref={modalContainerRef}
-        className={`bg-[#FAF7EA] w-full max-w-5xl rounded-3xl overflow-hidden shadow-2xl border border-stone-200/50 flex flex-col md:flex-row relative max-h-[92vh] md:max-h-[85vh] ${
+        className={`relative z-10 bg-[#FAF7EA] w-full max-w-5xl rounded-3xl overflow-hidden shadow-2xl border border-stone-200/50 flex flex-col md:flex-row max-h-[92vh] md:max-h-[85vh] ${
           prefersReducedMotion ? '' : 'transition-transform scale-95 animate-modal-zoom'
         }`}
       >
