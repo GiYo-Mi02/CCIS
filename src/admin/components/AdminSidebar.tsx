@@ -126,6 +126,7 @@ export default function AdminSidebar({ collapsed, onToggle, onExitAdmin }: Admin
             collapsed ? 'justify-center' : ''
           }`}
           title="Back to Public Site"
+          aria-label="Back to public site"
           id="admin-back-to-public"
         >
           <ArrowLeft size={15} />
@@ -136,6 +137,7 @@ export default function AdminSidebar({ collapsed, onToggle, onExitAdmin }: Admin
           onClick={onToggle}
           className="w-full flex items-center justify-center text-[#FAF7EA]/30 hover:text-[#FAF7EA]/60 transition-colors rounded-lg py-1.5 hover:bg-white/5"
           id="admin-sidebar-toggle"
+          aria-label={collapsed ? 'Expand admin sidebar' : 'Collapse admin sidebar'}
         >
           {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </button>

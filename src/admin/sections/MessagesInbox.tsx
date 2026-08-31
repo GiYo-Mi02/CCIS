@@ -363,8 +363,10 @@ export default function MessagesInbox() {
           </div>
           
           <div className="relative">
+            <label htmlFor="messages-inbox-search" className="sr-only">Search student inbox</label>
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" size={14} />
             <input
+              id="messages-inbox-search"
               type="text"
               value={searchQuery}
               onChange={(e) => {
@@ -455,9 +457,10 @@ export default function MessagesInbox() {
             {/* Header */}
             <div className="px-6 py-4 border-b border-zinc-100 flex items-center justify-between bg-[var(--color-primary-green,#1A3C2E)] text-white shrink-0">
               <div className="flex items-center gap-3">
-                <button 
-                  onClick={() => setSelectedCon(null)} 
+                <button
+                  onClick={() => setSelectedCon(null)}
                   className="md:hidden p-1 rounded-full hover:bg-white/10 text-white/80"
+                  aria-label="Back to conversations"
                 >
                   <ArrowLeft size={18} />
                 </button>
@@ -580,7 +583,9 @@ export default function MessagesInbox() {
             {/* Input Composer */}
             <form onSubmit={handleSendReply} className="p-4 border-t border-zinc-100 bg-white shrink-0">
               <div className="flex gap-2">
+                <label htmlFor="admin-reply" className="sr-only">Administrative response reply</label>
                 <input
+                  id="admin-reply"
                   type="text"
                   required
                   disabled={sending}
@@ -595,6 +600,7 @@ export default function MessagesInbox() {
                   disabled={sending || !inputText.trim()}
                   className="p-2.5 bg-[#F5B400] hover:bg-[#ffc522] text-[#1A3C2E] rounded-xl shadow-xs transition-colors shrink-0 flex items-center justify-center disabled:opacity-50"
                   title="Send Reply"
+                  aria-label="Send reply"
                 >
                   {sending ? (
                     <Loader2 className="animate-spin" size={16} />
