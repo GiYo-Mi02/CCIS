@@ -36,7 +36,7 @@ export default function SubscriptionPreferenceModal({
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs font-sans">
       {/* Backdrop */}
-      <div className="absolute inset-0" onClick={() => !saving && onClose()} />
+       <button type="button" aria-label="Close email preferences" className="absolute inset-0" onClick={() => !saving && onClose()} />
 
       {/* Modal Container */}
       <div className="relative w-full max-w-md bg-white rounded-3xl overflow-hidden shadow-2xl border border-zinc-150 p-6 sm:p-8 text-center space-y-6 animate-scale-up text-[#1A3C2E]">
@@ -88,6 +88,7 @@ export default function SubscriptionPreferenceModal({
           <label className="flex items-start gap-3 bg-zinc-50 border border-zinc-150 p-4 rounded-2xl cursor-pointer select-none text-left hover:bg-zinc-100/50 transition-colors">
             <div className="relative flex items-center mt-0.5">
               <input
+                id="email-subscription-preference"
                 type="checkbox"
                 checked={subscribed}
                 onChange={(e) => setSubsubscribed(e.target.checked)}
@@ -105,7 +106,7 @@ export default function SubscriptionPreferenceModal({
                 Direct to: <strong className="font-mono text-[9px]">{userEmail}</strong>
               </span>
             </div>
-          </label>
+           </label>
 
           {/* Mandatory Ticket Advisory */}
           <div className="bg-amber-50/50 border border-amber-200/50 p-3 rounded-2xl text-[10px] text-amber-800 text-left flex items-start gap-2">

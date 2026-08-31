@@ -436,7 +436,8 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
           <div ref={orgMenuRef} className="relative w-full max-w-full self-start lg:w-auto lg:shrink-0 lg:self-center">
             <div className="flex max-w-full flex-wrap items-center gap-1.5 rounded-lg border border-[#d0d5e8] bg-white p-2 shadow-xs sm:gap-2.5 sm:p-2.5 lg:flex-nowrap">
               {/* 1. UMak Logo Button */}
-              <div
+              <button
+                type="button"
                 onClick={() => handleTabSelect('umak')}
                 className={`flex items-center gap-2 px-2.5 py-2 rounded-md transition-colors cursor-pointer hover:bg-[#eaecf4] shrink-0 select-none ${
                   activeInfoTab === 'umak' ? 'border-2 border-[#111c4e] bg-[#eaecf4]' : 'border border-transparent'
@@ -449,10 +450,11 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
                   <span className="block text-xs font-bold text-[#111c4e]">UMak</span>
                   <span className="block text-[9px] font-sans text-[#47528a] uppercase tracking-wider">University</span>
                 </div>
-              </div>
+              </button>
 
               {/* 2. CCIS Logo Button */}
-              <div
+              <button
+                type="button"
                 onClick={() => handleTabSelect('college')}
                 className={`flex items-center gap-2 px-2.5 py-2 rounded-md transition-colors cursor-pointer hover:bg-stone-50 shrink-0 select-none ${
                   activeInfoTab === 'college' ? 'border-2 border-[#1A3C2E] bg-[#FAF7EA]' : 'border border-transparent'
@@ -465,7 +467,7 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
                   <span className="block text-xs font-bold text-[#1A3C2E]">CCIS</span>
                   <span className="block text-[9px] font-sans text-stone-500 uppercase tracking-wider">College Seal</span>
                 </div>
-              </div>
+              </button>
 
               {/* 3. Branded Student Organization Menu */}
               <button
@@ -988,6 +990,7 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
                 {/* Academic Year Dropdown */}
                 <div className="relative inline-flex items-center">
                   <select
+                    aria-label="Officer academic year"
                     value={selectedTerm}
                     onChange={(e) => setSelectedTerm(e.target.value)}
                     className="appearance-none bg-[#FAF7EA] hover:bg-white text-[#1A3C2E] text-xs font-bold font-sans rounded-full border border-stone-200 pl-4 pr-9 py-2 shadow-xs outline-none focus:border-[#F5B400] transition-colors cursor-pointer"

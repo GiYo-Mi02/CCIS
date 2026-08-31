@@ -899,9 +899,14 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
 
                   {/* Document Card Entry */}
                   <div 
-                    onClick={() => openDetailModal(report)}
-                    className="relative ml-6 sm:ml-12 mb-10 flex flex-col sm:flex-row gap-6 bg-white p-6 sm:p-8 rounded-3xl border border-[#1A3C2E]/25 shadow-xs hover:shadow-lg hover:-translate-y-1 hover:bg-[#1A3C2E] hover:border-[#1A3C2E] hover:text-white cursor-pointer transition-[background-color,border-color,color,box-shadow,transform] duration-300 group"
+                   className="relative ml-6 sm:ml-12 mb-10 flex flex-col sm:flex-row gap-6 bg-white p-6 sm:p-8 rounded-3xl border border-[#1A3C2E]/25 shadow-xs hover:shadow-lg hover:-translate-y-1 hover:bg-[#1A3C2E] hover:border-[#1A3C2E] hover:text-white cursor-pointer transition-[background-color,border-color,color,box-shadow,transform] duration-300 group"
                   >
+                    <button
+                      type="button"
+                      aria-label={`View report: ${report.title}`}
+                      onClick={() => openDetailModal(report)}
+                      className="absolute inset-0 z-0 rounded-3xl focus:outline-none focus:ring-2 focus:ring-[#1A3C2E]"
+                    />
                     {/* Spine anchor node */}
                     <div className="absolute -left-[30px] sm:-left-[42px] top-8 w-2.5 h-2.5 rounded-full bg-stone-300 border-2 border-[#FAF7EA] group-hover:bg-[#1A3C2E] group-hover:scale-110 transition-[background-color,border-color,color,box-shadow,transform] shadow-xs" />
 
@@ -971,7 +976,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
                               </button>
                               
                               {deleteConfirmId === report.id ? (
-                                <div className="flex items-center gap-1.5 bg-rose-50 border border-rose-100 p-0.5 rounded-lg" onClick={(e) => e.stopPropagation()}>
+                                 <div className="flex items-center gap-1.5 bg-rose-50 border border-rose-100 p-0.5 rounded-lg" onClick={(e) => e.stopPropagation()}>
                                   <button
                                     onClick={(e) => { e.stopPropagation(); handleDeleteReport(report); }}
                                     className="px-2 py-0.5 bg-rose-600 hover:bg-rose-700 text-white text-[9px] font-black uppercase rounded shadow-sm cursor-pointer"
@@ -1040,11 +1045,12 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
               
               {/* Report Title */}
               <div>
-                <label className="block text-[10px] font-mono uppercase font-bold text-stone-400 mb-1.5">
+                 <label htmlFor="report-title" className="block text-[10px] font-mono uppercase font-bold text-stone-400 mb-1.5">
                   Report Title *
                 </label>
                 <input
-                  type="text"
+                   id="report-title"
+                   type="text"
                   required
                   value={formTitle}
                   onChange={(e) => dispatchForm({ type: 'set', field: 'title', value: e.target.value })}
@@ -1056,11 +1062,12 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
 
               {/* Short Caption */}
               <div>
-                <label className="block text-[10px] font-mono uppercase font-bold text-stone-400 mb-1.5">
+                 <label htmlFor="report-caption" className="block text-[10px] font-mono uppercase font-bold text-stone-400 mb-1.5">
                   Short Caption / Summary *
                 </label>
                 <textarea
-                  required
+                   id="report-caption"
+                   required
                   value={formCaption}
                   onChange={(e) => dispatchForm({ type: 'set', field: 'caption', value: e.target.value })}
                   placeholder="Summarize what this report covers (1-2 sentences)..."
@@ -1077,11 +1084,12 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
               {/* Financial Stats Block */}
               <div className="grid grid-cols-2 gap-4 border-t border-b border-stone-100 py-4 my-2">
                 <div>
-                  <label className="block text-[10px] font-mono uppercase font-bold text-stone-400 mb-1.5">
+                   <label htmlFor="report-budget" className="block text-[10px] font-mono uppercase font-bold text-stone-400 mb-1.5">
                     Budget Requested (₱) *
                   </label>
                   <input
-                    type="number"
+                     id="report-budget"
+                     type="number"
                     step="0.01"
                     min="0"
                     required
@@ -1094,11 +1102,12 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
                 </div>
                 
                 <div>
-                  <label className="block text-[10px] font-mono uppercase font-bold text-stone-400 mb-1.5">
+                   <label htmlFor="report-expenses" className="block text-[10px] font-mono uppercase font-bold text-stone-400 mb-1.5">
                     Total Expenses (₱) *
                   </label>
                   <input
-                    type="number"
+                     id="report-expenses"
+                     type="number"
                     step="0.01"
                     min="0"
                     required
@@ -1124,12 +1133,13 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
 
               {/* Semester/Term selection */}
               <div>
-                <label className="block text-[10px] font-mono uppercase font-bold text-stone-400 mb-1.5">
+                 <label htmlFor="report-semester" className="block text-[10px] font-mono uppercase font-bold text-stone-400 mb-1.5">
                   Semester / Term *
                 </label>
                 
                 <div className="flex flex-col gap-2">
-                  <select
+                   <select
+                     id="report-semester"
                     value={formIsNewSemester ? 'NEW' : formSemester}
                     onChange={(e) => {
                       if (e.target.value === 'NEW') {
@@ -1163,11 +1173,12 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
 
               {/* PDF Document Selector */}
               <div>
-                <label className="block text-[10px] font-mono uppercase font-bold text-stone-400 mb-1.5">
+                 <label htmlFor="report-pdf" className="block text-[10px] font-mono uppercase font-bold text-stone-400 mb-1.5">
                   PDF Document {editTarget ? '(Optional replacement)' : '*'}
                 </label>
                 <div className="border-2 border-dashed border-stone-200 hover:border-stone-400 rounded-2xl p-4 transition-colors text-center relative bg-stone-50">
-                  <input
+                   <input
+                     id="report-pdf"
                     type="file"
                     accept="application/pdf"
                     onChange={handleFileChange}

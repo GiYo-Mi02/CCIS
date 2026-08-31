@@ -485,8 +485,13 @@ export default function GalleryPage({ isAdmin = false }: GalleryPageProps) {
                         className={`group relative overflow-hidden rounded-2xl bg-white border border-[#1A3C2E]/25 shadow-xs transition-[box-shadow,border-color,transform] duration-300 hover:shadow-xl hover:border-[#1A3C2E] hover:-translate-y-2 focus-within:ring-2 focus-within:ring-[#1A3C2E] cursor-grab active:cursor-grabbing ${
                           draggedItemId === item.id ? 'opacity-40 border-dashed border-2 border-[#1A3C2E]' : ''
                         }`}
-                        onClick={() => setDetailItem(item)}
                       >
+                        <button
+                          type="button"
+                          aria-label={`View ${item.title}`}
+                          onClick={() => setDetailItem(item)}
+                          className="absolute inset-0 z-0 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#1A3C2E]"
+                        />
                         
                         {/* Image aspect box */}
                         <div className="overflow-hidden relative bg-stone-100 w-full h-full">

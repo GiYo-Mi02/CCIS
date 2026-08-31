@@ -114,10 +114,11 @@ export default function Announcements({ previewMode = false, onViewAllClick }: A
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-7xl mx-auto font-sans">
             {announcements.map((ann) => (
-              <div
+              <button
+                type="button"
                 key={ann.id}
                 onClick={() => setSelectedAnn(ann)}
-                className={`cursor-pointer bg-white rounded-3xl border border-zinc-150 shadow-sm hover:shadow-lg transition-[background-color,border-color,color,box-shadow] duration-300 flex flex-col md:flex-row overflow-hidden group min-h-[220px] ${
+                className={`w-full text-left cursor-pointer bg-white rounded-3xl border border-zinc-150 shadow-sm hover:shadow-lg transition-[background-color,border-color,color,box-shadow] duration-300 flex flex-col md:flex-row overflow-hidden group min-h-[220px] ${
                   ann.pinned ? 'ring-2 ring-[#F5B400]/40' : ''
                 }`}
                 id={`ann-card-preview-${ann.id}`}
@@ -200,7 +201,7 @@ export default function Announcements({ previewMode = false, onViewAllClick }: A
                     <ArrowRight size={14} className="transform group-hover:translate-x-1 transition-transform text-[#1A3C2E] group-hover:text-[#F5B400]" />
                   </div>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
 
@@ -285,10 +286,11 @@ export default function Announcements({ previewMode = false, onViewAllClick }: A
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-7xl mx-auto font-sans">
             {filtered.map((ann) => (
-              <div
+              <button
+                type="button"
                 key={ann.id}
                 onClick={() => setSelectedAnn(ann)}
-                className={`cursor-pointer bg-white rounded-3xl border border-[#1A3C2E]/25 shadow-xs hover:shadow-lg hover:border-[#1A3C2E]/50 transition-[background-color,border-color,color,box-shadow] duration-300 flex flex-col md:flex-row overflow-hidden group min-h-[220px] ${
+                className={`w-full text-left cursor-pointer bg-white rounded-3xl border border-[#1A3C2E]/25 shadow-xs hover:shadow-lg hover:border-[#1A3C2E]/50 transition-[background-color,border-color,color,box-shadow] duration-300 flex flex-col md:flex-row overflow-hidden group min-h-[220px] ${
                   ann.pinned ? 'ring-2 ring-[#F5B400]/40' : ''
                 }`}
                 id={`ann-card-full-${ann.id}`}
@@ -371,7 +373,7 @@ export default function Announcements({ previewMode = false, onViewAllClick }: A
                     <ArrowRight size={14} className="transform group-hover:translate-x-1 transition-transform text-[#1A3C2E] group-hover:text-[#F5B400]" />
                   </div>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         )}
@@ -405,12 +407,13 @@ function AnnouncementModal({ announcement, onClose, getCategoryColor }: ModalPro
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs font-sans">
       {/* Click backdrop to close */}
-      <div className="absolute inset-0" onClick={onClose} />
+      <button type="button" aria-label="Close announcement" className="absolute inset-0" onClick={onClose} />
       
       <div className="relative w-full max-w-4xl bg-white rounded-3xl overflow-hidden shadow-2xl border border-zinc-150 animate-scale-up max-h-[90vh] flex flex-col md:flex-row overflow-y-auto md:overflow-y-hidden">
         {/* Close Button */}
         <button
           onClick={onClose}
+          aria-label="Close announcement"
           className="absolute top-4 right-4 z-20 p-2 rounded-full bg-black/10 text-stone-600 md:bg-white/10 md:text-white hover:bg-black/20 md:hover:bg-white/20 hover:scale-105 transition-[background-color,transform] focus:outline-none"
         >
           <X size={18} />

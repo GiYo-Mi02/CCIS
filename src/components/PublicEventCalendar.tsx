@@ -158,7 +158,7 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
   const [hoveredDate, setHoveredDate] = useState<string | null>(null);
   const [hoveredPosition, setHoveredPosition] = useState<{ x: number; y: number } | null>(null);
 
-  const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>, dateStr: string, cellEvents: EventItemDB[]) => {
+  const handleMouseEnter = (e: React.MouseEvent<HTMLButtonElement>, dateStr: string, cellEvents: EventItemDB[]) => {
     if (cellEvents.length === 0 || isMobile) return;
     const rect = e.currentTarget.getBoundingClientRect();
     setHoveredDate(dateStr);
@@ -462,14 +462,17 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
               }
 
               return (
-                <div
+                <button
+                  type="button"
                   key={dateStr}
                   onClick={() => handleDayClick(dateStr, isCurrentMonth)}
                   onMouseEnter={(e) => handleMouseEnter(e, dateStr, filteredDayEvents)}
                   onMouseLeave={handleMouseLeave}
                   className={`relative cursor-pointer transition-colors duration-200 outline-none select-none flex flex-col justify-between group ${cellBgClass} ${cellBorderClass} ${
                     isMobile ? 'h-14 p-1.5' : 'md:min-h-[100px] md:h-24 p-2'
-                  }`}
+                   }`}
+                  aria-label={`${new Date(dateStr).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}${hasEvents ? `, ${filteredDayEvents.length} event${filteredDayEvents.length === 1 ? '' : 's'}` : ''}`}
+                  disabled={!isCurrentMonth}
                 >
                   {/* Day Number badge & category indicators */}
                   <div className="w-full flex justify-between items-start">
@@ -511,7 +514,7 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
                       )}
                     </div>
                   )}
-                </div>
+                </button>
               );
             })}
           </div>
@@ -534,7 +537,7 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
       {/* 3. SELECTED DAY PANEL (MOBILE MODAL PORTAL SHEET) */}
       {isMobile && showMobileModal && createPortal(
         <div className="fixed inset-0 z-[60] flex items-end justify-center p-0 bg-black/60 backdrop-blur-xs font-sans">
-          <div className="absolute inset-0" onClick={() => setShowMobileModal(false)} />
+           <button type="button" aria-label="Close selected agenda" className="absolute inset-0" onClick={() => setShowMobileModal(false)} />
           <div className="relative w-full max-h-[80vh] bg-white rounded-t-3xl overflow-hidden shadow-2xl flex flex-col justify-between border-t border-stone-200 animate-slide-up">
             
             {/* Modal Header */}
@@ -546,7 +549,8 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
                 </h3>
               </div>
               <button 
-                onClick={() => setShowMobileModal(false)}
+               onClick={() => setShowMobileModal(false)}
+                 aria-label="Close selected agenda"
                 className="p-1.5 rounded-full hover:bg-zinc-200 text-stone-500"
               >
                 <X size={18} />
