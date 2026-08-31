@@ -293,7 +293,7 @@ export default function SupportWidget({ onNavigate }: SupportWidgetProps) {
         className="fixed bottom-6 right-6 z-[9999] w-14 h-14 bg-[#1A3C2E] hover:bg-[#123524] text-white rounded-full flex items-center justify-center shadow-2xl hover:scale-105 active:scale-95 transition-[background-color,transform] duration-300 border border-[#F5B400]/40 cursor-pointer group"
         aria-label="Toggle chat support helpdesk"
       >
-        <span className="absolute inset-0 rounded-full bg-[#FAF7EA]/10 scale-0 group-hover:scale-100 transition-transform duration-300" />
+        <span className="absolute inset-0 rounded-full bg-[#FAF7EA]/10 scale-95 opacity-0 group-hover:scale-100 group-hover:opacity-100 transition-[opacity,transform] duration-300" />
         
         {/* Pulse outline ring */}
         {!isOpen && unreadCount > 0 && (
