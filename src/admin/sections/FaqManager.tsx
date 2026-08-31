@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Plus, Edit3, Trash2, HelpCircle, ChevronUp, ChevronDown, 
   X, CheckCircle, AlertCircle, Info 
@@ -20,7 +20,7 @@ export default function FaqManager() {
   const [saving, setSaving] = useState(false);
 
   // Fetch FAQ entries
-  const fetchFaqs = async () => {
+  const fetchFaqs = useCallback(async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -38,11 +38,11 @@ export default function FaqManager() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showToast]);
 
   useEffect(() => {
     fetchFaqs();
-  }, []);
+  }, [fetchFaqs]);
 
   // Reorder FAQs (Move Up/Down)
   const moveFaq = async (id: string, direction: 'up' | 'down') => {

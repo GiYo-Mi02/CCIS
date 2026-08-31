@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Search, Download, ClipboardList, Eye, CheckCircle, Trash } from 'lucide-react';
 import { useAdmin } from '../AdminContext';
 import { supabase } from '../../lib/supabase';
@@ -29,7 +29,7 @@ export default function RegistrationManager() {
   // Stats states
   const [stats, setStats] = useState({ total: 0, confirmed: 0, pending: 0, attended: 0, cancelled: 0 });
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
 
     try {
@@ -82,11 +82,11 @@ export default function RegistrationManager() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [eventFilter, events.length, page, search, showToast]);
 
   useEffect(() => {
     fetchData();
-  }, [page, eventFilter, search]);
+  }, [fetchData]);
 
   const handleSearchChange = (val: string) => {
     setSearch(val);
@@ -267,8 +267,8 @@ export default function RegistrationManager() {
                     paddingAngle={3}
                     dataKey="value"
                   >
-                    {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    {chartData.map(entry => (
+                      <Cell key={entry.name} fill={entry.color} />
                     ))}
                   </Pie>
                   <Tooltip 

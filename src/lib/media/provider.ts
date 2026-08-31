@@ -59,7 +59,7 @@ class StaticPublicMediaProvider implements PublicMediaProvider {
 
 const supabaseProvider = new SupabasePublicMediaProvider();
 
-export function getPublicMediaProvider(options: { forUpload?: boolean } = {}): PublicMediaProvider {
+function getPublicMediaProvider(options: { forUpload?: boolean } = {}): PublicMediaProvider {
   // Dynamic administrative uploads remain on the RLS-protected Supabase path.
   // The static provider is for pre-provisioned public assets only.
   if (options.forUpload) return supabaseProvider;

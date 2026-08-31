@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Play, Pause, Plus, Edit, Trash2, X, FileVideo, Loader2, Eye, Film, ArrowLeft, Volume2, VolumeX, Maximize, Minimize, RotateCcw, RotateCw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -252,19 +252,18 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
     return () => clearInterval(interval);
   }, [featuredVideos.length, isCarouselPaused]);
 
-  // Sync hoveredItem id with slide transitions if user is hovering the hero
-  useEffect(() => {
-    if (hoveredItem && hoveredItem.type === 'hero' && activeHeroVideo) {
-      setHoveredItem({ id: activeHeroVideo.id, type: 'hero' });
-    }
-  }, [currentSlideIndex, activeHeroVideo?.id]);
-
-  // Index boundary safety check
   useEffect(() => {
     if (currentSlideIndex >= featuredVideos.length && featuredVideos.length > 0) {
       setCurrentSlideIndex(0);
     }
-  }, [featuredVideos.length, currentSlideIndex]);
+    if (activeHeroVideo) {
+      setHoveredItem(previous =>
+        previous?.type === 'hero' && previous.id !== activeHeroVideo.id
+          ? { id: activeHeroVideo.id, type: 'hero' }
+          : previous
+      );
+    }
+  }, [activeHeroVideo?.id, currentSlideIndex, featuredVideos.length]);
 
   // Hover preview activator
   useEffect(() => {
@@ -394,7 +393,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
   }, []);
 
   // Netflix-style Custom Video Player Control Methods
-  const togglePlay = () => {
+  const togglePlay = useCallback(() => {
     if (!customVideoRef.current) return;
     if (isPlaying) {
       customVideoRef.current.pause();
@@ -403,14 +402,14 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
       customVideoRef.current.play().catch(err => console.error("Playback failed:", err));
       setIsPlaying(true);
     }
-  };
+  }, [isPlaying]);
 
-  const skipSeconds = (seconds: number) => {
+  const skipSeconds = useCallback((seconds: number) => {
     if (!customVideoRef.current) return;
     const newTime = Math.max(0, Math.min(duration, customVideoRef.current.currentTime + seconds));
     customVideoRef.current.currentTime = newTime;
     setCurrentTime(newTime);
-  };
+  }, [duration]);
 
   const handleTimeUpdate = () => {
     if (customVideoRef.current) {
@@ -446,7 +445,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
     }
   };
 
-  const toggleMute = () => {
+  const toggleMute = useCallback(() => {
     if (!customVideoRef.current) return;
     const nextMute = !isMuted;
     setIsMuted(nextMute);
@@ -455,7 +454,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
       setVolume(0.5);
       customVideoRef.current.volume = 0.5;
     }
-  };
+  }, [isMuted, volume]);
 
   const toggleFullscreen = () => {
     if (!playerContainerRef.current) return;
@@ -581,7 +580,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isPlayerActive, isPlaying, isMuted, volume, duration]);
+  }, [duration, isMuted, isPlaying, isPlayerActive, skipSeconds, toggleMute, togglePlay, volume]);
 
   // Auto-hide controls effect
   useEffect(() => {
@@ -996,14 +995,14 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
             <div className={`absolute bottom-6 right-6 sm:right-12 z-20 flex gap-2 transition-opacity duration-1000 ${
               hideHeroOverlays ? 'opacity-0 pointer-events-none' : 'opacity-100'
             }`}>
-              {featuredVideos.map((_, idx) => (
+              {featuredVideos.map(video => (
                 <button
-                  key={idx}
-                  onClick={() => setCurrentSlideIndex(idx)}
+                  key={video.id}
+                  onClick={() => setCurrentSlideIndex(featuredVideos.indexOf(video))}
                   className={`w-2.5 h-2.5 rounded-full transition-all cursor-pointer ${
-                    currentSlideIndex === idx ? 'bg-[#F5B400] w-6' : 'bg-white/30 hover:bg-white/50'
+                   currentSlideIndex === featuredVideos.indexOf(video) ? 'bg-[#F5B400] w-6' : 'bg-white/30 hover:bg-white/50'
                   }`}
-                  title={`Go to slide ${idx + 1}`}
+                   title={`Go to slide ${featuredVideos.indexOf(video) + 1}`}
                 />
               ))}
             </div>

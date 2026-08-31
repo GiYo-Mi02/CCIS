@@ -157,7 +157,7 @@ export interface ToastMessage {
   type: 'success' | 'error' | 'warning' | 'info';
 }
 
-export const ROLE_LABELS: Record<UserRole, string> = {
+const ROLE_LABELS: Record<UserRole, string> = {
   devcom_head: 'DevCom Head',
   comm_content: 'Comm — Content',
   comm_registration: 'Comm — Registration',
@@ -165,7 +165,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   officer_readonly: 'Officer (Read-Only)',
 };
 
-export const ROLE_COLORS: Record<UserRole, string> = {
+const ROLE_COLORS: Record<UserRole, string> = {
   devcom_head: 'bg-[#F5B400]/15 text-[#F5B400] border-[#F5B400]/30',
   comm_content: 'bg-[#2E7D32]/15 text-[#2E7D32] border-[#2E7D32]/30',
   comm_registration: 'bg-[#1565C0]/15 text-[#1565C0] border-[#1565C0]/30',

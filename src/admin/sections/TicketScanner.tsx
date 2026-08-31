@@ -103,7 +103,7 @@ export default function TicketScanner() {
       }
     };
     fetchEvents();
-  }, []);
+  }, [showToast]);
 
   // Discover every available camera. Laptop webcams are normally user-facing,
   // so they must not be excluded in favour of phone-style rear cameras.
@@ -925,8 +925,8 @@ export default function TicketScanner() {
                 <History size={13} className="text-[#F5B400]" /> Recent Scans
               </h4>
               <div className="space-y-1.5 max-h-[220px] overflow-y-auto">
-                {scanLog.map((entry, idx) => (
-                  <div key={`${entry.id}-${idx}`} className="flex items-center gap-2 py-1.5 px-2 rounded-lg bg-gray-50 text-[10px]">
+                {scanLog.map(entry => (
+                  <div key={`${entry.id}-${entry.timestamp.getTime()}`} className="flex items-center gap-2 py-1.5 px-2 rounded-lg bg-gray-50 text-[10px]">
                     {entry.result.status === 'success' && <CheckCircle size={12} className="text-emerald-500 shrink-0" />}
                     {entry.result.status === 'warning' && <AlertTriangle size={12} className="text-amber-500 shrink-0" />}
                     {entry.result.status === 'error' && <XCircle size={12} className="text-rose-500 shrink-0" />}

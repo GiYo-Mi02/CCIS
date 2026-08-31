@@ -10,7 +10,7 @@ export const DEFAULT_THEME: ThemeSettings = {
   bgCream: '#FAF7EA',
 };
 
-export const THEME_PRESETS: { name: string; colors: ThemeSettings }[] = [
+const THEME_PRESETS: { name: string; colors: ThemeSettings }[] = [
   {
     name: 'Default CCIS SC',
     colors: DEFAULT_THEME,

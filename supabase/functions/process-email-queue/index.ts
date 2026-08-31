@@ -125,7 +125,7 @@ serve(async (req: Request) => {
   }
 
   const results: Array<{ id: string; status: string }> = [];
-  for (const item of (data || []) as QueueItem[]) {
+  await Promise.all(((data || []) as QueueItem[]).map(async item => {
     try {
       const providerResponse = await fetch("https://api.resend.com/emails", {
         method: "POST",
@@ -153,7 +153,7 @@ serve(async (req: Request) => {
         });
         console.warn(`[email-worker:${requestId}] item=${item.id} failed code=${providerCode}`);
         results.push({ id: item.id, status: "failed" });
-        continue;
+        return;
       }
 
       const providerBody = await providerResponse.json().catch(() => ({})) as { id?: string };
@@ -165,7 +165,7 @@ serve(async (req: Request) => {
       if (completeError || completed !== true) {
         console.error(`[email-worker:${requestId}] item=${item.id} completion_write_failed`);
         results.push({ id: item.id, status: "completion_unknown" });
-        continue;
+        return;
       }
 
       console.log(`[email-worker:${requestId}] item=${item.id} sent`);
@@ -183,7 +183,7 @@ serve(async (req: Request) => {
       console.warn(`[email-worker:${requestId}] item=${item.id} outcome_unknown code=${errorCode}`);
       results.push({ id: item.id, status: "delivery_unknown" });
     }
-  }
+  }));
 
   return json(200, { success: true, processed: results.length, results });
 });

@@ -11,7 +11,7 @@ export const CHAT_MESSAGE_FIELDS = [
   'created_at',
 ].join(', ');
 
-export const CHAT_CONVERSATION_FIELDS = 'id, profile_id, created_at, last_message_at';
+const CHAT_CONVERSATION_FIELDS = 'id, profile_id, created_at, last_message_at';
 
 export function toChatMessage(value: unknown): Message | null {
   if (!value || typeof value !== 'object') return null;

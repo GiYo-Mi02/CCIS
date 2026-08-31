@@ -456,7 +456,7 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
 
               return (
                 <div
-                  key={`${dateStr}-${idx}`}
+                  key={dateStr}
                   onClick={() => handleDayClick(dateStr, isCurrentMonth)}
                   onMouseEnter={(e) => handleMouseEnter(e, dateStr, filteredDayEvents)}
                   onMouseLeave={handleMouseLeave}

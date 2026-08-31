@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Edit3, Trash2, Shield, Paintbrush, RotateCcw, Search, UserCheck, X } from 'lucide-react';
 import { useAdmin } from '../AdminContext';
 import { useAuth } from '../../context/AuthContext';
@@ -39,7 +39,7 @@ export default function SettingsRoles() {
   const [customAccent, setCustomAccent] = useState('#F5B400');
   const [customCanvas, setCustomCanvas] = useState('#FAF7EA');
 
-  const fetchThemes = async () => {
+  const fetchThemes = useCallback(async () => {
     setLoadingThemes(true);
     const { data, error } = await supabase
       .from('theme_settings')
@@ -59,9 +59,9 @@ export default function SettingsRoles() {
       }
     }
     setLoadingThemes(false);
-  };
+  }, [showToast]);
 
-  const fetchAdminUsers = async () => {
+  const fetchAdminUsers = useCallback(async () => {
     setLoadingUsers(true);
     // Fetch profiles that have administrative roles
     const { data, error } = await supabase
@@ -76,15 +76,15 @@ export default function SettingsRoles() {
       setAdminUsers(data as Profile[]);
     }
     setLoadingUsers(false);
-  };
+  }, [showToast]);
 
   useEffect(() => {
     fetchAdminUsers();
     fetchThemes();
-  }, []);
+  }, [fetchAdminUsers, fetchThemes]);
 
   // Fetch student/non-admin users to promote
-  const fetchNonAdmins = async () => {
+  const fetchNonAdmins = useCallback(async () => {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -95,13 +95,13 @@ export default function SettingsRoles() {
     if (!error && data) {
       setNonAdmins(data as Profile[]);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (showPromoteModal) {
       fetchNonAdmins();
     }
-  }, [showPromoteModal]);
+  }, [fetchNonAdmins, showPromoteModal]);
 
   const handlePromoteSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

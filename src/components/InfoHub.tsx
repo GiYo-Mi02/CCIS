@@ -910,9 +910,9 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
                 </h4>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {selectedOrg.functions.map((fn, idx) => (
+                   {selectedOrg.functions.map(fn => (
                     <div
-                      key={idx}
+                      key={fn.title}
                       className="bg-[#FAF7EA] p-4 rounded-xl border flex gap-3"
                       style={{ borderColor: selectedOrg.theme.primary }}
                     >
@@ -1150,8 +1150,8 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
                       Primary Responsibilities
                     </h4>
                     <ul className="grid grid-cols-1 gap-2">
-                      {com.responsibilities.map((resp, i) => (
-                        <li key={i} className="flex items-start gap-2.5 text-xs sm:text-sm my-0.5">
+                       {com.responsibilities.map((resp, i) => (
+                         <li key={resp} className="flex items-start gap-2.5 text-xs sm:text-sm my-0.5">
                           <span className="inline-flex items-center justify-center bg-[#FAF7EA] border border-stone-200 text-[#1A3C2E] font-mono text-[11px] rounded-full w-4 h-4 flex-shrink-0 font-bold mt-0.5">
                             {i + 1}
                           </span>

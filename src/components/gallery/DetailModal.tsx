@@ -170,9 +170,9 @@ export default function DetailModal({
               </span>
               
               <div className="flex gap-2.5 overflow-x-auto pb-1.5 scrollbar-thin scrollbar-thumb-stone-300">
-                {allImages.map((imgUrl, idx) => (
+                {allImages.map(imgUrl => (
                   <button
-                    key={idx}
+                    key={imgUrl}
                     onClick={() => setFeaturedImage(imgUrl)}
                     className={`relative w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 bg-black border-2 transition-all cursor-pointer ${
                       featuredImage === imgUrl 
