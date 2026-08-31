@@ -44,6 +44,13 @@ test('registration screens use scoped RPCs instead of unrestricted profile reads
   }
 });
 
+test('role settings use the server-side role management RPC', () => {
+  const settings = read('src', 'admin', 'sections', 'SettingsRoles.tsx');
+
+  assert.equal((settings.match(/rpc\('admin_update_profile_role'/g) || []).length, 3);
+  assert.doesNotMatch(settings, /from\('profiles'\)[\s\S]*?\.update\([\s\S]*?role:/);
+});
+
 test('verification RPC runs only on the authorized verification screen', () => {
   const repairMigration = read(
     'supabase',

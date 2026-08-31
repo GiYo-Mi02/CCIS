@@ -85,7 +85,8 @@ BEGIN
       'swap_faq_order',
       'swap_officer_order',
       'submit_profile_for_verification',
-      'update_student_profile'
+      'update_student_profile',
+      'admin_update_profile_role'
     ]::TEXT[]);
 
   IF v_unlisted IS NOT NULL THEN
@@ -208,6 +209,13 @@ BEGIN
       AND ('authenticated' = ANY(roles) OR 'public' = ANY(roles))
   ) THEN
     RAISE EXCEPTION 'Messages expose direct authenticated UPDATE';
+  END IF;
+  IF to_regprocedure('public.admin_update_profile_role(uuid,text,text)') IS NULL
+     OR NOT has_function_privilege('authenticated', 'public.admin_update_profile_role(uuid,text,text)', 'EXECUTE')
+     OR has_function_privilege('anon', 'public.admin_update_profile_role(uuid,text,text)', 'EXECUTE')
+     OR pg_get_functiondef('public.admin_update_profile_role(uuid,text,text)'::regprocedure) NOT LIKE '%get_user_role()%'
+     OR pg_get_functiondef('public.admin_update_profile_role(uuid,text,text)'::regprocedure) NOT LIKE '%devcom_head%' THEN
+    RAISE EXCEPTION 'Profile role management RPC is missing or incorrectly exposed';
   END IF;
 END;
 $$;

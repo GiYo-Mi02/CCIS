@@ -107,14 +107,11 @@ export default function SettingsRoles() {
     e.preventDefault();
     if (!promotingUser) return;
 
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        role: assigningRole,
-        position: assigningPosition || 'Committee Member',
-        profile_complete: true
-      })
-      .eq('id', promotingUser.id);
+    const { error } = await supabase.rpc('admin_update_profile_role', {
+      p_user_id: promotingUser.id,
+      p_role: assigningRole,
+      p_position: assigningPosition || 'Committee Member',
+    });
 
     if (error) {
       showToast('Failed to assign role', 'error');
@@ -131,13 +128,11 @@ export default function SettingsRoles() {
     e.preventDefault();
     if (!editingUser) return;
 
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        role: editingUser.role,
-        position: editingUser.position
-      })
-      .eq('id', editingUser.id);
+    const { error } = await supabase.rpc('admin_update_profile_role', {
+      p_user_id: editingUser.id,
+      p_role: editingUser.role,
+      p_position: editingUser.position,
+    });
 
     if (error) {
       showToast('Failed to update credentials', 'error');
@@ -159,13 +154,11 @@ export default function SettingsRoles() {
       return;
     }
 
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        role: 'student',
-        position: null
-      })
-      .eq('id', userToDemote.id);
+    const { error } = await supabase.rpc('admin_update_profile_role', {
+      p_user_id: userToDemote.id,
+      p_role: 'student',
+      p_position: null,
+    });
 
     if (error) {
       showToast('Failed to revoke privileges', 'error');
