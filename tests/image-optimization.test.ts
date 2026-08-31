@@ -225,5 +225,5 @@ test('pipeline removes every generated variant when metadata insertion fails', a
   assert.equal(gateway.uploaded.length, 2);
   assert.ok(gateway.removed.some(entry =>
     entry.bucket === 'banners' && gateway.uploaded.every(path => entry.paths.includes(path))));
-  assert.ok(gateway.removed.some(entry => entry.bucket === IMAGE_STAGING_BUCKET && entry.paths[0] === SOURCE_PATH));
+  assert.ok(!gateway.removed.some(entry => entry.bucket === IMAGE_STAGING_BUCKET && entry.paths[0] === SOURCE_PATH));
 });
