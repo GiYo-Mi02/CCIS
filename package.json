@@ -34,6 +34,8 @@
     "validate": "npm run test:all && npm run lint:edge"
   },
   "dependencies": {
+    "@emnapi/core": "^1.11.3",
+    "@emnapi/runtime": "^1.11.3",
     "@supabase/supabase-js": "^2.108.2",
     "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^5.0.4",
@@ -64,5 +66,10 @@
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.3"
+  },
+  "allowScripts": {
+    "deno@2.9.5": true,
+    "esbuild@0.25.12": true,
+    "esbuild@0.28.1": true
   }
 }
