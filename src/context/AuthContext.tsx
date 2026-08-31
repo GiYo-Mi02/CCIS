@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { AuthChangeEvent, Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { Profile, isAdminRole } from '../types/database';
@@ -480,35 +480,62 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isApproved = profile ? profile.status === 'approved' : false;
   const isRejected = profile ? profile.status === 'rejected' : false;
   const isUnverified = profile ? (profile.status === 'pending' && accountAgeHours >= 24) : false;
+  const value = useMemo(() => ({
+    session,
+    user,
+    profile,
+    loading,
+    isAdmin,
+    isPending,
+    isApproved,
+    isRejected,
+    isUnverified,
+    accountAgeHours,
+    verificationCountdown,
+    signInWithGoogle,
+    signInWithEmail,
+    signUpWithEmail,
+    signOut,
+    refreshProfile,
+    updateProfile,
+    recordPrivacyConsent,
+    submitProfileForVerification,
+    setEmailPreferences,
+    issueAttendancePass,
+    banNotice,
+    clearBanNotice,
+    emailValidationError,
+    clearEmailValidationError,
+  }), [
+    session,
+    user,
+    profile,
+    loading,
+    isAdmin,
+    isPending,
+    isApproved,
+    isRejected,
+    isUnverified,
+    accountAgeHours,
+    verificationCountdown,
+    signInWithGoogle,
+    signInWithEmail,
+    signUpWithEmail,
+    signOut,
+    refreshProfile,
+    updateProfile,
+    recordPrivacyConsent,
+    submitProfileForVerification,
+    setEmailPreferences,
+    issueAttendancePass,
+    banNotice,
+    clearBanNotice,
+    emailValidationError,
+    clearEmailValidationError,
+  ]);
 
   return (
-    <AuthContext.Provider value={{
-      session,
-      user,
-      profile,
-      loading,
-      isAdmin,
-      isPending,
-      isApproved,
-      isRejected,
-      isUnverified,
-      accountAgeHours,
-      verificationCountdown,
-      signInWithGoogle,
-      signInWithEmail,
-      signUpWithEmail,
-      signOut,
-      refreshProfile,
-      updateProfile,
-      recordPrivacyConsent,
-      submitProfileForVerification,
-      setEmailPreferences,
-      issueAttendancePass,
-      banNotice,
-      clearBanNotice,
-      emailValidationError,
-      clearEmailValidationError,
-    }}>
+    <AuthContext.Provider value={value}>
       {children}
       {emailValidationError && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs font-sans">
