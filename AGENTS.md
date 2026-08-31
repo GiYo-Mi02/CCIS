@@ -63,6 +63,23 @@ Read `README.md`, `package.json`, applicable files under `.agents/skills/`, and 
 
 ## Setup and Commands
 
+Use Node 22 for all Node and npm commands. Prefer `nvm use 22`:
+
+```bash
+if command -v nvm >/dev/null 2>&1; then
+  nvm use 22
+elif command -v node >/dev/null 2>&1; then
+  node --version
+  # If this is not Node 22, report that Node 22 is required before continuing.
+else
+  # Report that Node 22 must be installed before continuing.
+fi
+```
+
+If `nvm` is absent, do not silently continue with another Node version. Check
+`node --version`; if Node is absent or is not major version 22, report that the
+user must install or activate Node 22.
+
 Install the exact dependencies from the lockfile:
 
 ```bash
@@ -149,26 +166,36 @@ Database changes that affect RLS, roles, registrations, attendance, messages, pr
 
 ## Supabase CLI Workflow
 
-Always inspect the installed CLI before using commands:
+Use the installed Supabase CLI when available. If the `supabase` command is
+absent, check the project-pinned fallback with `npx supabase` before reporting
+that the CLI is unavailable:
 
 ```bash
-supabase --version
-supabase --help
-supabase db --help
-supabase migration --help
-supabase functions --help
+if command -v supabase >/dev/null 2>&1; then
+  SUPABASE="supabase"
+elif npx supabase --version >/dev/null 2>&1; then
+  SUPABASE="npx supabase"
+else
+  # Report that neither the Supabase CLI nor the npx fallback is available.
+fi
+
+$SUPABASE --version
+$SUPABASE --help
+$SUPABASE db --help
+$SUPABASE migration --help
+$SUPABASE functions --help
 ```
 
 Link the project only when it is not already linked:
 
 ```bash
-supabase link --project-ref aecrmddgsnnxtemyikqu
+$SUPABASE link --project-ref aecrmddgsnnxtemyikqu
 ```
 
 Create migrations using the CLI:
 
 ```bash
-supabase migration new descriptive_migration_name
+$SUPABASE migration new descriptive_migration_name
 ```
 
 Do not manually invent migration timestamps.
