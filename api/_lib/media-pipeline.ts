@@ -58,6 +58,7 @@ export async function processStagedImage(
 ): Promise<UploadOptimizedImageResult> {
   const uploadedPaths: string[] = [];
   let metadataInserted = false;
+  let metadataInsertAttempted = false;
 
   try {
     const input = await gateway.download(IMAGE_STAGING_BUCKET, request.sourcePath);
@@ -110,6 +111,7 @@ export async function processStagedImage(
       entity_id: request.entityId ?? null,
       variants: responsiveVariants,
     };
+    metadataInsertAttempted = true;
     await gateway.insertMediaAsset(metadata);
     metadataInserted = true;
 
@@ -137,7 +139,7 @@ export async function processStagedImage(
     };
   } catch (error) {
     await bestEffortRemove(gateway, request.bucket, uploadedPaths);
-    if (!metadataInserted) {
+    if (!metadataInserted && !metadataInsertAttempted) {
       await bestEffortRemove(gateway, IMAGE_STAGING_BUCKET, [request.sourcePath]);
     }
     throw error;
