@@ -57,7 +57,7 @@ export async function processStagedImage(
   optimizer: Optimizer = optimizeImageBuffer,
 ): Promise<UploadOptimizedImageResult> {
   const uploadedPaths: string[] = [];
-  let stagedImageRemoved = false;
+  let metadataInserted = false;
 
   try {
     const input = await gateway.download(IMAGE_STAGING_BUCKET, request.sourcePath);
@@ -93,9 +93,6 @@ export async function processStagedImage(
       throw new MediaRequestError('The optimizer did not produce a primary image.', 500, 'OPTIMIZATION_FAILED');
     }
 
-    await gateway.remove(IMAGE_STAGING_BUCKET, [request.sourcePath]);
-    stagedImageRemoved = true;
-
     const responsiveVariants = uploadedVariants.filter(variant => variant.label !== 'main');
     const metadata: MediaAssetInsert = {
       provider: 'supabase',
@@ -114,6 +111,10 @@ export async function processStagedImage(
       variants: responsiveVariants,
     };
     await gateway.insertMediaAsset(metadata);
+    metadataInserted = true;
+
+    // Metadata is durable now; a failed staging cleanup must not roll it back.
+    await bestEffortRemove(gateway, IMAGE_STAGING_BUCKET, [request.sourcePath]);
 
     const asset: MediaAsset = {
       provider: 'supabase',
@@ -136,7 +137,7 @@ export async function processStagedImage(
     };
   } catch (error) {
     await bestEffortRemove(gateway, request.bucket, uploadedPaths);
-    if (!stagedImageRemoved) {
+    if (!metadataInserted) {
       await bestEffortRemove(gateway, IMAGE_STAGING_BUCKET, [request.sourcePath]);
     }
     throw error;

@@ -142,6 +142,7 @@ test('media request policy binds user path, role, destination, and entity type',
 class FakeGateway implements MediaPipelineGateway {
   uploaded: string[] = [];
   removed: Array<{ bucket: string; paths: string[] }> = [];
+  events: string[] = [];
   metadata: MediaAssetInsert | null = null;
   failUploadAt = 0;
   failMetadata = false;
@@ -161,6 +162,7 @@ class FakeGateway implements MediaPipelineGateway {
   }
 
   async remove(bucket: string, paths: string[]): Promise<void> {
+    this.events.push(`remove:${bucket}`);
     this.removed.push({ bucket, paths: [...paths] });
   }
 
@@ -170,6 +172,7 @@ class FakeGateway implements MediaPipelineGateway {
 
   async insertMediaAsset(metadata: MediaAssetInsert): Promise<void> {
     if (this.failMetadata) throw new Error('metadata failed');
+    this.events.push('insert-metadata');
     this.metadata = metadata;
   }
 }
@@ -192,14 +195,16 @@ const pipelineRequest = parseOptimizeMediaRequest({
   entityType: 'announcements',
 });
 
-test('pipeline uploads immutable versioned variants and removes staging before metadata commit', async () => {
+test('pipeline persists metadata before removing the staged original', async () => {
   const gateway = new FakeGateway();
   const result = await processStagedImage(pipelineRequest, gateway, async () => fakeOptimization);
 
   assert.equal(result.asset.variants.length, 1);
   assert.match(result.asset.path, /^announcements\/v2\/[0-9a-f-]{36}\/main\.webp$/);
   assert.equal(gateway.metadata?.storage_path, result.asset.path);
-  assert.deepEqual(gateway.removed[0], { bucket: IMAGE_STAGING_BUCKET, paths: [SOURCE_PATH] });
+  assert.equal(gateway.removed[0].bucket, IMAGE_STAGING_BUCKET);
+  assert.ok(gateway.metadata);
+  assert.deepEqual(gateway.events, ['insert-metadata', `remove:${IMAGE_STAGING_BUCKET}`]);
 });
 
 test('pipeline cleans partial outputs and staging after an upload failure', async () => {
@@ -220,4 +225,5 @@ test('pipeline removes every generated variant when metadata insertion fails', a
   assert.equal(gateway.uploaded.length, 2);
   assert.ok(gateway.removed.some(entry =>
     entry.bucket === 'banners' && gateway.uploaded.every(path => entry.paths.includes(path))));
+  assert.ok(gateway.removed.some(entry => entry.bucket === IMAGE_STAGING_BUCKET && entry.paths[0] === SOURCE_PATH));
 });
