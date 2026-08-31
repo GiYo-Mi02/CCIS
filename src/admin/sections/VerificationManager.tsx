@@ -28,7 +28,6 @@ export default function VerificationManager() {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
   const PAGE_SIZE = 10;
 
   // Debounce search query
@@ -56,7 +55,6 @@ export default function VerificationManager() {
       const rows = result?.rows || [];
       const count = Number(result?.total || 0);
       setPendingUsers(rows);
-      setTotalCount(count);
       setTotalPages(Math.max(1, Math.ceil(count / PAGE_SIZE)));
     } catch (err: any) {
       showToast('Failed to load pending verifications: ' + err.message, 'error');
@@ -90,7 +88,6 @@ export default function VerificationManager() {
 
       // Remove from view list
       setPendingUsers(prev => prev.filter(u => u.id !== user.id));
-      setTotalCount(prev => Math.max(0, prev - 1));
       window.dispatchEvent(new Event('admin-verification-count-changed'));
     } catch (err: any) {
       showToast('Approval action failed: ' + err.message, 'error');
@@ -128,7 +125,6 @@ export default function VerificationManager() {
 
       // Remove from view list
       setPendingUsers(prev => prev.filter(u => u.id !== rejectingUser.id));
-      setTotalCount(prev => Math.max(0, prev - 1));
       window.dispatchEvent(new Event('admin-verification-count-changed'));
       setRejectingUser(null);
     } catch (err: any) {

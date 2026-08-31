@@ -45,11 +45,10 @@ export default function MessagesInbox() {
   // Pagination states for Inbox list (conversations)
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
   const pageSize = 50;
 
   // Pagination states for active thread messages
-  const [messageOffset, setMessageOffset] = useState(0);
+  const messageOffsetRef = useRef(0);
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const messageLimit = 50;
 
@@ -115,7 +114,6 @@ export default function MessagesInbox() {
       }
 
       const matchedCount = total || 0;
-      setTotalCount(matchedCount);
       setTotalPages(Math.max(1, Math.ceil(matchedCount / pageSize)));
 
       // 2. Fetch paginated list
@@ -225,7 +223,7 @@ export default function MessagesInbox() {
   // Trigger loading of conversation messages on selection
   useEffect(() => {
     if (selectedCon) {
-      setMessageOffset(0);
+      messageOffsetRef.current = 0;
       fetchThreadMessages(selectedCon.id, 0, false).then(() => {
         scrollToBottom();
       });
@@ -287,8 +285,8 @@ export default function MessagesInbox() {
 
   const handleLoadMoreMessages = async () => {
     if (!selectedCon) return;
-    const nextOffset = messageOffset + messageLimit;
-    setMessageOffset(nextOffset);
+    const nextOffset = messageOffsetRef.current + messageLimit;
+    messageOffsetRef.current = nextOffset;
     await fetchThreadMessages(selectedCon.id, nextOffset, true);
   };
 
