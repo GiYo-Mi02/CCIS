@@ -152,6 +152,7 @@ export default function VerificationManager() {
         <Search size={18} className="text-stone-400 mr-3 shrink-0" />
         <input
           type="text"
+          aria-label="Search pending verifications"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search by student name, email, or student number..."
@@ -159,6 +160,8 @@ export default function VerificationManager() {
         />
         {searchQuery && (
           <button 
+            type="button"
+            aria-label="Clear verification search"
             onClick={() => setSearchQuery('')}
             className="text-stone-400 hover:text-stone-600 font-bold text-xs"
           >
@@ -225,6 +228,8 @@ export default function VerificationManager() {
                     </td>
                     <td className="px-6 py-4 text-right space-x-2 whitespace-nowrap">
                       <button
+                        type="button"
+                        aria-label={`Approve ${user.full_name || user.email}`}
                         onClick={() => handleApprove(user)}
                         disabled={actionLoadingId !== null}
                         className="inline-flex items-center gap-1 bg-[#1A3C2E]/10 hover:bg-[#1A3C2E] hover:text-white text-[#1A3C2E] px-3 py-1.5 rounded-lg text-xs font-bold transition-colors disabled:opacity-50 cursor-pointer"
@@ -233,6 +238,8 @@ export default function VerificationManager() {
                         Approve
                       </button>
                       <button
+                        type="button"
+                        aria-label={`Reject ${user.full_name || user.email}`}
                         onClick={() => handleRejectClick(user)}
                         disabled={actionLoadingId !== null}
                         className="inline-flex items-center gap-1 bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-600 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors disabled:opacity-50 cursor-pointer"
@@ -262,16 +269,18 @@ export default function VerificationManager() {
       {/* Rejection Reason Modal */}
       {rejectingUser && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs font-sans animate-fade-in">
-          <div className="absolute inset-0 cursor-pointer" onClick={() => setRejectingUser(null)} />
+           <button type="button" aria-label="Close rejection dialog" className="absolute inset-0 cursor-pointer" onClick={() => setRejectingUser(null)} />
           <div className="relative w-full max-w-md bg-white border border-stone-200 rounded-2xl shadow-2xl p-6 space-y-4 animate-scale-up">
             <div className="flex items-center justify-between border-b border-stone-150 pb-3">
               <h3 className="font-sans font-black text-lg text-stone-900 flex items-center gap-2">
                 <AlertCircle className="text-rose-500" size={20} />
                 Reject Verification
               </h3>
-              <button 
-                onClick={() => setRejectingUser(null)}
-                className="text-stone-400 hover:text-stone-600 cursor-pointer"
+               <button
+                 type="button"
+                 onClick={() => setRejectingUser(null)}
+                 aria-label="Close rejection dialog"
+                 className="text-stone-400 hover:text-stone-600 cursor-pointer"
               >
                 <XCircle size={20} />
               </button>
@@ -282,11 +291,12 @@ export default function VerificationManager() {
                 <p className="text-xs text-stone-500 leading-normal mb-3">
                   Please specify the reason for declining the registration of <strong>{rejectingUser.full_name || rejectingUser.email}</strong>. This reason will be emailed to the student and their profile form will be unlocked so they can correct it.
                 </p>
-                <label className="block text-stone-700 text-xs font-bold uppercase tracking-wider mb-2">
+                 <label htmlFor="rejection-reason" className="block text-stone-700 text-xs font-bold uppercase tracking-wider mb-2">
                   Rejection Reason
                 </label>
                 <textarea
-                  value={rejectionReason}
+                   id="rejection-reason"
+                   value={rejectionReason}
                   onChange={(e) => setRejectionReason(e.target.value)}
                   rows={4}
                   placeholder="e.g. The student number K12345678 does not match the format on your COR, or the uploaded COR file is unreadable."

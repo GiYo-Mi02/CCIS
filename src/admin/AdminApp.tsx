@@ -104,7 +104,12 @@ function AdminAppInner({ onExitAdmin }: AdminAppProps) {
       {/* Mobile sidebar drawer */}
       {mobileMenuOpen && (
         <div className="md:hidden fixed inset-0 z-50">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setMobileMenuOpen(false)} />
+          <button
+            type="button"
+            aria-label="Close mobile navigation"
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setMobileMenuOpen(false)}
+          />
           <AdminSidebar
             collapsed={false}
             onToggle={() => setMobileMenuOpen(false)}
