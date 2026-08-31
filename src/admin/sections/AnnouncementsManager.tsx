@@ -21,6 +21,7 @@ export default function AnnouncementsManager() {
   const [editingAnn, setEditingAnn] = useState<Announcement | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const deletingAllRef = useRef(false);
 
   const fetchAnnouncements = async () => {
     const { data, error } = await supabase
@@ -57,7 +58,8 @@ export default function AnnouncementsManager() {
   };
 
   const handleDeleteAll = async () => {
-    if (deleting || !window.confirm('Delete all announcements? This action cannot be undone.')) return;
+    if (deletingAllRef.current || deleting || !window.confirm('Delete all announcements? This action cannot be undone.')) return;
+    deletingAllRef.current = true;
     setDeleting('all');
     try {
       const { error } = await supabase.from('announcements').delete().not('id', 'is', null);
@@ -67,6 +69,7 @@ export default function AnnouncementsManager() {
       setAnnouncements([]);
       showToast('All announcements deleted', 'error');
     } finally {
+      deletingAllRef.current = false;
       setDeleting(null);
     }
   };

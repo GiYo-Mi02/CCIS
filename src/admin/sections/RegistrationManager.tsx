@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Search, Download, ClipboardList, Eye, CheckCircle, Trash } from 'lucide-react';
 import { useAdmin } from '../AdminContext';
 import { supabase } from '../../lib/supabase';
@@ -19,6 +19,8 @@ export default function RegistrationManager() {
   const [eventFilter, setEventFilter] = useState('ALL');
   const [selectedReg, setSelectedReg] = useState<EventRegistration | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deletingAll, setDeletingAll] = useState(false);
+  const deletingAllRef = useRef(false);
 
   // Pagination states
   const [page, setPage] = useState(1);
@@ -146,12 +148,19 @@ export default function RegistrationManager() {
   };
 
   const handleDeleteAll = async () => {
-    if (!window.confirm('WARNING: Are you sure you want to delete ALL registrations? This cannot be undone.')) return;
-    const { error } = await supabase.from('event_registrations').delete().not('id', 'is', null);
-    if (error) { showToast('Failed to delete all', 'error'); return; }
-    showToast('All registrations deleted', 'success');
-    setPage(1);
-    fetchData();
+    if (deletingAllRef.current || !window.confirm('WARNING: Are you sure you want to delete ALL registrations? This cannot be undone.')) return;
+    deletingAllRef.current = true;
+    setDeletingAll(true);
+    try {
+      const { error } = await supabase.from('event_registrations').delete().not('id', 'is', null);
+      if (error) { showToast('Failed to delete all', 'error'); return; }
+      showToast('All registrations deleted', 'success');
+      setPage(1);
+      fetchData();
+    } finally {
+      deletingAllRef.current = false;
+      setDeletingAll(false);
+    }
   };
 
   const exportCsv = () => {
@@ -217,8 +226,8 @@ export default function RegistrationManager() {
             <Download size={14} /> Export CSV
           </button>
           {totalCount > 0 && (
-            <button onClick={handleDeleteAll}
-              className="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 px-3 py-2 rounded-lg font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer flex-1 sm:flex-initial justify-center">
+            <button onClick={handleDeleteAll} disabled={deletingAll}
+              className="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 px-3 py-2 rounded-lg font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer flex-1 sm:flex-initial justify-center disabled:opacity-40 disabled:cursor-not-allowed">
               <Trash size={13} /> Delete All
             </button>
           )}

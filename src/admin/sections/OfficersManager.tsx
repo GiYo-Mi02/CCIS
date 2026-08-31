@@ -22,6 +22,8 @@ export default function OfficersManager() {
   const [editingCommittee, setEditingCommittee] = useState<Partial<Committee> | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const deletingAllOfficersRef = useRef(false);
+  const deletingAllCommitteesRef = useRef(false);
 
   const fetchData = async () => {
     const [offRes, commRes] = await Promise.all([
@@ -145,7 +147,8 @@ export default function OfficersManager() {
   };
 
   const handleDeleteAllOfficers = async () => {
-    if (deleting || !window.confirm('Delete all officers? This action cannot be undone.')) return;
+    if (deletingAllOfficersRef.current || deleting || !window.confirm('Delete all officers? This action cannot be undone.')) return;
+    deletingAllOfficersRef.current = true;
     setDeleting('officers:all');
     try {
       const { error } = await supabase.from('officers').delete().not('id', 'is', null);
@@ -153,12 +156,14 @@ export default function OfficersManager() {
       setOfficers([]);
       showToast('All officers deleted', 'error');
     } finally {
+      deletingAllOfficersRef.current = false;
       setDeleting(null);
     }
   };
 
   const handleDeleteAllCommittees = async () => {
-    if (deleting || !window.confirm('Delete all committees? This action cannot be undone.')) return;
+    if (deletingAllCommitteesRef.current || deleting || !window.confirm('Delete all committees? This action cannot be undone.')) return;
+    deletingAllCommitteesRef.current = true;
     setDeleting('committees:all');
     try {
       const { error } = await supabase.from('committees').delete().not('id', 'is', null);
@@ -166,6 +171,7 @@ export default function OfficersManager() {
       setCommittees([]);
       showToast('All committees deleted', 'error');
     } finally {
+      deletingAllCommitteesRef.current = false;
       setDeleting(null);
     }
   };
