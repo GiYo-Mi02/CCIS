@@ -199,12 +199,14 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
             setRegistrations(normalized as unknown as EventRegistration[]);
           }
         }
-      } finally {
-        if (!cancelled) setLoadingData(false);
+      } catch (err) {
+        console.error('Unexpected error fetching registrations:', err);
       }
     };
 
-    fetchData();
+    void fetchData().finally(() => {
+      setLoadingData((current) => cancelled ? current : false);
+    });
     return () => { cancelled = true; };
   }, [user]);
 
@@ -248,12 +250,12 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
         }
       } catch (err) {
         console.error('Unexpected error fetching conversation/messages:', err);
-      } finally {
-        if (!cancelled) setMessagesLoading(false);
       }
     };
 
-    fetchConversationAndMessages();
+    void fetchConversationAndMessages().finally(() => {
+      setMessagesLoading((current) => cancelled ? current : false);
+    });
     return () => { cancelled = true; };
   }, [user?.id, activeTab]);
 
