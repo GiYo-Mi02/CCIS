@@ -55,7 +55,6 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
   const [studentNumber, setStudentNumber] = useState('');
   const [yearLevel, setYearLevel] = useState(1);
   const [program, setProgram] = useState('BSCS');
-  const [section, setSection] = useState('');
   const [contactNumber, setContactNumber] = useState('');
   const [saving, setSaving] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -168,7 +167,6 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
       setStudentNumber(profile.student_number || '');
       setYearLevel(profile.year_level || 1);
       setProgram(profile.program || 'BSCS');
-      setSection(profile.section || '');
       setContactNumber(profile.contact_number || '');
     }
   }, [profile]);
@@ -295,7 +293,7 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
       return;
     }
 
-    const sectionTrimmed = section.trim().toUpperCase().replace(/\s/g, '');
+    const sectionTrimmed = (profile.section || '').trim().toUpperCase().replace(/\s/g, '');
     if (!sectionTrimmed) {
       alert('Section is required.');
       return;
@@ -342,7 +340,7 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
   const handleConfirmLock = async () => {
     setShowConfirmModal(false);
     setSaving(true);
-    const sectionTrimmed = section.trim().toUpperCase().replace(/\s/g, '');
+    const sectionTrimmed = (profile?.section || '').trim().toUpperCase().replace(/\s/g, '');
     const idClean = studentNumber.trim().toUpperCase();
     const contactClean = contactNumber.trim();
 

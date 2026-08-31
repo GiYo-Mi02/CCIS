@@ -48,7 +48,6 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [studentNum, setStudentNum] = useState('');
-  const [collegeBranch, setCollegeBranch] = useState('Computer Science');
   const [section, setSection] = useState('');
   
   const [registrationError, setRegistrationError] = useState<string | null>(null);
@@ -60,7 +59,6 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
       setFullName(profile.full_name || '');
       setEmail(profile.email || '');
       setStudentNum(profile.student_number || '');
-      setCollegeBranch(profile.program || 'Computer Science');
       setSection(profile.section || '');
     }
   }, [profile]);
@@ -249,8 +247,8 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
         name: fullName,
         email: email,
         studentNumber: studentNum,
-        courseYear: collegeBranch,
-        college: collegeBranch,
+        courseYear: profile.program || 'Computer Science',
+        college: profile.program || 'Computer Science',
         section: section,
         eventId: selectedEventId,
         eventTitle: regData.events?.title || matchedEvent.title,

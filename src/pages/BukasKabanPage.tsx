@@ -187,7 +187,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
   
   // PDF processing states
   const [isGeneratingThumbnail, setIsGeneratingThumbnail] = useState(false);
-  const [generatedThumbnailBlob, setGeneratedThumbnailBlob] = useState<Blob | null>(null);
+  const generatedThumbnailBlobRef = useRef<Blob | null>(null);
   const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState<string>('');
   const [formSubmitting, setFormSubmitting] = useState(false);
 
@@ -370,7 +370,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
       setFormIsNewSemester(false);
       setFormCustomSemester('');
       setSelectedFile(null);
-      setGeneratedThumbnailBlob(null);
+      generatedThumbnailBlobRef.current = null;
       setThumbnailPreviewUrl(report.thumbnailUrl);
       setFormTotalBudgetRequested(String(report.totalBudgetRequested));
       setFormTotalExpenses(String(report.totalExpenses));
@@ -382,7 +382,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
       setFormIsNewSemester(false);
       setFormCustomSemester('');
       setSelectedFile(null);
-      setGeneratedThumbnailBlob(null);
+      generatedThumbnailBlobRef.current = null;
       setThumbnailPreviewUrl('');
       setFormTotalBudgetRequested('0');
       setFormTotalExpenses('0');
@@ -473,14 +473,14 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
     
     try {
       const blob = await renderPdfThumbnail(file);
-      setGeneratedThumbnailBlob(blob);
+      generatedThumbnailBlobRef.current = blob;
       const url = URL.createObjectURL(blob);
       setThumbnailPreviewUrl(url);
       triggerToast('PDF page preview generated successfully.', 'info');
     } catch (err: any) {
       console.error('Thumbnail generation failed:', err);
       triggerToast('Failed to auto-generate PDF thumbnail preview. Using default file icon.', 'warning');
-      setGeneratedThumbnailBlob(null);
+      generatedThumbnailBlobRef.current = null;
       setThumbnailPreviewUrl('');
     } finally {
       setIsGeneratingThumbnail(false);
@@ -560,8 +560,8 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
         fileSizeLabel = (selectedFile.size / (1024 * 1024)).toFixed(2) + ' MB';
 
         // Upload thumbnail if generated
-        if (generatedThumbnailBlob) {
-          const thumbnailFile = new File([generatedThumbnailBlob], `${safeName}-preview.webp`, { type: 'image/webp' });
+        if (generatedThumbnailBlobRef.current) {
+          const thumbnailFile = new File([generatedThumbnailBlobRef.current], `${safeName}-preview.webp`, { type: 'image/webp' });
           const thumbnail = await uploadOptimizedImage(thumbnailFile, {
             category: 'document-thumbnail',
             bucket: 'bukas-kaban-reports',
