@@ -52,7 +52,7 @@ jobs:
           for attempt in {1..30}; do
             if psql \
               --host=127.0.0.1 \
-              --port=54322 \
+              --port=55322 \
               --username=postgres \
               --dbname=postgres \
               --command="select 1" \
