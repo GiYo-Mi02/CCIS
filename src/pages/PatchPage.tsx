@@ -1640,10 +1640,10 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
               
               {/* Category selector */}
               <div>
-                <label className="block text-[10px] font-mono uppercase font-bold text-[#F5B400] mb-1.5">
+                <label htmlFor="patch-category" className="block text-[10px] font-mono uppercase font-bold text-[#F5B400] mb-1.5">
                   Category *
                 </label>
-                <select
+                <select id="patch-category"
                   value={formCategory}
                   onChange={(e) => setFormCategory(e.target.value)}
                   className="w-full bg-[#11241C] border border-stone-200/10 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#F5B400] text-xs text-[#FAF7EA] cursor-pointer"
@@ -1658,10 +1658,11 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
               {/* Title & Episode row */}
               <div className="grid grid-cols-3 gap-4">
                 <div className="col-span-2">
-                  <label className="block text-[10px] font-mono uppercase font-bold text-[#F5B400] mb-1.5">
+                  <label htmlFor="patch-title" className="block text-[10px] font-mono uppercase font-bold text-[#F5B400] mb-1.5">
                     Episode Title *
                   </label>
                   <input
+                    id="patch-title"
                     type="text"
                     required
                     value={formTitle}
@@ -1673,10 +1674,11 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-mono uppercase font-bold text-[#F5B400] mb-1.5">
+                  <label htmlFor="patch-episode-number" className="block text-[10px] font-mono uppercase font-bold text-[#F5B400] mb-1.5">
                     Episode # *
                   </label>
                   <input
+                    id="patch-episode-number"
                     type="number"
                     required
                     min="1"
@@ -1691,9 +1693,9 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
 
               {/* Video Source Type Toggle */}
               <div>
-                <label className="block text-[10px] font-mono uppercase font-bold text-[#F5B400] mb-2">
+                <span className="block text-[10px] font-mono uppercase font-bold text-[#F5B400] mb-2">
                   Video Source Type
-                </label>
+                </span>
                 <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
@@ -1734,10 +1736,11 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
               {/* Source Field: Facebook Permalink */}
               {formSourceType === 'facebook' && (
                 <div>
-                  <label className="block text-[10px] font-mono uppercase font-bold text-[#F5B400] mb-1.5">
+                  <label htmlFor="patch-facebook-permalink" className="block text-[10px] font-mono uppercase font-bold text-[#F5B400] mb-1.5">
                     Facebook Video Permalink URL *
                   </label>
                   <input
+                    id="patch-facebook-permalink"
                     type="url"
                     required
                     value={formFacebookPermalink}
@@ -1752,10 +1755,11 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
               {/* Source Field: Direct Video URL */}
               {formSourceType === 'direct' && (
                 <div>
-                  <label className="block text-[10px] font-mono uppercase font-bold text-[#F5B400] mb-1.5">
+                  <label htmlFor="patch-video-url" className="block text-[10px] font-mono uppercase font-bold text-[#F5B400] mb-1.5">
                     Direct Video URL (e.g. Cloudinary, MP4) *
                   </label>
                   <input
+                    id="patch-video-url"
                     type="url"
                     required
                     value={formVideoUrl}
@@ -1770,12 +1774,13 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
               {/* Source Field: Direct Video File Upload */}
               {formSourceType === 'upload' && (
                 <div>
-                  <label className="block text-[10px] font-mono uppercase font-bold text-[#F5B400] mb-1.5">
+                  <label htmlFor="patch-video-file-name" className="block text-[10px] font-mono uppercase font-bold text-[#F5B400] mb-1.5">
                     Video File (.mp4, .mov) *
                   </label>
                   <div className="grid grid-cols-4 gap-4 items-center">
                     <div className="col-span-3">
                       <input
+                        id="patch-video-file-name"
                         type="text"
                         readOnly
                         value={formVideoUrl}
@@ -1783,8 +1788,9 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                         className="w-full bg-[#11241C] border border-stone-200/10 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#F5B400] text-xs text-white"
                       />
                     </div>
-                    <div className="relative text-center bg-[#11241C] border border-dashed border-stone-200/10 hover:border-[#F5B400]/40 rounded-xl py-2.5 cursor-pointer text-[10.5px] font-bold uppercase tracking-wide">
+                    <label htmlFor="patch-video-file" className="relative text-center bg-[#11241C] border border-dashed border-stone-200/10 hover:border-[#F5B400]/40 rounded-xl py-2.5 cursor-pointer text-[10.5px] font-bold uppercase tracking-wide">
                       <input
+                        id="patch-video-file"
                         type="file"
                         accept="video/*"
                         onChange={handleVideoFileChange}
@@ -1792,7 +1798,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                         disabled={formSubmitting}
                       />
                       Select
-                    </div>
+                    </label>
                   </div>
                   {selectedVideoFile && (
                     <p className="text-[10px] text-[#F5B400] mt-1.5 font-mono">
@@ -1804,10 +1810,10 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
 
               {/* Video Description */}
               <div>
-                <label className="block text-[10px] font-mono uppercase font-bold text-[#F5B400] mb-1.5">
+                <label htmlFor="patch-description" className="block text-[10px] font-mono uppercase font-bold text-[#F5B400] mb-1.5">
                   Video Description / Synopsis *
                 </label>
-                <textarea
+                <textarea id="patch-description"
                   required
                   value={formDescription}
                   onChange={(e) => setFormDescription(e.target.value)}
@@ -1820,12 +1826,13 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
 
               {/* Thumbnail Selector */}
               <div>
-                <label className="block text-[10px] font-mono uppercase font-bold text-[#F5B400] mb-1.5">
+                <label htmlFor="patch-thumbnail-url" className="block text-[10px] font-mono uppercase font-bold text-[#F5B400] mb-1.5">
                   Thumbnail Image
                 </label>
                 <div className="grid grid-cols-4 gap-4 items-center">
                   <div className="col-span-3">
                     <input
+                      id="patch-thumbnail-url"
                       type="text"
                       value={formThumbnailUrl}
                       onChange={(e) => setFormThumbnailUrl(e.target.value)}
@@ -1834,8 +1841,9 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                       disabled={formSubmitting || !!selectedFile}
                     />
                   </div>
-                  <div className="relative text-center bg-[#11241C] border border-dashed border-stone-200/10 hover:border-[#F5B400]/40 rounded-xl py-2.5 cursor-pointer text-[10px]">
+                  <label htmlFor="patch-thumbnail-file" className="relative text-center bg-[#11241C] border border-dashed border-stone-200/10 hover:border-[#F5B400]/40 rounded-xl py-2.5 cursor-pointer text-[10px]">
                     <input
+                      id="patch-thumbnail-file"
                       type="file"
                       accept="image/*"
                       onChange={handleFileChange}
@@ -1843,7 +1851,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                       disabled={formSubmitting}
                     />
                     Upload
-                  </div>
+                  </label>
                 </div>
 
                 {selectedFile && (

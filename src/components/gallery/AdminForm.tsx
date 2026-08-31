@@ -386,10 +386,11 @@ export default function AdminForm({
             {/* Left Form Column */}
             <div className="space-y-5">
               <div>
-                <label className="block text-xs font-bold text-stone-600 uppercase tracking-wider mb-2 text-left">
+                <label htmlFor="gallery-title" className="block text-xs font-bold text-stone-600 uppercase tracking-wider mb-2 text-left">
                   Event Title <span className="text-rose-500">*</span>
                 </label>
                 <input
+                  id="gallery-title"
                   type="text"
                   value={formState.title}
                   onChange={e => setFormState(prev => ({ ...prev, title: e.target.value }))}
@@ -401,10 +402,10 @@ export default function AdminForm({
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-stone-600 uppercase tracking-wider mb-2 text-left">
+                  <label htmlFor="gallery-category" className="block text-xs font-bold text-stone-600 uppercase tracking-wider mb-2 text-left">
                     Category <span className="text-rose-500">*</span>
                   </label>
-                  <select
+                  <select id="gallery-category"
                     value={formState.category}
                     onChange={e => setFormState(prev => ({ ...prev, category: e.target.value as Exclude<GalleryCategory, 'All'> }))}
                     className="w-full px-3 py-3 rounded-2xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E]/30 focus:border-[#1A3C2E] text-sm font-sans bg-white transition-colors"
@@ -417,10 +418,10 @@ export default function AdminForm({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-stone-600 uppercase tracking-wider mb-2 text-left">
+                  <label htmlFor="gallery-aspect-ratio" className="block text-xs font-bold text-stone-600 uppercase tracking-wider mb-2 text-left">
                     Aspect Ratio
                   </label>
-                  <select
+                  <select id="gallery-aspect-ratio"
                     value={formState.aspectRatio}
                     onChange={e => setFormState(prev => ({ ...prev, aspectRatio: e.target.value as 'portrait' | 'landscape' | 'square' }))}
                     className="w-full px-3 py-3 rounded-2xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E]/30 focus:border-[#1A3C2E] text-sm font-sans bg-white transition-colors"
@@ -433,10 +434,11 @@ export default function AdminForm({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-stone-600 uppercase tracking-wider mb-2 text-left">
+                <label htmlFor="gallery-posted-by" className="block text-xs font-bold text-stone-600 uppercase tracking-wider mb-2 text-left">
                   Posted By / Author
                 </label>
                 <input
+                  id="gallery-posted-by"
                   type="text"
                   value={formState.postedBy}
                   onChange={e => setFormState(prev => ({ ...prev, postedBy: e.target.value }))}
@@ -460,10 +462,10 @@ export default function AdminForm({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-stone-600 uppercase tracking-wider mb-2 text-left">
+                <label htmlFor="gallery-description" className="block text-xs font-bold text-stone-600 uppercase tracking-wider mb-2 text-left">
                   Description
                 </label>
-                <textarea
+                <textarea id="gallery-description"
                   value={formState.description}
                   onChange={e => setFormState(prev => ({ ...prev, description: e.target.value }))}
                   placeholder="Detail the event objectives, participants, and milestones achieved..."
@@ -478,7 +480,7 @@ export default function AdminForm({
               
               {/* Main Image File Picker */}
               <div>
-                <label className="block text-xs font-bold text-stone-600 uppercase tracking-wider mb-2 text-left">
+                <label htmlFor="main-image-file-input" className="block text-xs font-bold text-stone-600 uppercase tracking-wider mb-2 text-left">
                   Main Featured Image {formState.isEditing ? <span className="text-stone-400 font-normal font-sans tracking-normal lowercase">(optional)</span> : <span className="text-rose-500">*</span>}
                 </label>
                 <div className="flex items-center gap-3">
@@ -523,7 +525,7 @@ export default function AdminForm({
 
               {/* Multi Thumbnail Picker */}
               <div>
-                <label className="block text-xs font-bold text-stone-600 uppercase tracking-wider mb-2 text-left">
+                <label htmlFor="thumbnails-file-input" className="block text-xs font-bold text-stone-600 uppercase tracking-wider mb-2 text-left">
                   Additional Thumbnails (Max 5 total)
                 </label>
                 <div className="flex items-center gap-3">
