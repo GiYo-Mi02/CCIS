@@ -2,6 +2,7 @@ name: Validation
 
 on:
   push:
+    branches: [main]
   pull_request:
 
 jobs:
@@ -44,6 +45,28 @@ jobs:
         run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor
       - name: Replay migrations from a clean database
         run: supabase db reset
+      - name: Wait for Postgres readiness
+        env:
+          PGPASSWORD: postgres
+        run: |
+          for attempt in {1..30}; do
+            if psql \
+              --host=127.0.0.1 \
+              --port=54322 \
+              --username=postgres \
+              --dbname=postgres \
+              --command="select 1" \
+              >/dev/null 2>&1; then
+              echo "Postgres is ready"
+              exit 0
+            fi
+
+            echo "Waiting for Postgres... attempt ${attempt}/30"
+            sleep 2
+          done
+
+          echo "Postgres did not become ready"
+          exit 1
       - name: Run database security contracts
         env:
           SUPABASE_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
