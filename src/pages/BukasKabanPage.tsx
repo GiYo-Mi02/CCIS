@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useReducer, useState, useEffect, useRef } from 'react';
 import { FileText, Plus, X, Edit, Trash2, Loader2, Download, AlertTriangle, CheckCircle2, Info, Eye } from 'lucide-react';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { supabase } from '../lib/supabase';
@@ -48,6 +48,96 @@ interface Toast {
   id: string;
   message: string;
   type: 'success' | 'error' | 'warning' | 'info';
+}
+
+interface DetailState {
+  report: TransparencyReport | null;
+  open: boolean;
+  page: number;
+  totalPages: number;
+  loading: boolean;
+  error: boolean;
+}
+
+type DetailAction =
+  | { type: 'open'; report: TransparencyReport }
+  | { type: 'close' }
+  | { type: 'setPage'; page: number }
+  | { type: 'renderStart' }
+  | { type: 'setTotalPages'; totalPages: number }
+  | { type: 'renderError' }
+  | { type: 'renderDone' };
+
+const initialDetailState: DetailState = {
+  report: null,
+  open: false,
+  page: 1,
+  totalPages: 1,
+  loading: false,
+  error: false,
+};
+
+function detailReducer(state: DetailState, action: DetailAction): DetailState {
+  switch (action.type) {
+    case 'open': return { ...state, report: action.report, open: true, page: 1, totalPages: 1, error: false };
+    case 'close': return { ...state, open: false };
+    case 'setPage': return { ...state, page: action.page };
+    case 'renderStart': return { ...state, loading: true, error: false };
+    case 'setTotalPages': return { ...state, totalPages: action.totalPages };
+    case 'renderError': return { ...state, error: true };
+    case 'renderDone': return { ...state, loading: false };
+  }
+}
+
+interface FormState {
+  showModal: boolean;
+  editTarget: TransparencyReport | null;
+  title: string;
+  caption: string;
+  semester: string;
+  customSemester: string;
+  isNewSemester: boolean;
+  selectedFile: File | null;
+  totalBudgetRequested: string;
+  totalExpenses: string;
+  isGeneratingThumbnail: boolean;
+  thumbnailPreviewUrl: string;
+  submitting: boolean;
+}
+
+type FormAction =
+  | { type: 'open'; report: TransparencyReport | null; semester: string }
+  | { type: 'close' }
+  | { type: 'set'; field: 'title' | 'caption' | 'semester' | 'customSemester' | 'totalBudgetRequested' | 'totalExpenses'; value: string }
+  | { type: 'setNewSemester'; value: boolean }
+  | { type: 'fileSelected'; file: File }
+  | { type: 'thumbnailReady'; url: string }
+  | { type: 'thumbnailFailed' }
+  | { type: 'setSubmitting'; value: boolean };
+
+const initialFormState: FormState = {
+  showModal: false, editTarget: null, title: '', caption: '', semester: '', customSemester: '',
+  isNewSemester: false, selectedFile: null, totalBudgetRequested: '0', totalExpenses: '0',
+  isGeneratingThumbnail: false, thumbnailPreviewUrl: '', submitting: false,
+};
+
+function formReducer(state: FormState, action: FormAction): FormState {
+  if (action.type === 'open') {
+    return {
+      ...state, showModal: true, editTarget: action.report,
+      title: action.report?.title || '', caption: action.report?.caption || '',
+      semester: action.report?.semester || action.semester, customSemester: '', isNewSemester: false,
+      selectedFile: null, totalBudgetRequested: action.report ? String(action.report.totalBudgetRequested) : '0',
+      totalExpenses: action.report ? String(action.report.totalExpenses) : '0', thumbnailPreviewUrl: action.report?.thumbnailUrl || '',
+    };
+  }
+  if (action.type === 'close') return { ...state, showModal: false };
+  if (action.type === 'set') return { ...state, [action.field]: action.value };
+  if (action.type === 'setNewSemester') return { ...state, isNewSemester: action.value };
+  if (action.type === 'fileSelected') return { ...state, selectedFile: action.file, isGeneratingThumbnail: true };
+  if (action.type === 'thumbnailReady') return { ...state, thumbnailPreviewUrl: action.url, isGeneratingThumbnail: false };
+  if (action.type === 'thumbnailFailed') return { ...state, thumbnailPreviewUrl: '', isGeneratingThumbnail: false };
+  return { ...state, submitting: action.value };
 }
 
 const MOCK_REPORTS: TransparencyReport[] = [
@@ -161,35 +251,20 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
   const [isUsingMockData, setIsUsingMockData] = useState<boolean>(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  // Admin form modal state
-  const [showFormModal, setShowFormModal] = useState<boolean>(false);
-  const [editTarget, setEditTarget] = useState<TransparencyReport | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   // Detail Modal states
-  const [selectedModalReport, setSelectedModalReport] = useState<TransparencyReport | null>(null);
-  const [modalOpen, setModalOpen] = useState<boolean>(false);
-  const [modalPdfPage, setModalPdfPage] = useState<number>(1);
-  const [pdfTotalPages, setPdfTotalPages] = useState<number>(1);
-  const [pdfRenderLoading, setPdfRenderLoading] = useState<boolean>(false);
-  const [pdfRenderError, setPdfRenderError] = useState<boolean>(false);
+  const [detailState, dispatchDetail] = useReducer(detailReducer, initialDetailState);
+  const { report: selectedModalReport, open: modalOpen, page: modalPdfPage,
+    totalPages: pdfTotalPages, loading: pdfRenderLoading, error: pdfRenderError } = detailState;
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Form states
-  const [formTitle, setFormTitle] = useState('');
-  const [formCaption, setFormCaption] = useState('');
-  const [formSemester, setFormSemester] = useState('');
-  const [formCustomSemester, setFormCustomSemester] = useState('');
-  const [formIsNewSemester, setFormIsNewSemester] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [formTotalBudgetRequested, setFormTotalBudgetRequested] = useState<string>('0');
-  const [formTotalExpenses, setFormTotalExpenses] = useState<string>('0');
-  
-  // PDF processing states
-  const [isGeneratingThumbnail, setIsGeneratingThumbnail] = useState(false);
+  const [formState, dispatchForm] = useReducer(formReducer, initialFormState);
+  const { showModal: showFormModal, editTarget, title: formTitle, caption: formCaption,
+    semester: formSemester, customSemester: formCustomSemester, isNewSemester: formIsNewSemester,
+    selectedFile, totalBudgetRequested: formTotalBudgetRequested, totalExpenses: formTotalExpenses,
+    isGeneratingThumbnail, thumbnailPreviewUrl, submitting: formSubmitting } = formState;
   const generatedThumbnailBlobRef = useRef<Blob | null>(null);
-  const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState<string>('');
-  const [formSubmitting, setFormSubmitting] = useState(false);
 
   // Toast Helper
   const triggerToast = (message: string, type: 'success' | 'error' | 'warning' | 'info') => {
@@ -266,7 +341,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        setModalOpen(false);
+        dispatchDetail({ type: 'close' });
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -281,12 +356,11 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
     let loadingTask: any = null;
     
     const renderPage = async () => {
-      setPdfRenderLoading(true);
-      setPdfRenderError(false);
+      dispatchDetail({ type: 'renderStart' });
       
       if (!selectedModalReport.pdfUrl || selectedModalReport.pdfUrl === '#') {
-        setPdfRenderError(true);
-        setPdfRenderLoading(false);
+        dispatchDetail({ type: 'renderError' });
+        dispatchDetail({ type: 'renderDone' });
         return;
       }
       
@@ -298,7 +372,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
         const pdf = await loadingTask.promise;
         if (!active) return;
 
-        setPdfTotalPages(pdf.numPages);
+        dispatchDetail({ type: 'setTotalPages', totalPages: pdf.numPages });
 
         const page = await pdf.getPage(modalPdfPage);
         if (!active) return;
@@ -322,9 +396,9 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
         }).promise;
       } catch (err) {
         console.error('Error rendering PDF page in modal:', err);
-        if (active) setPdfRenderError(true);
+        if (active) dispatchDetail({ type: 'renderError' });
       } finally {
-        if (active) setPdfRenderLoading(false);
+        if (active) dispatchDetail({ type: 'renderDone' });
       }
     };
     
@@ -339,11 +413,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
   }, [selectedModalReport, modalPdfPage, modalOpen]);
 
   const openDetailModal = (report: TransparencyReport) => {
-    setSelectedModalReport(report);
-    setModalPdfPage(1);
-    setPdfTotalPages(1);
-    setPdfRenderError(false);
-    setModalOpen(true);
+    dispatchDetail({ type: 'open', report });
   };
 
   // Compute unique semesters for filtering
@@ -362,32 +432,8 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
 
   // Initialize form for adding / editing
   const openForm = (report: TransparencyReport | null = null) => {
-    if (report) {
-      setEditTarget(report);
-      setFormTitle(report.title);
-      setFormCaption(report.caption);
-      setFormSemester(report.semester);
-      setFormIsNewSemester(false);
-      setFormCustomSemester('');
-      setSelectedFile(null);
-      generatedThumbnailBlobRef.current = null;
-      setThumbnailPreviewUrl(report.thumbnailUrl);
-      setFormTotalBudgetRequested(String(report.totalBudgetRequested));
-      setFormTotalExpenses(String(report.totalExpenses));
-    } else {
-      setEditTarget(null);
-      setFormTitle('');
-      setFormCaption('');
-      setFormSemester(formSemestersOptions[0] || '1st Semester A.Y. 2025-2026');
-      setFormIsNewSemester(false);
-      setFormCustomSemester('');
-      setSelectedFile(null);
-      generatedThumbnailBlobRef.current = null;
-      setThumbnailPreviewUrl('');
-      setFormTotalBudgetRequested('0');
-      setFormTotalExpenses('0');
-    }
-    setShowFormModal(true);
+    generatedThumbnailBlobRef.current = null;
+    dispatchForm({ type: 'open', report, semester: formSemestersOptions[0] || '1st Semester A.Y. 2025-2026' });
   };
 
   // Client-side PDF page to canvas render function
@@ -468,22 +514,19 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
       return;
     }
 
-    setSelectedFile(file);
-    setIsGeneratingThumbnail(true);
+    dispatchForm({ type: 'fileSelected', file });
     
     try {
       const blob = await renderPdfThumbnail(file);
       generatedThumbnailBlobRef.current = blob;
       const url = URL.createObjectURL(blob);
-      setThumbnailPreviewUrl(url);
+      dispatchForm({ type: 'thumbnailReady', url });
       triggerToast('PDF page preview generated successfully.', 'info');
     } catch (err: any) {
       console.error('Thumbnail generation failed:', err);
       triggerToast('Failed to auto-generate PDF thumbnail preview. Using default file icon.', 'warning');
       generatedThumbnailBlobRef.current = null;
-      setThumbnailPreviewUrl('');
-    } finally {
-      setIsGeneratingThumbnail(false);
+      dispatchForm({ type: 'thumbnailFailed' });
     }
   };
 
@@ -519,7 +562,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
       return;
     }
 
-    setFormSubmitting(true);
+    dispatchForm({ type: 'setSubmitting', value: true });
     let uploadedThumbnailAsset: MediaAsset | null = null;
     let uploadedPdfPath: string | null = null;
 
@@ -618,7 +661,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
         triggerToast('Transparency report published successfully.', 'success');
       }
 
-      setShowFormModal(false);
+      dispatchForm({ type: 'close' });
       fetchReports();
     } catch (err: unknown) {
       if (uploadedThumbnailAsset) {
@@ -630,7 +673,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
       console.error('Submission failed:', err);
       triggerToast(err instanceof Error ? err.message : 'Failed to submit transparency report.', 'error');
     } finally {
-      setFormSubmitting(false);
+      dispatchForm({ type: 'setSubmitting', value: false });
     }
   };
 
@@ -984,7 +1027,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
                 {editTarget ? 'Edit Transparency Record' : 'Publish New Report'}
               </h3>
               <button
-                onClick={() => setShowFormModal(false)}
+                onClick={() => dispatchForm({ type: 'close' })}
                 className="text-white/70 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors cursor-pointer"
                 disabled={formSubmitting}
               >
@@ -1004,7 +1047,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
                   type="text"
                   required
                   value={formTitle}
-                  onChange={(e) => setFormTitle(e.target.value)}
+                  onChange={(e) => dispatchForm({ type: 'set', field: 'title', value: e.target.value })}
                   placeholder="e.g. Orgfee Collection Summary — 1st Semester A.Y. 2025-2026"
                   className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E] transition-colors text-xs"
                   disabled={formSubmitting}
@@ -1019,7 +1062,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
                 <textarea
                   required
                   value={formCaption}
-                  onChange={(e) => setFormCaption(e.target.value)}
+                  onChange={(e) => dispatchForm({ type: 'set', field: 'caption', value: e.target.value })}
                   placeholder="Summarize what this report covers (1-2 sentences)..."
                   maxLength={250}
                   rows={3}
@@ -1043,7 +1086,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
                     min="0"
                     required
                     value={formTotalBudgetRequested}
-                    onChange={(e) => setFormTotalBudgetRequested(e.target.value)}
+                    onChange={(e) => dispatchForm({ type: 'set', field: 'totalBudgetRequested', value: e.target.value })}
                     placeholder="0.00"
                     className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E] transition-colors text-xs"
                     disabled={formSubmitting}
@@ -1060,7 +1103,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
                     min="0"
                     required
                     value={formTotalExpenses}
-                    onChange={(e) => setFormTotalExpenses(e.target.value)}
+                    onChange={(e) => dispatchForm({ type: 'set', field: 'totalExpenses', value: e.target.value })}
                     placeholder="0.00"
                     className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E] transition-colors text-xs"
                     disabled={formSubmitting}
@@ -1090,10 +1133,9 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
                     value={formIsNewSemester ? 'NEW' : formSemester}
                     onChange={(e) => {
                       if (e.target.value === 'NEW') {
-                        setFormIsNewSemester(true);
+                        dispatchForm({ type: 'setNewSemester', value: true });
                       } else {
-                        setFormIsNewSemester(false);
-                        setFormSemester(e.target.value);
+                        dispatchForm({ type: 'set', field: 'semester', value: e.target.value });
                       }
                     }}
                     className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E] transition-colors text-xs font-mono"
@@ -1110,7 +1152,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
                       type="text"
                       required
                       value={formCustomSemester}
-                      onChange={(e) => setFormCustomSemester(e.target.value)}
+                      onChange={(e) => dispatchForm({ type: 'set', field: 'customSemester', value: e.target.value })}
                       placeholder="e.g. 1st Semester A.Y. 2026-2027"
                       className="w-full bg-[#FAF7EA]/50 border border-[#F5B400]/40 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E] transition-colors text-xs font-mono"
                       disabled={formSubmitting}
@@ -1165,7 +1207,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
               <div className="pt-4 flex gap-3 border-t border-stone-150 shrink-0">
                 <button
                   type="button"
-                  onClick={() => setShowFormModal(false)}
+                  onClick={() => dispatchForm({ type: 'close' })}
                   className="flex-1 py-3 text-center border border-stone-200 rounded-xl hover:bg-stone-50 font-black uppercase tracking-wider text-stone-600 transition-colors cursor-pointer"
                   disabled={formSubmitting}
                 >
@@ -1191,7 +1233,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
           ============================================================ */}
       {modalOpen && selectedModalReport && (
         <div 
-          onClick={() => setModalOpen(false)}
+          onClick={() => dispatchDetail({ type: 'close' })}
           className="fixed inset-0 bg-stone-900/60 backdrop-blur-xs overflow-y-auto flex items-start md:items-center justify-center p-4 sm:p-6 z-[999] animate-fade-in"
         >
           <div 
@@ -1240,7 +1282,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
                 {pdfTotalPages > 1 && (
                   <div className="flex items-center gap-4 mt-4 bg-white px-4 py-2 rounded-full border border-stone-200 shadow-sm font-sans">
                     <button
-                      onClick={() => setModalPdfPage(prev => Math.max(prev - 1, 1))}
+                      onClick={() => dispatchDetail({ type: 'setPage', page: Math.max(modalPdfPage - 1, 1) })}
                       disabled={modalPdfPage === 1 || pdfRenderLoading}
                       className="p-1 rounded-lg hover:bg-stone-100 disabled:opacity-30 disabled:hover:bg-transparent font-bold cursor-pointer transition-colors focus:ring-2 focus:ring-[#1A3C2E] outline-none"
                     >
@@ -1250,7 +1292,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
                       Page {modalPdfPage} of {pdfTotalPages}
                     </span>
                     <button
-                      onClick={() => setModalPdfPage(prev => Math.min(prev + 1, pdfTotalPages))}
+                      onClick={() => dispatchDetail({ type: 'setPage', page: Math.min(modalPdfPage + 1, pdfTotalPages) })}
                       disabled={modalPdfPage === pdfTotalPages || pdfRenderLoading}
                       className="p-1 rounded-lg hover:bg-stone-100 disabled:opacity-30 disabled:hover:bg-transparent font-bold cursor-pointer transition-colors focus:ring-2 focus:ring-[#1A3C2E] outline-none"
                     >
@@ -1277,7 +1319,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
               
               {/* Close Button */}
               <button
-                onClick={() => setModalOpen(false)}
+                onClick={() => dispatchDetail({ type: 'close' })}
                 className="absolute top-6 right-6 p-1.5 rounded-full bg-stone-100 text-stone-500 hover:text-stone-900 hover:bg-stone-200 transition-colors cursor-pointer focus:ring-2 focus:ring-[#1A3C2E] outline-none"
               >
                 <X size={18} />
@@ -1299,7 +1341,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
                       <div className="flex items-center gap-1.5 shrink-0 mt-1">
                         <button
                           onClick={() => {
-                            setModalOpen(false);
+                            dispatchDetail({ type: 'close' });
                             openForm(selectedModalReport);
                           }}
                           className="p-1.5 bg-stone-100 hover:bg-stone-200 text-stone-600 rounded-lg transition-colors cursor-pointer"
@@ -1309,7 +1351,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
                         </button>
                         <button
                           onClick={() => {
-                            setModalOpen(false);
+                            dispatchDetail({ type: 'close' });
                             setDeleteConfirmId(selectedModalReport.id);
                           }}
                           className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition-colors cursor-pointer"
