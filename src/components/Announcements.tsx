@@ -239,6 +239,7 @@ export default function Announcements({ previewMode = false, onViewAllClick }: A
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" size={18} />
               <input
                 type="text"
+                aria-label="Search announcements"
                 placeholder="Search announcements by keyword..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -246,6 +247,8 @@ export default function Announcements({ previewMode = false, onViewAllClick }: A
               />
               {searchQuery && (
                 <button
+                  type="button"
+                  aria-label="Clear announcement search"
                   onClick={() => setSearchQuery('')}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 focus:outline-none cursor-pointer"
                 >

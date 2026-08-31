@@ -338,6 +338,8 @@ export default function GalleryPage({ isAdmin = false }: GalleryPageProps) {
               <p className="text-[11px] font-sans text-stone-200 leading-relaxed mt-0.5">{t.message}</p>
             </div>
             <button
+              type="button"
+              aria-label={`Dismiss ${t.type} notification`}
               onClick={() => setToasts(prev => prev.filter(item => item.id !== t.id))}
               className="text-[#FAF7EA] hover:opacity-75 focus:outline-none"
             >
