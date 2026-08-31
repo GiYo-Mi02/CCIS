@@ -33,6 +33,7 @@ export default function AdminForm({
 
   const mainImageInputRef = useRef<HTMLInputElement>(null);
   const thumbnailsInputRef = useRef<HTMLInputElement>(null);
+  const previewUrlsRef = useRef<Set<string>>(new Set());
 
   // Sync edit item changes
   useEffect(() => {
@@ -63,6 +64,22 @@ export default function AdminForm({
     }
   }, [itemToEdit]);
 
+  useEffect(() => {
+    const nextPreviewUrls = new Set([
+      formState.imagePreview,
+      ...formState.thumbnailPreviews,
+    ].filter(url => url.startsWith('blob:')));
+
+    previewUrlsRef.current.forEach(url => {
+      if (!nextPreviewUrls.has(url)) URL.revokeObjectURL(url);
+    });
+    previewUrlsRef.current = nextPreviewUrls;
+  }, [formState.imagePreview, formState.thumbnailPreviews]);
+
+  useEffect(() => () => {
+    previewUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+  }, []);
+
   const cleanPreviews = (state: AdminFormState) => {
     if (state.imagePreview && state.imagePreview.startsWith('blob:')) {
       URL.revokeObjectURL(state.imagePreview);
@@ -70,6 +87,7 @@ export default function AdminForm({
     state.thumbnailPreviews.forEach(p => {
       if (p.startsWith('blob:')) URL.revokeObjectURL(p);
     });
+    previewUrlsRef.current.clear();
   };
 
   const handleCancel = () => {
@@ -104,9 +122,6 @@ export default function AdminForm({
       }
       const preview = URL.createObjectURL(file);
       setFormState(prev => {
-        if (prev.imagePreview && prev.imagePreview.startsWith('blob:')) {
-          URL.revokeObjectURL(prev.imagePreview);
-        }
         return {
           ...prev,
           imageFile: file,
@@ -139,9 +154,6 @@ export default function AdminForm({
 
       const newPreviews = filesArray.map(file => URL.createObjectURL(file));
       setFormState(prev => {
-        prev.thumbnailPreviews.forEach(p => {
-          if (p.startsWith('blob:')) URL.revokeObjectURL(p);
-        });
         return {
           ...prev,
           thumbnailFiles: filesArray,
@@ -586,7 +598,6 @@ export default function AdminForm({
                                   const updatedFiles = [...formState.thumbnailFiles];
                                   updatedFiles.splice(idx, 1);
                                   const updatedPreviews = [...formState.thumbnailPreviews];
-                                  URL.revokeObjectURL(updatedPreviews[idx]);
                                   updatedPreviews.splice(idx, 1);
                                   setFormState(prev => ({
                                     ...prev,
