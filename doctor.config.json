@@ -1,0 +1,10 @@
+{
+  "$schema": "https://react.doctor/schema/config.json",
+  "ignore": {
+    "files": [
+      "supabase/schemas/**",
+      "supabase/migrations/**",
+      "supabase/legacy/**"
+    ]
+  }
+}
