@@ -395,10 +395,6 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
       return;
     }
 
-    if (previewUrl && previewUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(previewUrl);
-    }
-
     const objectUrl = URL.createObjectURL(file);
     setSelectedFile(file);
     setPreviewUrl(objectUrl);
