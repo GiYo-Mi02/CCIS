@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
 import { ToastMessage } from '../types/database';
 
 interface AdminContextType {
@@ -53,12 +53,12 @@ const pathToSectionMap: Record<string, string> = {
   '/admin/faqs': 'faqs',
 };
 
-export function AdminProvider({ children }: { children: React.ReactNode }) {
-  const getInitialSection = () => {
-    const path = window.location.pathname.toLowerCase();
-    return pathToSectionMap[path] || 'dashboard';
-  };
+function getInitialSection() {
+  const path = window.location.pathname.toLowerCase();
+  return pathToSectionMap[path] || 'dashboard';
+}
 
+export function AdminProvider({ children }: { children: React.ReactNode }) {
   // Navigation
   const [activeSection, setActiveSectionState] = useState(getInitialSection);
 
@@ -98,11 +98,13 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     setToasts(prev => prev.filter(t => t.id !== id));
   }, []);
 
+  const value = useMemo(() => ({
+    activeSection, setActiveSection,
+    toasts, showToast, dismissToast,
+  }), [activeSection, setActiveSection, toasts, showToast, dismissToast]);
+
   return (
-    <AdminContext.Provider value={{
-      activeSection, setActiveSection,
-      toasts, showToast, dismissToast,
-    }}>
+    <AdminContext.Provider value={value}>
       {children}
     </AdminContext.Provider>
   );
