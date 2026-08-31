@@ -26,12 +26,6 @@ export default function DetailModal({
   const modalContainerRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
 
-  // Update image preview when item changes (like after editing)
-  useEffect(() => {
-    setFeaturedImage(item.imageUrl);
-    setDeleteConfirmId(null);
-  }, [item.imageUrl, item.id]);
-
   const handleOverlayClick = (e: React.MouseEvent) => {
     if (overlayRef.current === e.target) {
       onClose();

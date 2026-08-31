@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useEffectEvent } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Lock, AlertTriangle, ShieldAlert, Clock, LogOut, RefreshCw, Check } from 'lucide-react';
 
@@ -50,6 +50,7 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
   // Portal transition states
   const [transitionProgress, setTransitionProgress] = useState(0);
   const [transitionComplete, setTransitionComplete] = useState(false);
+  const navigate = useEffectEvent((tab: string) => onNavigate?.(tab));
 
   // Auto-refresh attempt if user is present but profile is still loading
   useEffect(() => {
@@ -85,7 +86,7 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
               clearInterval(timer);
               setTransitionProgress(100);
               setTransitionComplete(true);
-              onNavigate?.('home');
+              navigate('home');
             } else {
               setTransitionProgress(progress);
             }
@@ -95,12 +96,11 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
         }
       } else {
         // Direct redirect without loader
-        if (onNavigate) {
-          onNavigate('home');
-        }
+        const timer = setTimeout(() => navigate('home'), 0);
+        return () => clearTimeout(timer);
       }
     }
-  }, [user, profile?.profile_complete, isPending, isUnverified, isAdmin, transitionComplete, onNavigate, justCompletedSetup]);
+  }, [user, profile?.profile_complete, isPending, isUnverified, isAdmin, transitionComplete, justCompletedSetup]);
 
   const handleGoogleSignIn = async () => {
     setSigningIn(true);
