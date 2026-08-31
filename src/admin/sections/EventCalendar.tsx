@@ -115,23 +115,23 @@ export default function EventCalendar() {
       {/* Header Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <button onClick={prevMonth} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors"><ChevronLeft size={18} /></button>
+           <button type="button" onClick={prevMonth} aria-label="Previous month" className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors"><ChevronLeft size={18} /></button>
           <h2 className="font-sans font-black text-xl text-[#1A3C2E] min-w-[180px] text-center">{monthName}</h2>
-          <button onClick={nextMonth} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors"><ChevronRight size={18} /></button>
+           <button type="button" onClick={nextMonth} aria-label="Next month" className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors"><ChevronRight size={18} /></button>
         </div>
         <div className="flex items-center gap-2">
           {events.length > 0 && (
-            <button onClick={() => { if (window.confirm('Delete all scheduled events?')) handleDeleteAll(); }} className="bg-rose-50 border border-rose-200 hover:bg-rose-100 text-[#C0392B] px-3 py-2 rounded-lg font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer" title="Delete All Events">
+           <button type="button" onClick={() => { if (window.confirm('Delete all scheduled events?')) handleDeleteAll(); }} className="bg-rose-50 border border-rose-200 hover:bg-rose-100 text-[#C0392B] px-3 py-2 rounded-lg font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer" title="Delete All Events">
               <Trash size={14} /> Delete All
             </button>
           )}
           <div className="flex items-center gap-0.5 bg-white rounded-lg border border-[#1A3C2E]/20 p-0.5 shadow-2xs">
-            <button onClick={() => setViewMode('calendar')} className={`p-1.5 rounded transition-colors ${viewMode === 'calendar' ? 'bg-[#F5B400] text-[#1A3C2E]' : 'text-gray-400 hover:text-gray-600'}`}><Grid3X3 size={16} /></button>
-            <button onClick={() => setViewMode('list')} className={`p-1.5 rounded transition-colors ${viewMode === 'list' ? 'bg-[#F5B400] text-[#1A3C2E]' : 'text-gray-400 hover:text-gray-600'}`}><List size={16} /></button>
+             <button type="button" onClick={() => setViewMode('calendar')} aria-label="Calendar view" className={`p-1.5 rounded transition-colors ${viewMode === 'calendar' ? 'bg-[#F5B400] text-[#1A3C2E]' : 'text-gray-400 hover:text-gray-600'}`}><Grid3X3 size={16} /></button>
+             <button type="button" onClick={() => setViewMode('list')} aria-label="List view" className={`p-1.5 rounded transition-colors ${viewMode === 'list' ? 'bg-[#F5B400] text-[#1A3C2E]' : 'text-gray-400 hover:text-gray-600'}`}><List size={16} /></button>
           </div>
-          <button onClick={() => openCreateForDate(new Date().getDate())} className="bg-[#F5B400] hover:bg-[#ffc522] text-[#1A3C2E] px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-sm transition-colors cursor-pointer">
+           <button type="button" onClick={() => openCreateForDate(new Date().getDate())} className="bg-[#F5B400] hover:bg-[#ffc522] text-[#1A3C2E] px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-sm transition-colors cursor-pointer">
             <Plus size={15} /> Add Event
-          </button>
+           </button>
         </div>
       </div>
 
@@ -148,20 +148,21 @@ export default function EventCalendar() {
               if (day === null) return <div key={`empty-${i}`} className="min-h-[110px] border-b border-r border-[#1A3C2E]/15 bg-stone-50/60" />;
               const dayEvents = getEventsForDay(day);
               const isToday = day === new Date().getDate() && month === new Date().getMonth() && year === new Date().getFullYear();
-              return (
-                <div key={day} className={`min-h-[110px] border-b border-r border-[#1A3C2E]/20 p-2 hover:bg-[#F5B400]/[0.05] transition-colors cursor-pointer ${isToday ? 'bg-[#F5B400]/10' : 'bg-white'}`}
-                  onClick={() => openCreateForDate(day)}>
-                  <div className="flex items-center justify-between">
-                    <span className={`text-xs font-bold inline-flex items-center justify-center w-6 h-6 rounded-full ${isToday ? 'bg-[#1A3C2E] text-[#F5B400]' : 'text-stone-700'}`}>{day}</span>
+               return (
+                 <div key={day} className={`relative min-h-[110px] border-b border-r border-[#1A3C2E]/20 p-2 hover:bg-[#F5B400]/[0.05] transition-colors ${isToday ? 'bg-[#F5B400]/10' : 'bg-white'}`}>
+                   <div className="relative z-10 flex items-center justify-between">
+                    <button type="button" aria-label={`Add event on ${monthName.split(' ')[0]} ${day}, ${year}`} onClick={() => openCreateForDate(day)} className={`text-xs font-bold inline-flex items-center justify-center w-6 h-6 rounded-full ${isToday ? 'bg-[#1A3C2E] text-[#F5B400]' : 'text-stone-700 hover:bg-stone-100'}`}>
+                      {day}
+                    </button>
                     {dayEvents.length > 0 && (
                       <span className="text-[9px] font-mono text-[#5E6E64] font-semibold">{dayEvents.length} event{dayEvents.length > 1 ? 's' : ''}</span>
                     )}
                   </div>
-                  <div className="mt-1.5 space-y-1">
+                   <div className="relative z-10 mt-1.5 space-y-1">
                     {dayEvents.slice(0, 3).map(ev => {
                       const isComp = ev.event_type === 'competition';
                       return (
-                        <div key={ev.id} onClick={(e) => { e.stopPropagation(); setIsCreating(false); setEditingEvent(ev); }}
+                         <button type="button" key={ev.id} onClick={() => { setIsCreating(false); setEditingEvent(ev); }} aria-label={`Edit event: ${ev.title}`}
                           className={`text-[9.5px] font-bold px-2 py-1 rounded-md truncate cursor-pointer transition-colors border flex items-center gap-1 ${
                             isComp
                               ? 'bg-amber-50 text-amber-900 border-amber-200 hover:bg-amber-100'
@@ -169,7 +170,7 @@ export default function EventCalendar() {
                           }`}>
                           {isComp ? <Trophy size={10} className="text-amber-600 shrink-0" /> : <GraduationCap size={10} className="text-emerald-600 shrink-0" />}
                           <span className="truncate">{ev.title}</span>
-                        </div>
+                        </button>
                       );
                     })}
                     {dayEvents.length > 3 && <span className="text-[9px] text-gray-500 font-mono pl-1 block font-semibold">+{dayEvents.length - 3} more</span>}
@@ -185,7 +186,7 @@ export default function EventCalendar() {
             {events.length === 0 ? (
               <p className="p-8 text-center text-gray-400 text-sm">No events scheduled</p>
             ) : events.map(ev => (
-              <div key={ev.id} className="flex items-center gap-4 px-5 py-4 hover:bg-stone-50 transition-colors cursor-pointer" onClick={() => { setIsCreating(false); setEditingEvent(ev); }}>
+               <button type="button" key={ev.id} className="w-full text-left flex items-center gap-4 px-5 py-4 hover:bg-stone-50 transition-colors" onClick={() => { setIsCreating(false); setEditingEvent(ev); }} aria-label={`Edit event: ${ev.title}`}>
                 <div className={`w-2.5 h-12 rounded-full shrink-0 ${ev.category === 'priority' ? 'bg-[#F5B400]' : 'bg-[#1A3C2E]'}`} />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -205,14 +206,14 @@ export default function EventCalendar() {
                         </>
                       )}
                     </span>
-                  </div>
-                  <p className="text-[11px] text-gray-500 font-sans mt-0.5 line-clamp-1">{ev.description}</p>
+                   </div>
+                   <p className="text-[11px] text-gray-500 font-sans mt-0.5 line-clamp-1">{ev.description}</p>
                 </div>
                 <div className="text-right shrink-0">
                   <p className="text-xs font-bold text-[#1A3C2E]">{new Date(ev.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
                   {ev.event_time && <p className="text-[10px] text-gray-500 font-mono">{ev.event_time}</p>}
                 </div>
-              </div>
+               </button>
             ))}
           </div>
         </div>
@@ -347,8 +348,8 @@ function EventForm({ event, isCreating, onSave, onDelete, onClose }: {
               className="hidden" 
             />
             <div className="flex gap-1.5">
-              <button 
-                type="button"
+                  <button
+                    type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
                 className="px-3 py-1.5 border border-gray-200 hover:border-gray-300 text-[11px] font-bold rounded-lg text-gray-700 hover:bg-gray-50 transition-colors uppercase tracking-wider cursor-pointer"
@@ -362,7 +363,7 @@ function EventForm({ event, isCreating, onSave, onDelete, onClose }: {
                   className="px-3 py-1.5 border border-rose-200 hover:border-rose-300 text-[11px] font-bold rounded-lg text-rose-600 hover:bg-rose-50 transition-colors uppercase tracking-wider cursor-pointer"
                 >
                   Remove
-                </button>
+              </button>
               )}
             </div>
             <p className="text-[9px] text-gray-400">Max 5MB.</p>
@@ -456,13 +457,13 @@ function EventForm({ event, isCreating, onSave, onDelete, onClose }: {
         )}
       </div>
       <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
-        <button onClick={() => void handleSave()} disabled={uploading} className="px-5 py-2.5 bg-[#F5B400] hover:bg-[#ffc522] text-[#1A3C2E] rounded-lg font-bold text-xs uppercase tracking-wider shadow-sm transition-colors cursor-pointer disabled:opacity-50">
+         <button type="button" onClick={() => void handleSave()} disabled={uploading} className="px-5 py-2.5 bg-[#F5B400] hover:bg-[#ffc522] text-[#1A3C2E] rounded-lg font-bold text-xs uppercase tracking-wider shadow-sm transition-colors cursor-pointer disabled:opacity-50">
           {isCreating ? 'Add Event' : 'Save Changes'}
         </button>
         {!isCreating && form.id && (
-          <button onClick={() => { onDelete(form.id!); onClose(); }} className="px-4 py-2.5 text-xs text-[#C0392B] hover:bg-red-50 rounded-lg transition-colors font-bold cursor-pointer">Delete</button>
+           <button type="button" onClick={() => { onDelete(form.id!); onClose(); }} className="px-4 py-2.5 text-xs text-[#C0392B] hover:bg-red-50 rounded-lg transition-colors font-bold cursor-pointer">Delete</button>
         )}
-        <button onClick={onClose} className="ml-auto px-4 py-2.5 text-xs text-gray-400 hover:text-gray-600 transition-colors cursor-pointer">Cancel</button>
+         <button type="button" onClick={onClose} className="ml-auto px-4 py-2.5 text-xs text-gray-400 hover:text-gray-600 transition-colors cursor-pointer">Cancel</button>
       </div>
     </div>
   );

@@ -316,14 +316,17 @@ export default function UserManager() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" size={16} />
           <input
             type="text"
+            aria-label="Search user profiles"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search students by name, email, or student ID..."
             className="w-full bg-white border border-stone-200 rounded-lg pl-10 pr-4 py-2.5 text-xs outline-none focus:border-[#F5B400] transition-colors"
           />
           {searchQuery && (
-            <button 
-              onClick={() => setSearchQuery('')}
+             <button
+               type="button"
+               aria-label="Clear user profile search"
+               onClick={() => setSearchQuery('')}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 cursor-pointer"
             >
               <X size={14} />
@@ -333,6 +336,7 @@ export default function UserManager() {
 
         <div className="flex items-center gap-3 flex-wrap">
           <button
+            type="button"
             onClick={handlePurgeAnonymous}
             disabled={purgingAnon}
             className="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-60 shadow-2xs"
@@ -483,8 +487,10 @@ export default function UserManager() {
                       <td className="px-5 py-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           {/* Profile Lock Action */}
-                          <button
-                            onClick={() => handleToggleProfileLock(user)}
+          <button
+            type="button"
+            aria-label={user.profile_complete ? 'Unlock profile' : 'Lock profile'}
+            onClick={() => handleToggleProfileLock(user)}
                             disabled={isLoading}
                             className={`p-1.5 rounded-lg text-stone-400 hover:text-[#1A3C2E] hover:bg-stone-100 transition-colors ${
                               isLoading ? 'opacity-40 cursor-not-allowed' : ''
@@ -497,6 +503,8 @@ export default function UserManager() {
                           {/* Ban / Unban Toggle Action */}
                           {banStatus.isBanned ? (
                             <button
+                              type="button"
+                              aria-label="Unban student"
                               onClick={() => handleUnban(user)}
                               disabled={isLoading || isSelf}
                               className={`p-1.5 rounded-lg text-rose-600 bg-rose-50 hover:bg-rose-100 hover:text-rose-700 transition-colors ${
@@ -508,6 +516,8 @@ export default function UserManager() {
                             </button>
                           ) : (
                             <button
+                              type="button"
+                              aria-label={isSelf ? 'You cannot ban yourself' : 'Restrict or ban user'}
                               onClick={() => setBanningUser(user)}
                               disabled={isLoading || isSelf}
                               className={`p-1.5 rounded-lg text-stone-400 hover:text-rose-600 hover:bg-rose-50 transition-colors ${
@@ -522,6 +532,8 @@ export default function UserManager() {
 
                           {/* Delete Action */}
                           <button
+                            type="button"
+                            aria-label={isSelf ? 'You cannot delete yourself' : 'Delete profile and data'}
                             onClick={() => handleDeleteUser(user)}
                             disabled={isLoading || isSelf}
                             className={`p-1.5 rounded-lg transition-colors ${
@@ -558,13 +570,13 @@ export default function UserManager() {
       {/* BAN TIMEOUT SETUP MODAL */}
       {banningUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs font-sans">
-          <div className="absolute inset-0" onClick={() => setBanningUser(null)} />
+              <button type="button" aria-label="Close ban dialog" className="absolute inset-0" onClick={() => setBanningUser(null)} />
           <div className="relative w-full max-w-md bg-white rounded-2xl overflow-hidden shadow-2xl border border-stone-200 animate-scale-up">
             <div className="bg-[#1A3C2E] px-6 py-4 flex items-center justify-between text-white">
               <h3 className="font-sans font-black text-base flex items-center gap-2">
                 <ShieldAlert size={18} className="text-[#F5B400]" /> Configure Ban Restriction
               </h3>
-              <button onClick={() => setBanningUser(null)} className="text-white/80 hover:text-white">
+              <button type="button" onClick={() => setBanningUser(null)} aria-label="Close ban dialog" className="text-white/80 hover:text-white">
                 <X size={18} />
               </button>
             </div>
@@ -579,11 +591,12 @@ export default function UserManager() {
 
               {/* Ban Duration Select */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-stone-500 uppercase tracking-wider block">
+                 <label htmlFor="ban-duration" className="text-xs font-bold text-stone-500 uppercase tracking-wider block">
                   Select Ban Duration
                 </label>
                 <select
-                  value={banDuration}
+                   id="ban-duration"
+                   value={banDuration}
                   onChange={(e) => setBanDuration(e.target.value as BanDuration)}
                   className="bg-white border border-stone-200 text-stone-700 text-sm rounded-lg p-2.5 w-full focus:ring-1 focus:ring-[#F5B400] focus:border-[#F5B400] outline-none"
                 >
@@ -599,11 +612,12 @@ export default function UserManager() {
               {/* Custom Date Input */}
               {banDuration === 'custom' && (
                 <div className="space-y-1.5 animate-fade-in">
-                  <label className="text-xs font-bold text-stone-500 uppercase tracking-wider block">
+                   <label htmlFor="custom-ban-time" className="text-xs font-bold text-stone-500 uppercase tracking-wider block">
                     Unban Date &amp; Time
                   </label>
                   <input
-                    type="datetime-local"
+                     id="custom-ban-time"
+                     type="datetime-local"
                     value={customBanTime}
                     onChange={(e) => setCustomBanTime(e.target.value)}
                     className="bg-white border border-stone-200 text-stone-700 text-sm rounded-lg p-2.5 w-full focus:ring-1 focus:ring-[#F5B400] focus:border-[#F5B400] outline-none"
