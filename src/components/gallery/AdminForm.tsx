@@ -60,27 +60,31 @@ export default function AdminForm({
     ].filter(url => url.startsWith('blob:')));
 
     previewUrlsRef.current.forEach(url => {
-      if (!nextPreviewUrls.has(url)) URL.revokeObjectURL(url);
+      if (!nextPreviewUrls.has(url)) revokePreviewUrl(url);
     });
     previewUrlsRef.current = nextPreviewUrls;
   }, [formState.imagePreview, formState.thumbnailPreviews]);
 
   useEffect(() => () => {
-    previewUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+    previewUrlsRef.current.forEach(revokePreviewUrl);
   }, []);
 
-  const cleanPreviews = (state: AdminFormState) => {
-    if (state.imagePreview && state.imagePreview.startsWith('blob:')) {
-      URL.revokeObjectURL(state.imagePreview);
-    }
-    state.thumbnailPreviews.forEach(p => {
-      if (p.startsWith('blob:')) URL.revokeObjectURL(p);
-    });
-    previewUrlsRef.current.clear();
+  const revokePreviewUrl = (url: string) => {
+    if (previewUrlsRef.current.delete(url)) URL.revokeObjectURL(url);
+  };
+
+  const createPreviewUrl = (file: File) => {
+    const preview = URL.createObjectURL(file);
+    previewUrlsRef.current.add(preview);
+    return preview;
+  };
+
+  const cleanPreviews = () => {
+    previewUrlsRef.current.forEach(revokePreviewUrl);
   };
 
   const handleCancel = () => {
-    cleanPreviews(formState);
+    cleanPreviews();
     setFormState(INITIAL_FORM_STATE);
     if (mainImageInputRef.current) mainImageInputRef.current.value = '';
     if (thumbnailsInputRef.current) thumbnailsInputRef.current.value = '';
@@ -109,7 +113,7 @@ export default function AdminForm({
         if (mainImageInputRef.current) mainImageInputRef.current.value = '';
         return;
       }
-      const preview = URL.createObjectURL(file);
+      const preview = createPreviewUrl(file);
       setFormState(prev => {
         return {
           ...prev,
@@ -141,7 +145,7 @@ export default function AdminForm({
         }
       }
 
-      const newPreviews = filesArray.map(file => URL.createObjectURL(file));
+      const newPreviews = filesArray.map(createPreviewUrl);
       setFormState(prev => {
         return {
           ...prev,

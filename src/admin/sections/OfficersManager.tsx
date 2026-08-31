@@ -421,9 +421,6 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
   };
 
   const handleRemovePhoto = () => {
-    if (previewUrl && previewUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(previewUrl);
-    }
     setSelectedFile(null);
     setPreviewUrl('');
     setForm(prev => ({ ...prev, photo_url: '' }));
