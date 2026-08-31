@@ -117,7 +117,7 @@ export default function Announcements({ previewMode = false, onViewAllClick }: A
               <div
                 key={ann.id}
                 onClick={() => setSelectedAnn(ann)}
-                className={`cursor-pointer bg-white rounded-3xl border border-zinc-150 shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col md:flex-row overflow-hidden group min-h-[220px] ${
+                className={`cursor-pointer bg-white rounded-3xl border border-zinc-150 shadow-sm hover:shadow-lg transition-[background-color,border-color,color,box-shadow] duration-300 flex flex-col md:flex-row overflow-hidden group min-h-[220px] ${
                   ann.pinned ? 'ring-2 ring-[#F5B400]/40' : ''
                 }`}
                 id={`ann-card-preview-${ann.id}`}
@@ -241,7 +241,7 @@ export default function Announcements({ previewMode = false, onViewAllClick }: A
                 placeholder="Search announcements by keyword..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#1A3C2E]/30 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E]/20 focus:border-[#1A3C2E] text-stone-800 text-sm transition-all"
+                 className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#1A3C2E]/30 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E]/20 focus:border-[#1A3C2E] text-stone-800 text-sm transition-colors"
               />
               {searchQuery && (
                 <button
@@ -259,7 +259,7 @@ export default function Announcements({ previewMode = false, onViewAllClick }: A
                 <button
                   key={cat.id}
                   onClick={() => setActiveCategory(cat.id)}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all focus:outline-none cursor-pointer border ${
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors focus:outline-none cursor-pointer border ${
                     activeCategory === cat.id
                       ? 'bg-[#1A3C2E] text-[#FAF7EA] border-[#1A3C2E] shadow-sm'
                       : 'bg-zinc-50 border-[#1A3C2E]/20 text-stone-600 hover:bg-zinc-100 hover:text-[#1A3C2E]'
@@ -288,7 +288,7 @@ export default function Announcements({ previewMode = false, onViewAllClick }: A
               <div
                 key={ann.id}
                 onClick={() => setSelectedAnn(ann)}
-                className={`cursor-pointer bg-white rounded-3xl border border-[#1A3C2E]/25 shadow-xs hover:shadow-lg hover:border-[#1A3C2E]/50 transition-all duration-300 flex flex-col md:flex-row overflow-hidden group min-h-[220px] ${
+                className={`cursor-pointer bg-white rounded-3xl border border-[#1A3C2E]/25 shadow-xs hover:shadow-lg hover:border-[#1A3C2E]/50 transition-[background-color,border-color,color,box-shadow] duration-300 flex flex-col md:flex-row overflow-hidden group min-h-[220px] ${
                   ann.pinned ? 'ring-2 ring-[#F5B400]/40' : ''
                 }`}
                 id={`ann-card-full-${ann.id}`}
@@ -411,7 +411,7 @@ function AnnouncementModal({ announcement, onClose, getCategoryColor }: ModalPro
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-20 p-2 rounded-full bg-black/10 text-stone-600 md:bg-white/10 md:text-white hover:bg-black/20 md:hover:bg-white/20 hover:scale-105 transition-all focus:outline-none"
+          className="absolute top-4 right-4 z-20 p-2 rounded-full bg-black/10 text-stone-600 md:bg-white/10 md:text-white hover:bg-black/20 md:hover:bg-white/20 hover:scale-105 transition-[background-color,transform] focus:outline-none"
         >
           <X size={18} />
         </button>
@@ -489,7 +489,7 @@ function AnnouncementModal({ announcement, onClose, getCategoryColor }: ModalPro
           <div className="border-t border-zinc-100 px-6 py-4 bg-zinc-50 flex items-center justify-end">
             <button
               onClick={onClose}
-              className="px-5 py-2.5 rounded-xl text-xs font-bold bg-[#1A3C2E] text-white hover:bg-[#255541] transition-all shadow-sm cursor-pointer"
+              className="px-5 py-2.5 rounded-xl text-xs font-bold bg-[#1A3C2E] text-white hover:bg-[#255541] transition-colors shadow-sm cursor-pointer"
             >
               Close
             </button>

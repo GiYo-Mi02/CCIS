@@ -77,7 +77,7 @@ export function UpcomingEventsList({ onNavigate }: UpcomingEventsListProps) {
           const isComp = evt.event_type === 'competition' || evt.title?.toLowerCase().includes('competition') || evt.title?.toLowerCase().includes('hackathon') || evt.title?.toLowerCase().includes('contest');
 
           return (
-            <div key={evt.id} className="bg-white p-4 rounded-2xl border-2 border-stone-200 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-between gap-4">
+            <div key={evt.id} className="bg-white p-4 rounded-2xl border-2 border-stone-200 shadow-sm hover:shadow-md transition-[background-color,border-color,color,box-shadow] duration-300 flex items-center justify-between gap-4">
               <div className="flex items-start gap-3.5 flex-1 min-w-0">
                 {evt.banner_url ? (
                   <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-stone-200 relative shadow-sm">
@@ -126,14 +126,14 @@ export function UpcomingEventsList({ onNavigate }: UpcomingEventsListProps) {
               ) : isComp ? (
                 <button
                   onClick={() => onNavigate && onNavigate('registration', evt.id)}
-                  className="text-[10px] font-bold text-[#123524] hover:text-[#FFBC00] hover:bg-[#123524] border border-[#123524]/20 hover:border-transparent px-3 py-1.5 rounded-lg transition-all shrink-0 cursor-pointer"
+                  className="text-[10px] font-bold text-[#123524] hover:text-[#FFBC00] hover:bg-[#123524] border border-[#123524]/20 hover:border-transparent px-3 py-1.5 rounded-lg transition-colors shrink-0 cursor-pointer"
                 >
                   Register
                 </button>
               ) : (
                 <button
                   onClick={() => onNavigate && onNavigate('account')}
-                  className="text-[10px] font-bold text-emerald-800 bg-emerald-50 hover:bg-[#123524] hover:text-white border border-emerald-200 hover:border-transparent px-3 py-1.5 rounded-lg transition-all shrink-0 cursor-pointer"
+                  className="text-[10px] font-bold text-emerald-800 bg-emerald-50 hover:bg-[#123524] hover:text-white border border-emerald-200 hover:border-transparent px-3 py-1.5 rounded-lg transition-colors shrink-0 cursor-pointer"
                 >
                   Audience Pass
                 </button>
@@ -312,7 +312,7 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
         {eventsList.map(evt => (
           <div
             key={evt.id}
-            className={`p-4 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-start justify-between gap-3 ${
+            className={`p-4 rounded-2xl border transition-colors flex flex-col sm:flex-row sm:items-start justify-between gap-3 ${
               evt.category === 'priority'
                 ? 'border-l-4 border-l-[#FFBC00] border-zinc-150 bg-amber-50/10'
                 : 'border-l-4 border-l-[#123524] border-zinc-150'
@@ -349,7 +349,7 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
               ) : (
                 <button
                   onClick={() => onNavigate && onNavigate('registration', evt.id)}
-                  className="text-[10px] font-bold bg-[#123524] hover:bg-[#FFBC00] text-white hover:text-[#123524] px-3 py-1.5 rounded-lg transition-all shadow-xs"
+                  className="text-[10px] font-bold bg-[#123524] hover:bg-[#FFBC00] text-white hover:text-[#123524] px-3 py-1.5 rounded-lg transition-colors shadow-xs"
                 >
                   Register
                 </button>
@@ -401,7 +401,7 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
           <button
             key={type}
             onClick={() => setFilter(type)}
-            className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all border cursor-pointer ${
+            className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-colors border cursor-pointer ${
               filter === type
                 ? 'bg-[#123524] text-white border-[#123524]'
                 : 'bg-white text-[#5E6E64] border-[#123524]/20 hover:bg-zinc-50'
@@ -413,7 +413,7 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
       </div>
 
       {/* Calendar Grid Container with Crisp Visible Lines */}
-      <div className="border-2 border-[#123524]/30 rounded-2xl overflow-hidden shadow-sm bg-white transition-all duration-300 hover:shadow-md">
+      <div className="border-2 border-[#123524]/30 rounded-2xl overflow-hidden shadow-sm bg-white transition-[background-color,border-color,color,box-shadow] duration-300 hover:shadow-md">
         {/* Days of Week Header */}
         <div className="grid grid-cols-7 border-b-2 border-[#123524]/20 bg-stone-100/90 text-center py-2.5 divide-x divide-[#123524]/15">
           {daysOfWeek.map(day => (
@@ -467,13 +467,13 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
                   onClick={() => handleDayClick(dateStr, isCurrentMonth)}
                   onMouseEnter={(e) => handleMouseEnter(e, dateStr, filteredDayEvents)}
                   onMouseLeave={handleMouseLeave}
-                  className={`relative cursor-pointer transition-all duration-200 outline-none select-none flex flex-col justify-between group ${cellBgClass} ${cellBorderClass} ${
+                  className={`relative cursor-pointer transition-colors duration-200 outline-none select-none flex flex-col justify-between group ${cellBgClass} ${cellBorderClass} ${
                     isMobile ? 'h-14 p-1.5' : 'md:min-h-[100px] md:h-24 p-2'
                   }`}
                 >
                   {/* Day Number badge & category indicators */}
                   <div className="w-full flex justify-between items-start">
-                    <div className={`text-sm md:text-[15px] font-black font-sans flex items-center justify-center rounded-full transition-all duration-300 ${
+                    <div className={`text-sm md:text-[15px] font-black font-sans flex items-center justify-center rounded-full transition-colors duration-300 ${
                       isTodayCell
                         ? 'bg-[#123524] text-white w-7 h-7 shadow-sm scale-105'
                         : isCurrentMonth ? 'text-[#123524]' : 'text-stone-300'
@@ -494,7 +494,7 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
                       {filteredDayEvents.slice(0, 2).map((evt) => (
                         <div
                           key={evt.id}
-                          className={`text-[9px] px-1.5 py-0.5 rounded font-sans truncate font-bold text-left w-full border transition-all duration-300 group-hover:scale-[1.02] ${
+                          className={`text-[9px] px-1.5 py-0.5 rounded font-sans truncate font-bold text-left w-full border transition-[background-color,border-color,color,box-shadow,transform] duration-300 group-hover:scale-[1.02] ${
                             evt.category === 'priority'
                               ? 'bg-[#FFBC00] text-[#123524] border-[#FFBC00]'
                               : 'bg-[#123524] text-white border-[#123524]'
@@ -567,7 +567,7 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
       {hoveredDate && hoveredPosition && eventsMap.get(hoveredDate) && (
         createPortal(
           <div
-            className="fixed z-[9999] pointer-events-none transition-all duration-200"
+            className="fixed z-[9999] pointer-events-none transition-colors duration-200"
             style={{
               left: `${hoveredPosition.x}px`,
               top: `${hoveredPosition.y - 12}px`,

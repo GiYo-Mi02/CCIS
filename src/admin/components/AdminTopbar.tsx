@@ -42,7 +42,7 @@ export default function AdminTopbar({ sidebarCollapsed, onMobileMenuToggle, mobi
 
   return (
     <header
-      className={`sticky top-0 z-30 bg-white border-b border-gray-200 h-16 flex items-center px-4 md:px-6 gap-4 transition-all duration-300`}
+      className={`sticky top-0 z-30 bg-white border-b border-gray-200 h-16 flex items-center px-4 md:px-6 gap-4`}
       id="admin-topbar"
     >
       {/* Mobile menu toggle */}

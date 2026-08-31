@@ -668,7 +668,7 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all duration-200 ${
+                className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-colors duration-200 ${
                   isDragging
                     ? 'border-[#F5B400] bg-[#FAF7EA] scale-[1.01]'
                     : 'border-gray-300 hover:border-[#F5B400] bg-white hover:bg-gray-50'
@@ -727,7 +727,7 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
           </div>
           <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
             <div
-              className="h-full bg-[#F5B400] transition-all duration-300 rounded-full"
+              className="h-full bg-[#F5B400] transition-[width] duration-300 rounded-full"
               style={{ width: `${uploadProgress}%` }}
             />
           </div>

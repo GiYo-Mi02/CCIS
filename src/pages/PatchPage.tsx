@@ -923,7 +923,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                 loop
                 muted
                 playsInline
-                className={`w-full h-full object-cover object-top filter brightness-90 scale-105 transition-all duration-1000 ${
+                className={`w-full h-full object-cover object-top filter brightness-90 scale-105 transition-[filter,opacity] duration-1000 ${
                   hideHeroOverlays ? 'opacity-100' : 'opacity-85'
                 }`}
               />
@@ -952,7 +952,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
           {/* Hero details container */}
           <div
             key={`details-${activeHeroVideo.id}`}
-            className={`relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-12 pb-20 sm:pb-28 flex flex-col items-start gap-4 transition-all duration-1000 ${
+            className={`relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-12 pb-20 sm:pb-28 flex flex-col items-start gap-4 transition-colors duration-1000 ${
               hideHeroOverlays ? 'opacity-0 pointer-events-none translate-y-4' : 'animate-slide-fade-in opacity-100 translate-y-0'
             }`}
           >
@@ -976,7 +976,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
             <div className="flex items-center gap-4 mt-6 flex-wrap">
               <button
                 onClick={() => openVideoLightbox(activeHeroVideo)}
-                className="inline-flex items-center gap-2 bg-[#F5B400] hover:bg-[#ffc522] text-[#11241C] font-black uppercase tracking-wider text-xs px-8 py-3.5 rounded-full transition-all duration-300 shadow-lg hover:shadow-[#F5B400]/25 transform hover:-translate-y-0.5 cursor-pointer focus:ring-2 focus:ring-[#FAF7EA] outline-none"
+                className="inline-flex items-center gap-2 bg-[#F5B400] hover:bg-[#ffc522] text-[#11241C] font-black uppercase tracking-wider text-xs px-8 py-3.5 rounded-full transition-[background-color,border-color,color,box-shadow,transform] duration-300 shadow-lg hover:shadow-[#F5B400]/25 transform hover:-translate-y-0.5 cursor-pointer focus:ring-2 focus:ring-[#FAF7EA] outline-none"
               >
                 <Play size={14} className="fill-current" />
                 Watch Episode
@@ -985,7 +985,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
               {isAdmin && (
                 <button
                   onClick={() => openForm(activeHeroVideo)}
-                  className="inline-flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-[#FAF7EA] border border-white/10 font-bold text-xs px-6 py-3.5 rounded-full transition-all cursor-pointer focus:ring-2 focus:ring-stone-400 outline-none"
+                  className="inline-flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-[#FAF7EA] border border-white/10 font-bold text-xs px-6 py-3.5 rounded-full transition-colors cursor-pointer focus:ring-2 focus:ring-stone-400 outline-none"
                 >
                   <Edit size={14} />
                   Edit Details
@@ -1003,7 +1003,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                 <button
                   key={video.id}
                   onClick={() => setCurrentSlideIndex(featuredVideos.indexOf(video))}
-                  className={`w-2.5 h-2.5 rounded-full transition-all cursor-pointer ${
+                  className={`w-2.5 h-2.5 rounded-full transition-colors cursor-pointer ${
                    currentSlideIndex === featuredVideos.indexOf(video) ? 'bg-[#F5B400] w-6' : 'bg-white/30 hover:bg-white/50'
                   }`}
                    title={`Go to slide ${featuredVideos.indexOf(video) + 1}`}
@@ -1087,7 +1087,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                     <div
                       key={video.id}
                       onClick={() => openVideoLightbox(video)}
-                      className="w-72 sm:w-80 aspect-video bg-[#1A3C2E] border border-stone-250/10 rounded-2xl overflow-hidden relative shrink-0 shadow-md hover:shadow-xl hover:shadow-[#F5B400]/10 transition-all duration-300 transform hover:scale-[1.04] cursor-pointer group"
+                      className="w-72 sm:w-80 aspect-video bg-[#1A3C2E] border border-stone-250/10 rounded-2xl overflow-hidden relative shrink-0 shadow-md hover:shadow-xl hover:shadow-[#F5B400]/10 transition-[background-color,border-color,color,box-shadow,transform] duration-300 transform hover:scale-[1.04] cursor-pointer group"
                     >
                       {/* Video Thumbnail */}
                       {video.thumbnailUrl ? (
@@ -1206,7 +1206,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                         {/* Resume Button */}
                         <button
                           onClick={togglePlay}
-                          className="flex items-center justify-center gap-2 bg-white text-[#11241C] hover:bg-[#F5B400] hover:text-[#11241C] font-black px-6 py-3 rounded-xl text-xs uppercase tracking-wider transition-all duration-300 cursor-pointer shadow-lg active:scale-98 outline-none"
+                          className="flex items-center justify-center gap-2 bg-white text-[#11241C] hover:bg-[#F5B400] hover:text-[#11241C] font-black px-6 py-3 rounded-xl text-xs uppercase tracking-wider transition-[background-color,border-color,color,box-shadow,transform] duration-300 cursor-pointer shadow-lg active:scale-98 outline-none"
                         >
                           <Play size={14} className="fill-current" />
                           Resume Playing
@@ -1220,7 +1220,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                               if (!isPlaying) togglePlay();
                             }
                           }}
-                          className="flex items-center justify-center gap-2 border border-white/20 hover:border-white text-white hover:text-[#F5B400] font-black px-6 py-3 rounded-xl text-xs uppercase tracking-wider transition-all duration-300 cursor-pointer active:scale-98 outline-none"
+                          className="flex items-center justify-center gap-2 border border-white/20 hover:border-white text-white hover:text-[#F5B400] font-black px-6 py-3 rounded-xl text-xs uppercase tracking-wider transition-[background-color,border-color,color,box-shadow,transform] duration-300 cursor-pointer active:scale-98 outline-none"
                         >
                           <RotateCcw size={14} />
                           Play From Beginning
@@ -1258,7 +1258,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                         if (customVideoRef.current) customVideoRef.current.pause();
                         setIsPlaying(false);
                       }}
-                      className="p-2.5 rounded-full bg-black/40 hover:bg-[#F5B400] text-white hover:text-[#11241C] border border-white/10 transition-all duration-300 cursor-pointer outline-none"
+                      className="p-2.5 rounded-full bg-black/40 hover:bg-[#F5B400] text-white hover:text-[#11241C] border border-white/10 transition-colors duration-300 cursor-pointer outline-none"
                       title="Back to Details"
                     >
                       <ArrowLeft size={20} />
@@ -1295,7 +1295,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                           style={{
                             background: `linear-gradient(to right, #F5B400 0%, #F5B400 ${(currentTime / (duration || 1)) * 100}%, rgba(255,255,255,0.2) ${(currentTime / (duration || 1)) * 100}%, rgba(255,255,255,0.2) 100%)`
                           }}
-                          className="flex-1 h-1 hover:h-2 rounded-lg appearance-none cursor-pointer accent-[#F5B400] transition-all bg-white/20 outline-none"
+                          className="flex-1 h-1 hover:h-2 rounded-lg appearance-none cursor-pointer accent-[#F5B400] transition-colors bg-white/20 outline-none"
                         />
                         <span className="text-[10px] font-mono text-stone-300 w-10 text-left select-none">
                           {formatTime(duration)}
@@ -1349,7 +1349,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                               step="0.05"
                               value={isMuted ? 0 : volume}
                               onChange={handleVolumeChange}
-                              className="w-0 opacity-0 group-hover:w-16 group-hover:opacity-100 transition-all duration-300 h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white"
+                              className="w-0 opacity-0 group-hover:w-16 group-hover:opacity-100 transition-[width,height,margin-top,opacity] duration-300 h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white"
                             />
                           </div>
                         </div>
@@ -1363,7 +1363,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                               const nextIdx = (rates.indexOf(playbackRate) + 1) % rates.length;
                               handleSpeedChange(rates[nextIdx]);
                             }}
-                            className="text-[10px] font-mono font-black border border-white/30 hover:border-white text-stone-300 hover:text-white px-2 py-0.5 rounded transition-all cursor-pointer outline-none"
+                            className="text-[10px] font-mono font-black border border-white/30 hover:border-white text-stone-300 hover:text-white px-2 py-0.5 rounded transition-colors cursor-pointer outline-none"
                             title="Playback Speed"
                           >
                             {playbackRate === 1.0 ? '1.0x (Normal)' : `${playbackRate}x`}
@@ -1476,7 +1476,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                       setIsPlayerActive(true);
                       setIsPlaying(true);
                     }}
-                    className="inline-flex items-center justify-center gap-3 bg-[#F5B400] hover:bg-[#ffc522] text-[#11241C] font-black uppercase tracking-wider text-xs px-10 py-4.5 rounded-2xl shadow-xl hover:shadow-[#F5B400]/25 transform hover:-translate-y-0.5 transition-all duration-300 max-w-xs cursor-pointer focus:ring-2 focus:ring-white outline-none"
+                    className="inline-flex items-center justify-center gap-3 bg-[#F5B400] hover:bg-[#ffc522] text-[#11241C] font-black uppercase tracking-wider text-xs px-10 py-4.5 rounded-2xl shadow-xl hover:shadow-[#F5B400]/25 transform hover:-translate-y-0.5 transition-[background-color,border-color,color,box-shadow,transform] duration-300 max-w-xs cursor-pointer focus:ring-2 focus:ring-white outline-none"
                   >
                     <Play size={16} className="fill-current" />
                     Play {selectedVideo.category === 'Full Episodes' ? 'Episode' : 'Highlight'}
@@ -1604,7 +1604,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                     className="absolute inset-0 flex items-center justify-center group/play cursor-pointer z-10"
                     title="Play Movie"
                   >
-                    <div className="bg-[#0B1512]/40 backdrop-blur-md border border-white/20 text-[#FAF7EA] p-6 rounded-full shadow-2xl group-hover/play:bg-[#F5B400] group-hover/play:text-[#11241C] group-hover/play:scale-110 transition-all duration-500">
+                    <div className="bg-[#0B1512]/40 backdrop-blur-md border border-white/20 text-[#FAF7EA] p-6 rounded-full shadow-2xl group-hover/play:bg-[#F5B400] group-hover/play:text-[#11241C] group-hover/play:scale-110 transition-[background-color,border-color,color,box-shadow,transform] duration-500">
                       <Play size={36} className="fill-current translate-x-0.5" />
                     </div>
                   </div>
@@ -1632,7 +1632,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
               </h3>
               <button
                 onClick={() => setShowFormModal(false)}
-                className="text-stone-400 hover:text-white p-1 rounded-full hover:bg-white/5 transition-all cursor-pointer"
+                className="text-stone-400 hover:text-white p-1 rounded-full hover:bg-white/5 transition-colors cursor-pointer"
                 disabled={formSubmitting}
               >
                 <X size={18} />
@@ -1702,7 +1702,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                   <button
                     type="button"
                     onClick={() => setFormSourceType('facebook')}
-                    className={`py-2 text-center rounded-xl font-bold uppercase tracking-wider transition-all cursor-pointer border text-[9px] ${
+                    className={`py-2 text-center rounded-xl font-bold uppercase tracking-wider transition-colors cursor-pointer border text-[9px] ${
                       formSourceType === 'facebook'
                         ? 'bg-[#F5B400] border-[#F5B400] text-[#11241C]'
                         : 'bg-[#11241C] border-stone-200/10 text-stone-400 hover:text-white'
@@ -1713,7 +1713,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                   <button
                     type="button"
                     onClick={() => setFormSourceType('direct')}
-                    className={`py-2 text-center rounded-xl font-bold uppercase tracking-wider transition-all cursor-pointer border text-[9px] ${
+                    className={`py-2 text-center rounded-xl font-bold uppercase tracking-wider transition-colors cursor-pointer border text-[9px] ${
                       formSourceType === 'direct'
                         ? 'bg-[#F5B400] border-[#F5B400] text-[#11241C]'
                         : 'bg-[#11241C] border-stone-200/10 text-stone-400 hover:text-white'
@@ -1724,7 +1724,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                   <button
                     type="button"
                     onClick={() => setFormSourceType('upload')}
-                    className={`py-2 text-center rounded-xl font-bold uppercase tracking-wider transition-all cursor-pointer border text-[9px] ${
+                    className={`py-2 text-center rounded-xl font-bold uppercase tracking-wider transition-colors cursor-pointer border text-[9px] ${
                       formSourceType === 'upload'
                         ? 'bg-[#F5B400] border-[#F5B400] text-[#11241C]'
                         : 'bg-[#11241C] border-stone-200/10 text-stone-400 hover:text-white'
@@ -1885,7 +1885,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                 <button
                   type="submit"
                   disabled={formSubmitting}
-                  className="flex-1 py-3 bg-[#F5B400] hover:bg-[#ffc522] disabled:bg-stone-500 text-[#11241C] rounded-xl font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md"
+                  className="flex-1 py-3 bg-[#F5B400] hover:bg-[#ffc522] disabled:bg-stone-500 text-[#11241C] rounded-xl font-black uppercase tracking-wider transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-md"
                 >
                   {formSubmitting && <Loader2 className="animate-spin" size={14} />}
                   {editTarget ? 'Save Changes' : 'Publish Episode'}

@@ -385,7 +385,7 @@ export default function SupportWidget({ onNavigate }: SupportWidgetProps) {
                   setIsOpen(false);
                   onNavigate('login');
                 }}
-                className="w-full bg-[#1A3C2E] hover:bg-[#123524] text-white py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 shadow-md cursor-pointer border border-[#F5B400]/20"
+                className="w-full bg-[#1A3C2E] hover:bg-[#123524] text-white py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-colors duration-300 shadow-md cursor-pointer border border-[#F5B400]/20"
               >
                 Go to Sign In
               </button>

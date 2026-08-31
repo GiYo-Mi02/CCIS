@@ -313,7 +313,7 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
                   <button
                     key={type}
                     onClick={() => { setFilter(type); setCurrentPage(1); }}
-                    className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all border cursor-pointer ${
+                    className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-colors border cursor-pointer ${
                       filter === type
                         ? 'bg-[#1A3C2E] text-white border-[#1A3C2E]'
                         : 'bg-white text-[#5E6E64] border-[#1A3C2E]/20 hover:bg-zinc-50'
@@ -343,7 +343,7 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
                   return (
                     <div
                       key={ev.id}
-                      className={`bg-white rounded-3xl border flex flex-col justify-between shadow-xs hover:shadow-md transition-all relative overflow-hidden ${
+                      className={`bg-white rounded-3xl border flex flex-col justify-between shadow-xs hover:shadow-md transition-[background-color,border-color,color,box-shadow] relative overflow-hidden ${
                         isFull && !isRegistered ? 'opacity-65 border-zinc-300' : 'border-[#1A3C2E]/25 hover:border-[#1A3C2E]/50'
                       }`}
                       id={`register-ev-card-${ev.id}`}
@@ -440,7 +440,7 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
                                      setRegistrationError(null);
                                     setIsModalOpen(true);
                                   }}
-                                  className="w-full bg-[#1A3C2E] hover:bg-[#255541] active:bg-[#123524] text-white hover:text-white font-sans text-xs font-bold uppercase tracking-wider py-2.5 rounded-xl transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                                   className="w-full bg-[#1A3C2E] hover:bg-[#255541] active:bg-[#123524] text-white hover:text-white font-sans text-xs font-bold uppercase tracking-wider py-2.5 rounded-xl transition-colors shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
                                 >
                                   <Trophy size={13} className="text-[#F5B400]" />
                                   <span>Register as Participant</span>
@@ -460,7 +460,7 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
                                     onNavigate('account');
                                   }
                                 }}
-                                className="w-full bg-[#123524] hover:bg-[#1A3C2E] text-white hover:text-[#FFBC00] border border-[#123524] font-sans text-xs font-bold uppercase tracking-wider py-3 px-4 rounded-xl transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2 cursor-pointer group"
+                                 className="w-full bg-[#123524] hover:bg-[#1A3C2E] text-white hover:text-[#FFBC00] border border-[#123524] font-sans text-xs font-bold uppercase tracking-wider py-3 px-4 rounded-xl transition-[background-color,border-color,color,box-shadow] shadow-sm hover:shadow-md flex items-center justify-center gap-2 cursor-pointer group"
                               >
                                 <QrCode size={15} className="text-[#FFBC00] shrink-0" />
                                 <span className="font-bold tracking-wide">Get Universal Attendance QR</span>
@@ -614,7 +614,7 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
                             onClick={handleGoogleSignIn}
                             disabled={signingIn}
                             type="button"
-                            className="w-full bg-white hover:bg-stone-100 text-zinc-900 py-3.5 px-4 rounded-2xl font-sans font-bold text-xs uppercase tracking-wider shadow-xl transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60 flex items-center justify-center gap-3 cursor-pointer mt-2"
+                             className="w-full bg-white hover:bg-stone-100 text-zinc-900 py-3.5 px-4 rounded-2xl font-sans font-bold text-xs uppercase tracking-wider shadow-xl transition-[background-color,transform,opacity] hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60 flex items-center justify-center gap-3 cursor-pointer mt-2"
                           >
                             {signingIn ? (
                               <span className="flex items-center gap-2 text-zinc-900 font-bold">
@@ -792,7 +792,7 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
                       setShowSuccessModal(false);
                       if (onNavigate) onNavigate('account');
                     }}
-                    className="w-full bg-[#F5B400] hover:bg-[#ffc522] text-[#1A3C2E] py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shadow-xs"
+                    className="w-full bg-[#F5B400] hover:bg-[#ffc522] text-[#1A3C2E] py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-colors shadow-xs"
                   >
                     View My Pass Ticket
                   </button>

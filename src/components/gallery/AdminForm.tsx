@@ -389,7 +389,7 @@ export default function AdminForm({
                   value={formState.title}
                   onChange={e => setFormState(prev => ({ ...prev, title: e.target.value }))}
                   placeholder="e.g. CCIS Hackathon Champions 2026"
-                  className="w-full px-4 py-3 rounded-2xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E]/30 focus:border-[#1A3C2E] text-sm font-sans transition-all"
+                  className="w-full px-4 py-3 rounded-2xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E]/30 focus:border-[#1A3C2E] text-sm font-sans transition-colors"
                   required
                 />
               </div>
@@ -402,7 +402,7 @@ export default function AdminForm({
                   <select
                     value={formState.category}
                     onChange={e => setFormState(prev => ({ ...prev, category: e.target.value as Exclude<GalleryCategory, 'All'> }))}
-                    className="w-full px-3 py-3 rounded-2xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E]/30 focus:border-[#1A3C2E] text-sm font-sans bg-white transition-all"
+                    className="w-full px-3 py-3 rounded-2xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E]/30 focus:border-[#1A3C2E] text-sm font-sans bg-white transition-colors"
                   >
                     <option value="Student Achievements">Student Achievements</option>
                     <option value="Student Council">Student Council</option>
@@ -418,7 +418,7 @@ export default function AdminForm({
                   <select
                     value={formState.aspectRatio}
                     onChange={e => setFormState(prev => ({ ...prev, aspectRatio: e.target.value as 'portrait' | 'landscape' | 'square' }))}
-                    className="w-full px-3 py-3 rounded-2xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E]/30 focus:border-[#1A3C2E] text-sm font-sans bg-white transition-all"
+                    className="w-full px-3 py-3 rounded-2xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E]/30 focus:border-[#1A3C2E] text-sm font-sans bg-white transition-colors"
                   >
                     <option value="landscape">Landscape (4:3)</option>
                     <option value="portrait">Portrait (3:4)</option>
@@ -436,7 +436,7 @@ export default function AdminForm({
                   value={formState.postedBy}
                   onChange={e => setFormState(prev => ({ ...prev, postedBy: e.target.value }))}
                   placeholder="e.g. CCIS Student Council"
-                  className="w-full px-4 py-3 rounded-2xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E]/30 focus:border-[#1A3C2E] text-sm font-sans transition-all"
+                  className="w-full px-4 py-3 rounded-2xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E]/30 focus:border-[#1A3C2E] text-sm font-sans transition-colors"
                 />
               </div>
 
@@ -463,7 +463,7 @@ export default function AdminForm({
                   onChange={e => setFormState(prev => ({ ...prev, description: e.target.value }))}
                   placeholder="Detail the event objectives, participants, and milestones achieved..."
                   rows={4}
-                  className="w-full px-4 py-3 rounded-2xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E]/30 focus:border-[#1A3C2E] text-sm font-sans resize-none transition-all text-left animate-none"
+                  className="w-full px-4 py-3 rounded-2xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E]/30 focus:border-[#1A3C2E] text-sm font-sans resize-none transition-colors text-left animate-none"
                 />
               </div>
             </div>
@@ -487,7 +487,7 @@ export default function AdminForm({
                   />
                   <label
                     htmlFor="main-image-file-input"
-                    className="px-4 py-2.5 bg-white border border-stone-200 text-stone-700 rounded-xl hover:bg-stone-50 cursor-pointer flex items-center gap-2 text-xs font-bold shadow-sm transition-all focus-within:ring-2 focus-within:ring-[#1A3C2E] focus-within:ring-offset-2"
+                    className="px-4 py-2.5 bg-white border border-stone-200 text-stone-700 rounded-xl hover:bg-stone-50 cursor-pointer flex items-center gap-2 text-xs font-bold shadow-sm transition-colors focus-within:ring-2 focus-within:ring-[#1A3C2E] focus-within:ring-offset-2"
                   >
                     <Upload size={14} className="text-[#1A3C2E]" />
                     Select Main Image
@@ -533,7 +533,7 @@ export default function AdminForm({
                   />
                   <label
                     htmlFor="thumbnails-file-input"
-                    className="px-4 py-2.5 bg-white border border-[#FAF7EA] text-[#1A3C2E] rounded-xl hover:bg-stone-55 cursor-pointer flex items-center gap-2 text-xs font-bold shadow-sm transition-all focus-within:ring-2 focus-within:ring-[#1A3C2E] focus-within:ring-offset-2 border-stone-200"
+                    className="px-4 py-2.5 bg-white border border-[#FAF7EA] text-[#1A3C2E] rounded-xl hover:bg-stone-55 cursor-pointer flex items-center gap-2 text-xs font-bold shadow-sm transition-colors focus-within:ring-2 focus-within:ring-[#1A3C2E] focus-within:ring-offset-2 border-stone-200"
                   >
                     <Plus size={14} className="text-[#1A3C2E]" />
                     Add Thumbnails
@@ -620,7 +620,7 @@ export default function AdminForm({
               </div>
               <div className="w-full h-1.5 bg-stone-100 rounded-full overflow-hidden">
                 <div 
-                  className="h-full bg-[#1A3C2E] transition-all duration-300 rounded-full" 
+                  className="h-full bg-[#1A3C2E] transition-colors duration-300 rounded-full"
                   style={{ width: `${uploadProgress}%` }}
                 />
               </div>
@@ -639,7 +639,7 @@ export default function AdminForm({
             </button>
             <button
               type="submit"
-              className="px-6 py-2.5 text-[#FAF7EA] bg-[#1A3C2E] hover:bg-[#123524] disabled:bg-[#1A3C2E]/40 text-xs font-black uppercase tracking-wider rounded-2xl flex items-center gap-2 transition-all shadow-md cursor-pointer"
+              className="px-6 py-2.5 text-[#FAF7EA] bg-[#1A3C2E] hover:bg-[#123524] disabled:bg-[#1A3C2E]/40 text-xs font-black uppercase tracking-wider rounded-2xl flex items-center gap-2 transition-colors shadow-md cursor-pointer"
               disabled={isSubmitting}
             >
               {isSubmitting ? (

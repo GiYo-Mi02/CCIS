@@ -227,7 +227,7 @@ export default function VerificationManager() {
                       <button
                         onClick={() => handleApprove(user)}
                         disabled={actionLoadingId !== null}
-                        className="inline-flex items-center gap-1 bg-[#1A3C2E]/10 hover:bg-[#1A3C2E] hover:text-white text-[#1A3C2E] px-3 py-1.5 rounded-lg text-xs font-bold transition-all disabled:opacity-50 cursor-pointer"
+                        className="inline-flex items-center gap-1 bg-[#1A3C2E]/10 hover:bg-[#1A3C2E] hover:text-white text-[#1A3C2E] px-3 py-1.5 rounded-lg text-xs font-bold transition-colors disabled:opacity-50 cursor-pointer"
                       >
                         <UserCheck size={14} />
                         Approve
@@ -235,7 +235,7 @@ export default function VerificationManager() {
                       <button
                         onClick={() => handleRejectClick(user)}
                         disabled={actionLoadingId !== null}
-                        className="inline-flex items-center gap-1 bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-600 px-3 py-1.5 rounded-lg text-xs font-bold transition-all disabled:opacity-50 cursor-pointer"
+                        className="inline-flex items-center gap-1 bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-600 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors disabled:opacity-50 cursor-pointer"
                       >
                         <UserX size={14} />
                         Reject
@@ -290,7 +290,7 @@ export default function VerificationManager() {
                   onChange={(e) => setRejectionReason(e.target.value)}
                   rows={4}
                   placeholder="e.g. The student number K12345678 does not match the format on your COR, or the uploaded COR file is unreadable."
-                  className="w-full bg-stone-50 border border-stone-200 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 rounded-xl px-4 py-3 text-sm text-stone-800 placeholder-stone-400 outline-none transition-all resize-none"
+                  className="w-full bg-stone-50 border border-stone-200 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 rounded-xl px-4 py-3 text-sm text-stone-800 placeholder-stone-400 outline-none transition-colors resize-none"
                   required
                 />
               </div>
@@ -299,14 +299,14 @@ export default function VerificationManager() {
                 <button
                   type="button"
                   onClick={() => setRejectingUser(null)}
-                  className="bg-stone-100 hover:bg-stone-200 text-stone-700 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                className="bg-stone-100 hover:bg-stone-200 text-stone-700 px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={rejectSubmitLoading || !rejectionReason.trim()}
-                  className="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+                className="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
                 >
                   {rejectSubmitLoading ? (
                     <>

@@ -98,7 +98,7 @@ export default function HeroCarousel({
                   setActiveIndex(idx);
                 }
               }}
-              className={`absolute w-[80%] sm:w-[70%] md:w-[65%] h-[90%] rounded-3xl overflow-hidden shadow-2xl border border-[#1A3C2E]/10 bg-white transition-all duration-700 ease-out select-none ${posClass}`}
+              className={`absolute w-[80%] sm:w-[70%] md:w-[65%] h-[90%] rounded-3xl overflow-hidden shadow-2xl border border-[#1A3C2E]/10 bg-white transition-colors duration-700 ease-out select-none ${posClass}`}
             >
               <OptimizedImage
                 src={isActive ? item.imageUrl : (item.thumbnails[0] || item.imageUrl)}
@@ -169,7 +169,7 @@ export default function HeroCarousel({
                         <>
                           <button
                             onClick={() => onEditClick(item)}
-                            className="p-2 bg-white hover:bg-stone-50 text-stone-800 rounded-xl shadow-md border border-stone-200 hover:scale-105 transition-all focus:outline-none focus:ring-2 focus:ring-[#1A3C2E] cursor-pointer"
+                             className="p-2 bg-white hover:bg-stone-50 text-stone-800 rounded-xl shadow-md border border-stone-200 hover:scale-105 transition-[background-color,transform] focus:outline-none focus:ring-2 focus:ring-[#1A3C2E] cursor-pointer"
                             title="Edit Carousel Slide"
                           >
                             <Edit size={13} />
@@ -179,7 +179,7 @@ export default function HeroCarousel({
                               e.stopPropagation();
                               setDeleteConfirmId(item.id);
                             }}
-                            className="p-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-md border border-rose-500 hover:scale-105 transition-all focus:outline-none focus:ring-2 focus:ring-rose-500 cursor-pointer"
+                             className="p-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-md border border-rose-500 hover:scale-105 transition-[background-color,transform] focus:outline-none focus:ring-2 focus:ring-rose-500 cursor-pointer"
                             title="Delete Carousel Slide"
                           >
                             <Trash2 size={13} />
@@ -200,14 +200,14 @@ export default function HeroCarousel({
         <>
           <button
             onClick={handlePrev}
-            className="absolute left-1 sm:left-4 z-40 p-2 rounded-full bg-[#FAF7EA]/90 hover:bg-[#FAF7EA] text-[#1A3C2E] border border-stone-300 shadow-md transition-all hover:scale-115 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E] cursor-pointer"
+             className="absolute left-1 sm:left-4 z-40 p-2 rounded-full bg-[#FAF7EA]/90 hover:bg-[#FAF7EA] text-[#1A3C2E] border border-stone-300 shadow-md transition-[background-color,transform] hover:scale-115 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E] cursor-pointer"
             aria-label="Previous Slide"
           >
             <ChevronLeft size={18} />
           </button>
           <button
             onClick={handleNext}
-            className="absolute right-1 sm:right-4 z-40 p-2 rounded-full bg-[#FAF7EA]/90 hover:bg-[#FAF7EA] text-[#1A3C2E] border border-stone-300 shadow-md transition-all hover:scale-115 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E] cursor-pointer"
+             className="absolute right-1 sm:right-4 z-40 p-2 rounded-full bg-[#FAF7EA]/90 hover:bg-[#FAF7EA] text-[#1A3C2E] border border-stone-300 shadow-md transition-[background-color,transform] hover:scale-115 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E] cursor-pointer"
             aria-label="Next Slide"
           >
             <ChevronRight size={18} />
@@ -225,7 +225,7 @@ export default function HeroCarousel({
                 if (timerRef.current) clearInterval(timerRef.current);
                 setActiveIndex(idx);
               }}
-              className={`h-2 rounded-full transition-all duration-300 focus:outline-none focus:ring-1 focus:ring-white cursor-pointer ${
+              className={`h-2 rounded-full transition-colors duration-300 focus:outline-none focus:ring-1 focus:ring-white cursor-pointer ${
                  idx === activeIndex ? 'w-4 bg-[#F5B400]' : 'w-2 bg-white/60 hover:bg-white'
               }`}
               aria-label={`Go to slide ${idx + 1}`}

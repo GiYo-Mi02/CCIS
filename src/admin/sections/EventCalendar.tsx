@@ -162,7 +162,7 @@ export default function EventCalendar() {
                       const isComp = ev.event_type === 'competition';
                       return (
                         <div key={ev.id} onClick={(e) => { e.stopPropagation(); setIsCreating(false); setEditingEvent(ev); }}
-                          className={`text-[9.5px] font-bold px-2 py-1 rounded-md truncate cursor-pointer transition-all border flex items-center gap-1 ${
+                          className={`text-[9.5px] font-bold px-2 py-1 rounded-md truncate cursor-pointer transition-colors border flex items-center gap-1 ${
                             isComp
                               ? 'bg-amber-50 text-amber-900 border-amber-200 hover:bg-amber-100'
                               : 'bg-emerald-50 text-emerald-900 border-emerald-200 hover:bg-emerald-100'
@@ -392,7 +392,7 @@ function EventForm({ event, isCreating, onSave, onDelete, onClose }: {
           <button
             type="button"
             onClick={() => setForm({ ...form, event_type: 'competition', registration_required: true })}
-            className={`p-3 rounded-xl border text-left flex flex-col gap-1 transition-all cursor-pointer ${
+            className={`p-3 rounded-xl border text-left flex flex-col gap-1 transition-colors cursor-pointer ${
               form.event_type === 'competition'
                 ? 'border-amber-400 bg-amber-50/80 text-amber-900 ring-2 ring-amber-300/50'
                 : 'border-gray-200 bg-white hover:bg-gray-50 text-gray-700'
@@ -409,7 +409,7 @@ function EventForm({ event, isCreating, onSave, onDelete, onClose }: {
           <button
             type="button"
             onClick={() => setForm({ ...form, event_type: 'general' })}
-            className={`p-3 rounded-xl border text-left flex flex-col gap-1 transition-all cursor-pointer ${
+            className={`p-3 rounded-xl border text-left flex flex-col gap-1 transition-colors cursor-pointer ${
               form.event_type !== 'competition'
                 ? 'border-emerald-500 bg-emerald-50/80 text-emerald-900 ring-2 ring-emerald-300/50'
                 : 'border-gray-200 bg-white hover:bg-gray-50 text-gray-700'

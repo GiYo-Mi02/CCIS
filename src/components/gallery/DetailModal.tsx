@@ -121,14 +121,14 @@ export default function DetailModal({
                   <>
                     <button
                       onClick={() => onEdit(item)}
-                      className="px-3.5 py-2 bg-white border border-stone-200 text-stone-700 rounded-xl hover:bg-stone-50 text-xs font-bold shadow-sm transition-all flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E] cursor-pointer"
+                      className="px-3.5 py-2 bg-white border border-stone-200 text-stone-700 rounded-xl hover:bg-stone-50 text-xs font-bold shadow-sm transition-colors flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E] cursor-pointer"
                     >
                       <Edit size={12} className="text-[#1A3C2E]" />
                       Edit ↗
                     </button>
                     <button
                       onClick={() => setDeleteConfirmId(item.id)}
-                      className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-rose-500 cursor-pointer"
+                      className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-sm transition-colors flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-rose-500 cursor-pointer"
                     >
                       <Trash2 size={12} />
                       Delete
@@ -174,7 +174,7 @@ export default function DetailModal({
                   <button
                     key={imgUrl}
                     onClick={() => setFeaturedImage(imgUrl)}
-                    className={`relative w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 bg-black border-2 transition-all cursor-pointer ${
+                    className={`relative w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 bg-black border-2 transition-colors cursor-pointer ${
                       featuredImage === imgUrl 
                         ? 'border-[#1A3C2E] scale-95 ring-2 ring-[#1A3C2E]/20' 
                         : 'border-white/50 hover:border-[#1A3C2E]/40 opacity-80 hover:opacity-100'

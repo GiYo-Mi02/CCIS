@@ -110,7 +110,7 @@ export default function NavBar({ activeTab, setActiveTab, isUmakTheme = false }:
 
   return (
     <nav 
-      className={`z-50 w-full text-[#FAF7EA] shrink-0 transition-all duration-500 ${
+      className={`z-50 w-full text-[#FAF7EA] shrink-0 transition-colors duration-500 ${
         isPatch
           ? 'absolute top-0 left-0 right-0 bg-gradient-to-b from-black/80 via-black/35 to-transparent border-b border-white/10 backdrop-blur-[2px]'
           : isUmakTheme 
@@ -156,7 +156,7 @@ export default function NavBar({ activeTab, setActiveTab, isUmakTheme = false }:
               <button
                 key={item.id}
                 onClick={() => handleNavClick(item.id)}
-                className={`relative py-1 text-xs font-bold uppercase tracking-widest transition-all duration-300 ${
+                className={`relative py-1 text-xs font-bold uppercase tracking-widest transition-colors duration-300 ${
                   activeTab === item.id 
                     ? 'text-[#F5B400] border-b border-[#F5B400]' 
                     : 'text-[#FAF7EA] hover:text-[#F5B400]'
@@ -175,7 +175,7 @@ export default function NavBar({ activeTab, setActiveTab, isUmakTheme = false }:
               <div className="relative" ref={userMenuRef}>
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full pl-1 pr-3 py-1 transition-all relative"
+                  className="flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full pl-1 pr-3 py-1 transition-colors relative"
                   id="nav-user-menu-toggle"
                 >
                   <div className="w-7 h-7 rounded-full overflow-hidden bg-white/10 border border-[#F5B400]/40 flex items-center justify-center flex-shrink-0">
@@ -275,7 +275,7 @@ export default function NavBar({ activeTab, setActiveTab, isUmakTheme = false }:
 
       {/* Mobile Drawer */}
       <div
-        className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out border-t border-[#F5B400]/10 ${
+        className={`md:hidden overflow-hidden transition-colors duration-300 ease-in-out border-t border-[#F5B400]/10 ${
           mobileMenuOpen 
             ? `max-h-[500px] opacity-100 py-3 ${
                 isPatch 
@@ -293,7 +293,7 @@ export default function NavBar({ activeTab, setActiveTab, isUmakTheme = false }:
             <button
               key={item.id}
               onClick={() => handleNavClick(item.id)}
-              className={`w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium tracking-wide transition-all ${
+              className={`w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium tracking-wide transition-colors ${
                 activeTab === item.id
                   ? 'bg-[#1A3C2E] text-[#F5B400] border-l-4 border-[#F5B400] font-semibold pl-3'
                   : 'text-white/80 hover:bg-white/5 hover:text-white'

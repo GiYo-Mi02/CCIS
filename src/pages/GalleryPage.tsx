@@ -300,7 +300,7 @@ export default function GalleryPage({ isAdmin = false }: GalleryPageProps) {
                 setShowAdminForm(!showAdminForm);
                 setEditTargetItem(null);
               }}
-              className="px-4 py-1.5 text-xs font-black uppercase tracking-wider text-[#1A3C2E] bg-[#FAF7EA] border border-white hover:bg-stone-100 rounded-full flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+              className="px-4 py-1.5 text-xs font-black uppercase tracking-wider text-[#1A3C2E] bg-[#FAF7EA] border border-white hover:bg-stone-100 rounded-full flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer"
             >
               {showAdminForm ? <X size={12} /> : <Plus size={12} />}
               {showAdminForm ? 'Close Form' : 'Upload Event Media'}
@@ -420,7 +420,7 @@ export default function GalleryPage({ isAdmin = false }: GalleryPageProps) {
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-4 py-2 text-xs font-bold rounded-full transition-all focus:outline-none focus:ring-2 focus:ring-[#1A3C2E]/40 focus:ring-offset-1 border ${
+                className={`px-4 py-2 text-xs font-bold rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1A3C2E]/40 focus:ring-offset-1 border ${
                   selectedCategory === cat
                     ? 'bg-[#1A3C2E] text-[#FAF7EA] border-[#1A3C2E] shadow-sm'
                     : 'bg-white text-[#5E6E64] border-stone-200/80 hover:bg-stone-50 hover:text-[#1A3C2E] cursor-pointer'
@@ -494,7 +494,7 @@ export default function GalleryPage({ isAdmin = false }: GalleryPageProps) {
                             alt={item.title}
                             width={800}
                             height={600}
-                            className="w-full h-auto object-cover transition-all duration-500 group-hover:scale-105 group-hover:brightness-75 group-hover:opacity-90"
+                            className="w-full h-auto object-cover transition-[background-color,border-color,color,box-shadow,transform] duration-500 group-hover:scale-105 group-hover:brightness-75 group-hover:opacity-90"
                             loading="lazy"
                           />
                           
@@ -560,7 +560,7 @@ export default function GalleryPage({ isAdmin = false }: GalleryPageProps) {
                                     setEditTargetItem(item);
                                     setShowAdminForm(true);
                                   }}
-                                  className="p-1.5 bg-white hover:bg-stone-50 text-stone-700 rounded-lg shadow-md transition-all hover:scale-105 border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E] cursor-pointer"
+                                  className="p-1.5 bg-white hover:bg-stone-50 text-stone-700 rounded-lg shadow-md transition-[background-color,border-color,color,box-shadow,transform] hover:scale-105 border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E] cursor-pointer"
                                   title="Edit Item"
                                 >
                                   <Edit size={12} />
@@ -570,7 +570,7 @@ export default function GalleryPage({ isAdmin = false }: GalleryPageProps) {
                                     e.stopPropagation();
                                     setDeleteConfirmId(item.id);
                                   }}
-                                  className="p-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg shadow-md transition-all hover:scale-105 border border-rose-500 focus:outline-none focus:ring-2 focus:ring-rose-500 cursor-pointer"
+                                  className="p-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg shadow-md transition-[background-color,border-color,color,box-shadow,transform] hover:scale-105 border border-rose-500 focus:outline-none focus:ring-2 focus:ring-rose-500 cursor-pointer"
                                   title="Delete Item"
                                 >
                                   <Trash2 size={12} />

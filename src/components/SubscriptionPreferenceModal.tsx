@@ -93,7 +93,7 @@ export default function SubscriptionPreferenceModal({
                 onChange={(e) => setSubsubscribed(e.target.checked)}
                 className="peer sr-only"
               />
-              <div className="w-5 h-5 border-2 border-zinc-300 rounded-md bg-white peer-checked:bg-[var(--color-primary-green,#1A3C2E)] peer-checked:border-[var(--color-primary-green,#1A3C2E)] transition-all flex items-center justify-center">
+              <div className="w-5 h-5 border-2 border-zinc-300 rounded-md bg-white peer-checked:bg-[var(--color-primary-green,#1A3C2E)] peer-checked:border-[var(--color-primary-green,#1A3C2E)] transition-colors flex items-center justify-center">
                 <Check size={14} className="text-white opacity-0 peer-checked:opacity-100 transition-opacity stroke-[3]" />
               </div>
             </div>
@@ -119,7 +119,7 @@ export default function SubscriptionPreferenceModal({
           <button
             type="submit"
             disabled={saving}
-            className="w-full bg-[#F5B400] hover:bg-[#ffc522] text-[#1A3C2E] py-3 rounded-xl font-sans font-bold text-xs uppercase tracking-wider shadow-md transition-all active:scale-98 flex items-center justify-center gap-1.5 disabled:opacity-60 cursor-pointer"
+            className="w-full bg-[#F5B400] hover:bg-[#ffc522] text-[#1A3C2E] py-3 rounded-xl font-sans font-bold text-xs uppercase tracking-wider shadow-md transition-[background-color,transform,opacity] active:scale-98 flex items-center justify-center gap-1.5 disabled:opacity-60 cursor-pointer"
           >
             {saving ? (
               <>
