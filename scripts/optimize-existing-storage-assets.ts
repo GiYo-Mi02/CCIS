@@ -165,22 +165,34 @@ function optimizedPath(oldPath: string, buffer: Buffer, label = 'main'): string 
     .join('/');
 }
 
-async function updateReferences(db: Client, oldUrl: string, newUrl: string): Promise<Record<string, number>> {
+async function updateReferences(
+  db: Client,
+  oldUrl: string,
+  mainUrl: string,
+  thumbnailUrl: string | null,
+  category: Category,
+): Promise<Record<string, number>> {
   const statements = [
-    ['officers.photo_url', 'update public.officers set photo_url = $2 where photo_url = $1'],
-    ['gallery_items.image_url', 'update public.gallery_items set image_url = $2 where image_url = $1'],
-    ['gallery_items.thumbnails', 'update public.gallery_items set thumbnails = array_replace(thumbnails, $1, $2) where $1 = any(thumbnails)'],
-    ['announcements.banner_url', 'update public.announcements set banner_url = $2 where banner_url = $1'],
-    ['events.banner_url', 'update public.events set banner_url = $2 where banner_url = $1'],
-    ['patch_videos.thumbnail_url', 'update public.patch_videos set thumbnail_url = $2 where thumbnail_url = $1'],
-    ['transparency_reports.thumbnail_url', 'update public.transparency_reports set thumbnail_url = $2 where thumbnail_url = $1'],
+    ['officers.photo_url', 'update public.officers set photo_url = $2 where photo_url = $1', mainUrl],
+    ['gallery_items.image_url', 'update public.gallery_items set image_url = $2 where image_url = $1', mainUrl],
+    ['announcements.banner_url', 'update public.announcements set banner_url = $2 where banner_url = $1', mainUrl],
+    ['events.banner_url', 'update public.events set banner_url = $2 where banner_url = $1', mainUrl],
+    ['patch_videos.thumbnail_url', 'update public.patch_videos set thumbnail_url = $2 where thumbnail_url = $1', mainUrl],
+    ['transparency_reports.thumbnail_url', 'update public.transparency_reports set thumbnail_url = $2 where thumbnail_url = $1', mainUrl],
   ] as const;
   const updated: Record<string, number> = {};
   await db.query('begin');
   try {
-    for (const [label, sql] of statements) {
-      const result = await db.query(sql, [oldUrl, newUrl]);
+    for (const [label, sql, replacement] of statements) {
+      const result = await db.query(sql, [oldUrl, replacement]);
       if ((result.rowCount || 0) > 0) updated[label] = result.rowCount || 0;
+    }
+    if (category === 'gallery' && thumbnailUrl) {
+      const result = await db.query(
+        'update public.gallery_items set thumbnails = array_replace(thumbnails, $1, $2) where $1 = any(thumbnails)',
+        [oldUrl, thumbnailUrl],
+      );
+      if ((result.rowCount || 0) > 0) updated['gallery_items.thumbnails'] = result.rowCount || 0;
     }
     await db.query('commit');
   } catch (error) {
@@ -259,8 +271,12 @@ async function main() {
         const { data: verified, error: verifyError } = await admin.storage.from(options.bucket).download(newPath);
         if (verifyError || !verified || verified.size !== mainImage.buffer.length) throw verifyError || new Error('Uploaded object size verification failed.');
         const oldUrl = admin.storage.from(options.bucket).getPublicUrl(object.path).data.publicUrl;
-        const newUrl = admin.storage.from(options.bucket).getPublicUrl(newPath).data.publicUrl;
-        const updatedDatabaseRecords = await updateReferences(db!, oldUrl, newUrl);
+        const mainUrl = admin.storage.from(options.bucket).getPublicUrl(newPath).data.publicUrl;
+        const thumbnailPath = variants.find(variant => variant.label === 'thumbnail')?.path;
+        const thumbnailUrl = thumbnailPath
+          ? admin.storage.from(options.bucket).getPublicUrl(thumbnailPath).data.publicUrl
+          : null;
+        const updatedDatabaseRecords = await updateReferences(db!, oldUrl, mainUrl, thumbnailUrl, category);
         records.push({
           ...dryRecord,
           newPath,
