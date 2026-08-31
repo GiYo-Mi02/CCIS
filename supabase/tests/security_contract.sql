@@ -74,6 +74,7 @@ BEGIN
       'list_registration_admin_rows',
       'lookup_attendance_profile',
       'lookup_event_registration',
+      'mark_media_asset_cleanup',
       'mark_conversation_messages_read_by_student',
       'mark_messages_read_by_admin',
       'record_privacy_consent',
