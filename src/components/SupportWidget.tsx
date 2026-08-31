@@ -111,7 +111,7 @@ export default function SupportWidget({ onNavigate }: SupportWidgetProps) {
           setLoadError('Support chat could not be opened. Please try again.');
         }
       } finally {
-        setLoading((current) => cancelled ? current : false);
+        if (!cancelled) setLoading(false);
       }
     };
 

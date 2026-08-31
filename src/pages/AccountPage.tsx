@@ -200,7 +200,7 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
           }
         }
       } finally {
-        setLoadingData((current) => cancelled ? current : false);
+        if (!cancelled) setLoadingData(false);
       }
     };
 
@@ -249,7 +249,7 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
       } catch (err) {
         console.error('Unexpected error fetching conversation/messages:', err);
       } finally {
-        setMessagesLoading((current) => cancelled ? current : false);
+        if (!cancelled) setMessagesLoading(false);
       }
     };
 
