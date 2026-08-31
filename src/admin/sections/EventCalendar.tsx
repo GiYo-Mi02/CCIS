@@ -323,7 +323,7 @@ function EventForm({ event, isCreating, onSave, onDelete, onClose }: {
     <div className="space-y-4">
       {/* Event Banner Image Upload */}
       <div>
-        <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Event Banner Image</label>
+        <label htmlFor="event-banner" className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Event Banner Image</label>
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-lg bg-gray-50 border border-gray-200 overflow-hidden flex items-center justify-center relative flex-shrink-0">
             {form.banner_url ? (
@@ -339,6 +339,7 @@ function EventForm({ event, isCreating, onSave, onDelete, onClose }: {
           </div>
           <div className="space-y-1 flex-1 font-sans">
             <input 
+              id="event-banner"
               type="file" 
               accept="image/*" 
               ref={fileInputRef} 
@@ -370,24 +371,24 @@ function EventForm({ event, isCreating, onSave, onDelete, onClose }: {
       </div>
 
       <div>
-        <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Title</label>
-        <input type="text" value={form.title || ''} onChange={(e) => setForm({ ...form, title: e.target.value })} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400]" />
+        <label htmlFor="event-title" className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Title</label>
+        <input id="event-title" type="text" value={form.title || ''} onChange={(e) => setForm({ ...form, title: e.target.value })} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400]" />
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Date</label>
-          <input type="date" value={form.event_date || ''} onChange={(e) => setForm({ ...form, event_date: e.target.value })} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400]" />
+          <label htmlFor="event-date" className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Date</label>
+          <input id="event-date" type="date" value={form.event_date || ''} onChange={(e) => setForm({ ...form, event_date: e.target.value })} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400]" />
         </div>
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Time (optional)</label>
-          <input type="text" value={form.event_time || ''} onChange={(e) => setForm({ ...form, event_time: e.target.value })} placeholder="e.g. 2:00 PM" className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400]" />
+          <label htmlFor="event-time" className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Time (optional)</label>
+          <input id="event-time" type="text" value={form.event_time || ''} onChange={(e) => setForm({ ...form, event_time: e.target.value })} placeholder="e.g. 2:00 PM" className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400]" />
         </div>
       </div>
       {/* Event Classification Selection */}
-      <div>
-        <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">
+      <fieldset>
+        <legend className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">
           Event Classification
-        </label>
+        </legend>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <button
             type="button"
@@ -423,34 +424,34 @@ function EventForm({ event, isCreating, onSave, onDelete, onClose }: {
             </span>
           </button>
         </div>
-      </div>
+      </fieldset>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Category Priority</label>
-          <select value={form.category || 'general'} onChange={(e) => setForm({ ...form, category: e.target.value as any })} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400]">
+          <label htmlFor="event-category" className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Category Priority</label>
+          <select id="event-category" value={form.category || 'general'} onChange={(e) => setForm({ ...form, category: e.target.value as any })} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400]">
             <option value="general">Standard Schedule</option>
             <option value="priority">Priority / Critical Deadline</option>
           </select>
         </div>
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Location</label>
-          <input type="text" value={form.location || ''} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="e.g. HPSB Hall 1 / Online" className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400]" />
+          <label htmlFor="event-location" className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Location</label>
+          <input id="event-location" type="text" value={form.location || ''} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="e.g. HPSB Hall 1 / Online" className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400]" />
         </div>
       </div>
       <div>
-        <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Description</label>
-        <textarea value={form.description || ''} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400] resize-none" />
+        <label htmlFor="event-description" className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Description</label>
+        <textarea id="event-description" value={form.description || ''} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400] resize-none" />
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div className="flex items-center gap-2">
-          <input type="checkbox" checked={form.registration_required || false} onChange={(e) => setForm({ ...form, registration_required: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-[#F5B400] focus:ring-[#F5B400]" />
-          <label className="text-xs font-bold text-[#222B26]">Participant Form Required</label>
+          <input id="event-registration-required" type="checkbox" checked={form.registration_required || false} onChange={(e) => setForm({ ...form, registration_required: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-[#F5B400] focus:ring-[#F5B400]" />
+          <label htmlFor="event-registration-required" className="text-xs font-bold text-[#222B26]">Participant Form Required</label>
         </div>
         {form.registration_required && (
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Slot Cap (optional)</label>
-            <input type="number" value={form.registration_cap || ''} onChange={(e) => setForm({ ...form, registration_cap: e.target.value ? Number(e.target.value) : null })} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400]" />
+            <label htmlFor="event-registration-cap" className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Slot Cap (optional)</label>
+            <input id="event-registration-cap" type="number" value={form.registration_cap || ''} onChange={(e) => setForm({ ...form, registration_cap: e.target.value ? Number(e.target.value) : null })} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400]" />
           </div>
         )}
       </div>

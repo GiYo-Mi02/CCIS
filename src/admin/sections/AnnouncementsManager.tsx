@@ -170,6 +170,7 @@ export default function AnnouncementsManager() {
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
+              aria-label="Search announcements"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search announcements..."
@@ -177,6 +178,7 @@ export default function AnnouncementsManager() {
             />
           </div>
           <select
+            aria-label="Filter announcements by status"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#F5B400] text-[#222B26] w-full sm:w-auto"
@@ -355,15 +357,15 @@ function AnnouncementForm({ announcement, isCreating, onSave, onClose }: {
     <Modal isOpen={true} onClose={handleClose} title={isCreating ? 'New Announcement' : 'Edit Announcement'}>
       <div className="space-y-5">
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Title</label>
-          <input type="text" value={title} onChange={(e) => setTitle(e.target.value)}
+          <label htmlFor="announcement-title" className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Title</label>
+          <input id="announcement-title" type="text" value={title} onChange={(e) => setTitle(e.target.value)}
             className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400]"
             placeholder="Announcement title..." />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Category</label>
-            <select value={category} onChange={(e) => setCategory(e.target.value as any)}
+            <label htmlFor="announcement-category" className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Category</label>
+            <select id="announcement-category" value={category} onChange={(e) => setCategory(e.target.value as any)}
               className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400]">
               <option value="event">Event</option>
               <option value="deadline">Deadline</option>
@@ -372,7 +374,7 @@ function AnnouncementForm({ announcement, isCreating, onSave, onClose }: {
             </select>
           </div>
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Banner Image</label>
+            <label htmlFor="announcement-banner" className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Banner Image</label>
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-lg bg-gray-50 border border-gray-200 overflow-hidden flex items-center justify-center relative flex-shrink-0">
                 {bannerUrl ? (
@@ -389,6 +391,7 @@ function AnnouncementForm({ announcement, isCreating, onSave, onClose }: {
               </div>
               <div className="space-y-1 flex-1 font-sans">
                 <input 
+                  id="announcement-banner"
                   type="file" 
                   accept="image/*" 
                   ref={fileInputRef} 
@@ -420,8 +423,8 @@ function AnnouncementForm({ announcement, isCreating, onSave, onClose }: {
           </div>
         </div>
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Content</label>
-          <textarea value={content} onChange={(e) => setContent(e.target.value)} rows={5}
+          <label htmlFor="announcement-content" className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Content</label>
+          <textarea id="announcement-content" value={content} onChange={(e) => setContent(e.target.value)} rows={5}
             className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400] resize-none"
             placeholder="Write announcement content..." />
         </div>
