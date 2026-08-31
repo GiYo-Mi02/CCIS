@@ -1146,10 +1146,11 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
                         </div>
                       ) : (
                         registrations.map(reg => (
-                          <div 
+                          <button
                             key={reg.id} 
+                            type="button"
                             onClick={() => setActiveTicket(reg)}
-                            className="bg-white rounded-2xl border border-[#1A3C2E]/25 p-5 shadow-xs hover:shadow-md hover:border-[#1A3C2E]/60 cursor-pointer select-none transition-[background-color,border-color,color,box-shadow] duration-200"
+                            className="w-full bg-white rounded-2xl border border-[#1A3C2E]/25 p-5 shadow-xs hover:shadow-md hover:border-[#1A3C2E]/60 cursor-pointer select-none text-left transition-[background-color,border-color,color,box-shadow] duration-200"
                           >
                             <div className="flex items-center justify-between gap-2 flex-wrap mb-2">
                               <h3 className="font-marcellus text-base text-[#1A3C2E]">
@@ -1169,7 +1170,7 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
                               {reg.events?.location && <span className="flex items-center gap-1"><MapPin size={11} /> {reg.events.location}</span>}
                               <span className="flex items-center gap-1"><Clock size={11} />Registered: {new Date(reg.registered_at).toLocaleDateString()}</span>
                             </div>
-                          </div>
+                          </button>
                         ))
                       )}
                     </div>
