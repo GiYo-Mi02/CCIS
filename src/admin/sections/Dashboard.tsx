@@ -57,6 +57,8 @@ export default function Dashboard() {
   const hasMessageAccess = profile && ['devcom_head', 'officer'].includes(profile.role);
 
   useEffect(() => {
+    let ignore = false;
+
     const fetchDashboard = async () => {
       const today = new Date().toISOString().split('T')[0];
 
@@ -115,6 +117,8 @@ export default function Dashboard() {
           }
         }
 
+        if (ignore) return;
+
         setStats({
           announcementsTotal: annTotal.count || 0,
           announcementsPublished: annPublished.count || 0,
@@ -141,11 +145,15 @@ export default function Dashboard() {
       } catch (err) {
         console.error('Error fetching dashboard stats:', err);
       } finally {
-        setLoading(false);
+        if (!ignore) setLoading(false);
       }
     };
 
     fetchDashboard();
+
+    return () => {
+      ignore = true;
+    };
   }, [hasMessageAccess]);
 
   if (loading) {
