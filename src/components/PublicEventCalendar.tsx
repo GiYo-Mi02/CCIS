@@ -381,12 +381,14 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
         <div className="flex items-center gap-1.5">
           <button
             onClick={handlePrevMonth}
+            aria-label="Previous month"
             className="p-1.5 rounded-full border border-[#123524]/20 text-stone-600 hover:bg-zinc-50 transition-colors cursor-pointer"
           >
             <ChevronLeft size={16} />
           </button>
           <button
             onClick={handleNextMonth}
+            aria-label="Next month"
             className="p-1.5 rounded-full border border-[#123524]/20 text-stone-600 hover:bg-zinc-50 transition-colors cursor-pointer"
           >
             <ChevronRight size={16} />

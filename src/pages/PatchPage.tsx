@@ -1312,6 +1312,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                         <input
                           type="range"
                           min="0"
+                          aria-label="Seek video"
                           max={duration || 100}
                           value={currentTime}
                           onChange={handleSeek}
@@ -1332,6 +1333,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                           {/* Play/Pause */}
                           <button
                             onClick={togglePlay}
+                            aria-label={isPlaying ? 'Pause video' : 'Play video'}
                             className="text-white hover:text-[#F5B400] transition-colors cursor-pointer outline-none flex items-center justify-center"
                           >
                             {isPlaying ? <Pause size={20} className="fill-current" /> : <Play size={20} className="fill-current" />}
@@ -1361,6 +1363,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                           <div className="flex items-center gap-2 group">
                             <button
                               onClick={toggleMute}
+                              aria-label={isMuted ? 'Unmute video' : 'Mute video'}
                               className="text-white hover:text-[#F5B400] transition-colors cursor-pointer outline-none flex items-center justify-center"
                             >
                               {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
@@ -1368,6 +1371,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                             <input
                               type="range"
                               min="0"
+                              aria-label="Adjust video volume"
                               max="1"
                               step="0.05"
                               value={isMuted ? 0 : volume}
@@ -1657,6 +1661,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
               </h3>
               <button
                  onClick={() => dispatchForm({ type: 'close' })}
+                 aria-label="Close publish video form"
                 className="text-stone-400 hover:text-white p-1 rounded-full hover:bg-white/5 transition-colors cursor-pointer"
                 disabled={formSubmitting}
               >
