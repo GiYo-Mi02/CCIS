@@ -16,47 +16,29 @@ export function usePolling(
   }, [callback]);
 
   useEffect(() => {
-    let intervalId: any = null;
-
     const tick = () => {
       savedCallback.current();
     };
 
-    const start = () => {
-      if (!intervalId) {
-        tick(); // Trigger immediate execution on start/resume
-        intervalId = setInterval(tick, intervalMs);
-      }
-    };
-
-    const stop = () => {
-      if (intervalId) {
-        clearInterval(intervalId);
-        intervalId = null;
-      }
-    };
-
     const handleVisibilityChange = () => {
-      if (options.pauseWhenHidden) {
-        if (document.hidden) {
-          stop();
-        } else {
-          start();
-        }
+      if (options.pauseWhenHidden && !document.hidden) {
+        tick();
       }
     };
 
-    // Initialize polling if visible
     if (!options.pauseWhenHidden || !document.hidden) {
-      start();
+      tick();
     }
+    const intervalId = setInterval(() => {
+      if (!options.pauseWhenHidden || !document.hidden) tick();
+    }, intervalMs);
 
     if (options.pauseWhenHidden) {
       document.addEventListener('visibilitychange', handleVisibilityChange);
     }
 
     return () => {
-      stop();
+      clearInterval(intervalId);
       if (options.pauseWhenHidden) {
         document.removeEventListener('visibilitychange', handleVisibilityChange);
       }

@@ -78,18 +78,17 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
           const intervalTime = 30; // ms
           const step = 100 / (duration / intervalTime);
           
+          let progress = 0;
           const timer = setInterval(() => {
-            setTransitionProgress((prev) => {
-              if (prev >= 100) {
-                clearInterval(timer);
-                setTransitionComplete(true);
-                if (onNavigate) {
-                  onNavigate('home');
-                }
-                return 100;
-              }
-              return prev + step;
-            });
+            progress += step;
+            if (progress >= 100) {
+              clearInterval(timer);
+              setTransitionProgress(100);
+              setTransitionComplete(true);
+              onNavigate?.('home');
+            } else {
+              setTransitionProgress(progress);
+            }
           }, intervalTime);
 
           return () => clearInterval(timer);
