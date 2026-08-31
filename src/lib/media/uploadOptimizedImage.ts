@@ -89,16 +89,42 @@ export function getManagedImagePaths(asset: MediaAsset): string[] {
   return [...new Set(allPaths.filter(isManagedImagePath))];
 }
 
+async function updateCleanupState(
+  bucket: string,
+  mainPath: string,
+  cleanupStatus: 'pending' | 'failed',
+  cleanupError: string | null,
+): Promise<void> {
+  const { error } = await supabase
+    .from('media_assets')
+    .update({
+      cleanup_status: cleanupStatus,
+      cleanup_requested_at: new Date().toISOString(),
+      cleanup_error: cleanupError,
+    })
+    .eq('bucket', bucket)
+    .eq('storage_path', mainPath);
+  if (error) throw error;
+}
+
 async function deleteManagedPaths(bucket: string, mainPath: string, paths: string[]): Promise<void> {
+  await updateCleanupState(bucket, mainPath, 'pending', null);
+
   const { error: storageError } = await supabase.storage.from(bucket).remove(paths);
-  if (storageError) throw new Error(`Optimized image cleanup failed: ${storageError.message}`);
+  if (storageError) {
+    await updateCleanupState(bucket, mainPath, 'failed', storageError.message).catch(() => undefined);
+    throw new Error(`Optimized image cleanup failed: ${storageError.message}`);
+  }
 
   const { error: metadataError } = await supabase
     .from('media_assets')
     .delete()
     .eq('bucket', bucket)
     .eq('storage_path', mainPath);
-  if (metadataError) throw new Error(`Image metadata cleanup failed: ${metadataError.message}`);
+  if (metadataError) {
+    await updateCleanupState(bucket, mainPath, 'failed', metadataError.message).catch(() => undefined);
+    throw new Error(`Image metadata cleanup failed: ${metadataError.message}`);
+  }
 }
 
 export async function deleteManagedOptimizedImage(asset: MediaAsset): Promise<void> {
