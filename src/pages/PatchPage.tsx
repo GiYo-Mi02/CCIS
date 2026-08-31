@@ -2,12 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Play, Pause, Plus, Edit, Trash2, X, FileVideo, Loader2, Eye, Film, ArrowLeft, Volume2, VolumeX, Maximize, Minimize, RotateCcw, RotateCw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import {
-  deleteManagedOptimizedImage,
-  deleteManagedOptimizedImageByUrl,
-  uploadOptimizedImage,
-  type MediaAsset,
-} from '../lib/media';
+import { deleteManagedOptimizedImage, deleteManagedOptimizedImageByUrl, uploadOptimizedImage } from '../lib/media/uploadOptimizedImage';
+import type { MediaAsset } from '../lib/media/types';
 import CouncilSeal from '../components/CouncilSeal';
 
 export interface PatchVideo {

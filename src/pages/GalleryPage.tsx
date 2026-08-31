@@ -2,10 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Camera, Edit, Trash2, Plus, X, Maximize2, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import {
-  deleteManagedOptimizedImageByUrl,
-  getManagedImagePathsFromUrl,
-} from '../lib/media';
+import { deleteManagedOptimizedImageByUrl } from '../lib/media/uploadOptimizedImage';
+import { getManagedImagePathsFromUrl } from '../lib/media/managedPaths';
 
 // Types & Sub-components
 import { GalleryItem, GalleryCategory, Toast } from '../types/gallery';
@@ -482,7 +480,7 @@ export default function GalleryPage({ isAdmin = false }: GalleryPageProps) {
                         onDragOver={(e) => handleDragOver(e)}
                         onDrop={(e) => handleDrop(e, item.id)}
                         onDragEnd={handleDragEnd}
-                        className={`group relative overflow-hidden rounded-2xl bg-white border border-[#1A3C2E]/25 shadow-xs transition-all duration-300 hover:shadow-xl hover:border-[#1A3C2E] hover:-translate-y-2 focus-within:ring-2 focus-within:ring-[#1A3C2E] cursor-grab active:cursor-grabbing ${
+                        className={`group relative overflow-hidden rounded-2xl bg-white border border-[#1A3C2E]/25 shadow-xs transition-[box-shadow,border-color,transform] duration-300 hover:shadow-xl hover:border-[#1A3C2E] hover:-translate-y-2 focus-within:ring-2 focus-within:ring-[#1A3C2E] cursor-grab active:cursor-grabbing ${
                           draggedItemId === item.id ? 'opacity-40 border-dashed border-2 border-[#1A3C2E]' : ''
                         }`}
                         onClick={() => setDetailItem(item)}

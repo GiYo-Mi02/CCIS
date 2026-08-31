@@ -64,10 +64,11 @@ export async function uploadOptimizedImage(
     body: JSON.stringify({ sourcePath, ...options }),
     signal: AbortSignal.timeout(PROCESSING_TIMEOUT_MS),
   });
-  const payload = await response.json().catch(() => null) as OptimizeApiEnvelope | null;
   if (!response.ok) {
+    const payload = await response.json().catch(() => null) as OptimizeApiEnvelope | null;
     throw new Error(payload?.error?.message || 'The image could not be optimized.');
   }
+  const payload = await response.json().catch(() => null) as OptimizeApiEnvelope | null;
   if (!isUploadResult(payload?.data)) {
     throw new Error('The image service returned an invalid response.');
   }

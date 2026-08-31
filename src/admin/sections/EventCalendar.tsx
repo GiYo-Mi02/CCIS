@@ -1,10 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import {
-  deleteManagedOptimizedImage,
-  deleteManagedOptimizedImageByUrl,
-  uploadOptimizedImage,
-  type MediaAsset,
-} from '../../lib/media';
+import { deleteManagedOptimizedImage, deleteManagedOptimizedImageByUrl, uploadOptimizedImage } from '../../lib/media/uploadOptimizedImage';
+import type { MediaAsset } from '../../lib/media/types';
 import { ChevronLeft, ChevronRight, Plus, List, Grid3X3, Trash, Trophy, GraduationCap, Image as ImageIcon, Calendar as CalendarIcon, Clock, MapPin } from 'lucide-react';
 import { useAdmin } from '../AdminContext';
 import { useAuth } from '../../context/AuthContext';

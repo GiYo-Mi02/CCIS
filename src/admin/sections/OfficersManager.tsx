@@ -5,12 +5,8 @@ import { supabase } from '../../lib/supabase';
 import { Officer, Committee } from '../../types/database';
 import Modal from '../components/Modal';
 import EmptyState from '../components/EmptyState';
-import {
-  deleteManagedOptimizedImage,
-  deleteManagedOptimizedImageByUrl,
-  uploadOptimizedImage,
-  type MediaAsset,
-} from '../../lib/media';
+import { deleteManagedOptimizedImage, deleteManagedOptimizedImageByUrl, uploadOptimizedImage } from '../../lib/media/uploadOptimizedImage';
+import type { MediaAsset } from '../../lib/media/types';
 
 type Tab = 'officers' | 'committees';
 
