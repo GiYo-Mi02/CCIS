@@ -176,6 +176,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
   const [formEpisodeNumber, setFormEpisodeNumber] = useState<string>('1');
   const [formFacebookPermalink, setFormFacebookPermalink] = useState('');
   const [formThumbnailUrl, setFormThumbnailUrl] = useState('');
+  const formThumbnailObjectUrlRef = useRef<string | null>(null);
   const [formIsFeatured, setFormIsFeatured] = useState<boolean>(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [formSubmitting, setFormSubmitting] = useState(false);
@@ -184,6 +185,15 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
   const [formSourceType, setFormSourceType] = useState<'facebook' | 'direct' | 'upload'>('facebook');
   const [formVideoUrl, setFormVideoUrl] = useState<string>('');
   const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (formThumbnailObjectUrlRef.current) {
+        URL.revokeObjectURL(formThumbnailObjectUrlRef.current);
+        formThumbnailObjectUrlRef.current = null;
+      }
+    };
+  }, []);
 
   // Autoplay-on-hover & Carousel logic states & refs
   const [hoveredItem, setHoveredItem] = useState<{ id: string; type: 'hero' | 'card' } | null>(null);
@@ -627,6 +637,10 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
 
   // Initialize form for adding / editing
   const openForm = (video: PatchVideo | null = null) => {
+    if (formThumbnailObjectUrlRef.current) {
+      URL.revokeObjectURL(formThumbnailObjectUrlRef.current);
+      formThumbnailObjectUrlRef.current = null;
+    }
     if (video) {
       setEditTarget(video);
       setFormTitle(video.title);
@@ -680,8 +694,13 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
         triggerToast('Thumbnail image cannot exceed 5MB.', 'error');
         return;
       }
+      if (formThumbnailObjectUrlRef.current) {
+        URL.revokeObjectURL(formThumbnailObjectUrlRef.current);
+      }
+      const previewUrl = URL.createObjectURL(file);
+      formThumbnailObjectUrlRef.current = previewUrl;
       setSelectedFile(file);
-      setFormThumbnailUrl(URL.createObjectURL(file));
+      setFormThumbnailUrl(previewUrl);
     }
   };
 
