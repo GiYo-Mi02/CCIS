@@ -180,24 +180,27 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
 
     const fetchData = async () => {
       setLoadingData(true);
-      const { data, error } = await supabase
-        .from('event_registrations')
-        .select('id, event_id, profile_id, status, registered_at, attended_at, attendance_origin, events(title, event_date, location)')
-        .eq('profile_id', user.id)
-        .order('registered_at', { ascending: false })
-        .limit(20);
+      try {
+        const { data, error } = await supabase
+          .from('event_registrations')
+          .select('id, event_id, profile_id, status, registered_at, attended_at, attendance_origin, events(title, event_date, location)')
+          .eq('profile_id', user.id)
+          .order('registered_at', { ascending: false })
+          .limit(20);
 
-      if (!cancelled) {
-        if (error) {
-          console.error('Error fetching registrations:', error.message);
-        } else {
-          const normalized = (data || []).map(row => ({
-            ...row,
-            events: Array.isArray(row.events) ? (row.events[0] || null) : row.events,
-          }));
-          setRegistrations(normalized as unknown as EventRegistration[]);
+        if (!cancelled) {
+          if (error) {
+            console.error('Error fetching registrations:', error.message);
+          } else {
+            const normalized = (data || []).map(row => ({
+              ...row,
+              events: Array.isArray(row.events) ? (row.events[0] || null) : row.events,
+            }));
+            setRegistrations(normalized as unknown as EventRegistration[]);
+          }
         }
-        setLoadingData(false);
+      } finally {
+        setLoadingData((current) => cancelled ? current : false);
       }
     };
 
@@ -246,9 +249,7 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
       } catch (err) {
         console.error('Unexpected error fetching conversation/messages:', err);
       } finally {
-        if (!cancelled) {
-          setMessagesLoading(false);
-        }
+        setMessagesLoading((current) => cancelled ? current : false);
       }
     };
 
@@ -1247,7 +1248,6 @@ function TicketDashboard({ registration }: { registration: Registration; key?: s
       const element = document.getElementById(`ticket-pass-${registration.id}`);
       if (!element) {
         console.error('Ticket element not found:', `ticket-pass-${registration.id}`);
-        setIsDownloading(false);
         return;
       }
 
@@ -1288,27 +1288,30 @@ function TicketDashboard({ registration }: { registration: Registration; key?: s
         },
       });
       
-      canvas.toBlob((blob) => {
-        if (!blob) {
-          console.error('Failed to create blob from canvas');
-          alert('Failed to download ticket. Please try the Print option instead.');
-          setIsDownloading(false);
-          return;
-        }
-        
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.download = `ticket-${registration.eventTitle.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${registration.id.slice(0, 8)}.png`;
-        link.href = url;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        setIsDownloading(false);
-      }, 'image/png');
+      await new Promise<void>((resolve) => {
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            console.error('Failed to create blob from canvas');
+            alert('Failed to download ticket. Please try the Print option instead.');
+            resolve();
+            return;
+          }
+
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.download = `ticket-${registration.eventTitle.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${registration.id.slice(0, 8)}.png`;
+          link.href = url;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+          resolve();
+        }, 'image/png');
+      });
     } catch (err) {
       console.error('Failed to export ticket as PNG:', err);
       alert('Failed to download ticket as PNG. Please try the Print option instead.');
+    } finally {
       setIsDownloading(false);
     }
   };

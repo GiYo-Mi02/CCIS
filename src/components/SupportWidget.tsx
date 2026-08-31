@@ -98,7 +98,6 @@ export default function SupportWidget({ onNavigate }: SupportWidgetProps) {
           console.error('Error fetching conversation:', error.message);
           if (!cancelled) {
             setLoadError('Support chat could not be opened. Please try again.');
-            setLoading(false);
           }
           return;
         }
@@ -110,8 +109,9 @@ export default function SupportWidget({ onNavigate }: SupportWidgetProps) {
         console.error('Unexpected conversation init error in widget:', err);
         if (!cancelled) {
           setLoadError('Support chat could not be opened. Please try again.');
-          setLoading(false);
         }
+      } finally {
+        setLoading((current) => cancelled ? current : false);
       }
     };
 
@@ -167,7 +167,7 @@ export default function SupportWidget({ onNavigate }: SupportWidgetProps) {
       console.error('Error loading support messages:', err);
       setLoadError('Messages could not be loaded. Please try again.');
     } finally {
-      if (currentOffset === 0) setLoading(false);
+      setLoading((current) => currentOffset === 0 ? false : current);
     }
   }, [conversation, scrollToBottom]);
 
