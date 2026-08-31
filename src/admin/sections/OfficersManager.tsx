@@ -10,6 +10,10 @@ import type { MediaAsset } from '../../lib/media/types';
 
 type Tab = 'officers' | 'committees';
 
+function revokeObjectUrl(url: string, ownedUrls: Set<string>) {
+  if (ownedUrls.delete(url)) URL.revokeObjectURL(url);
+}
+
 export default function OfficersManager() {
   const { showToast } = useAdmin();
   const [tab, setTab] = useState<Tab>('officers');
@@ -203,6 +207,7 @@ export default function OfficersManager() {
         {tab === 'officers' && (
           <div className="flex gap-2">
             <select 
+              aria-label="Academic year"
               value={selectedTerm} 
               onChange={(e) => setSelectedTerm(e.target.value)} 
               className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold uppercase tracking-wider text-gray-500 shadow-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400]"
@@ -212,6 +217,7 @@ export default function OfficersManager() {
               <option value="2024-2025">AY 2024-2025</option>
             </select>
             <select 
+              aria-label="Organization"
               value={selectedOrg} 
               onChange={(e) => setSelectedOrg(e.target.value)} 
               className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold uppercase tracking-wider text-gray-500 shadow-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400]"
@@ -285,8 +291,8 @@ export default function OfficersManager() {
                   <tr key={off.id} className="hover:bg-[#1A3C2E]/[0.02] transition-colors">
                     <td className="px-3 py-3">
                       <div className="flex flex-col items-center gap-0.5">
-                        <button disabled={idx === 0} onClick={() => moveOfficer(off.id, 'up')} className="text-gray-300 hover:text-gray-500 disabled:opacity-30 transition-colors"><ChevronUp size={14} /></button>
-                        <button disabled={idx === sortedOfficers.length - 1} onClick={() => moveOfficer(off.id, 'down')} className="text-gray-300 hover:text-gray-500 disabled:opacity-30 transition-colors"><ChevronDown size={14} /></button>
+                         <button aria-label={`Move ${off.name} up`} disabled={idx === 0} onClick={() => moveOfficer(off.id, 'up')} className="text-gray-300 hover:text-gray-500 disabled:opacity-30 transition-colors"><ChevronUp size={14} /></button>
+                         <button aria-label={`Move ${off.name} down`} disabled={idx === sortedOfficers.length - 1} onClick={() => moveOfficer(off.id, 'down')} className="text-gray-300 hover:text-gray-500 disabled:opacity-30 transition-colors"><ChevronDown size={14} /></button>
                       </div>
                     </td>
                     <td className="px-4 py-3">
@@ -299,8 +305,8 @@ export default function OfficersManager() {
                     <td className="px-4 py-3 text-gray-400 font-mono text-xs">{off.email}</td>
                     <td className="px-5 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <button onClick={() => { setIsCreating(false); setEditingOfficer(off); }} className="p-1.5 rounded-lg text-gray-400 hover:text-[#1A3C2E] hover:bg-gray-100 transition-colors"><Edit3 size={14} /></button>
-                         <button onClick={() => deleteOfficer(off.id)} disabled={deleting !== null} className="p-1.5 rounded-lg text-gray-400 hover:text-[#C0392B] hover:bg-red-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"><Trash2 size={14} /></button>
+                         <button aria-label={`Edit ${off.name}`} onClick={() => { setIsCreating(false); setEditingOfficer(off); }} className="p-1.5 rounded-lg text-gray-400 hover:text-[#1A3C2E] hover:bg-gray-100 transition-colors"><Edit3 size={14} /></button>
+                          <button aria-label={`Delete ${off.name}`} onClick={() => deleteOfficer(off.id)} disabled={deleting !== null} className="p-1.5 rounded-lg text-gray-400 hover:text-[#C0392B] hover:bg-red-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"><Trash2 size={14} /></button>
                       </div>
                     </td>
                   </tr>
@@ -323,8 +329,8 @@ export default function OfficersManager() {
                 <div className="flex items-start justify-between mb-3">
                   <h3 className="font-sans font-bold text-sm text-[#1A3C2E]">{comm.name}</h3>
                   <div className="flex items-center gap-1">
-                    <button onClick={() => { setIsCreating(false); setEditingCommittee(comm); }} className="p-1.5 rounded-lg text-gray-400 hover:text-[#1A3C2E] hover:bg-gray-100 transition-colors"><Edit3 size={13} /></button>
-                     <button onClick={() => deleteCommittee(comm.id)} disabled={deleting !== null} className="p-1.5 rounded-lg text-gray-400 hover:text-[#C0392B] hover:bg-red-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"><Trash2 size={13} /></button>
+                     <button aria-label={`Edit ${comm.name}`} onClick={() => { setIsCreating(false); setEditingCommittee(comm); }} className="p-1.5 rounded-lg text-gray-400 hover:text-[#1A3C2E] hover:bg-gray-100 transition-colors"><Edit3 size={13} /></button>
+                      <button aria-label={`Delete ${comm.name}`} onClick={() => deleteCommittee(comm.id)} disabled={deleting !== null} className="p-1.5 rounded-lg text-gray-400 hover:text-[#C0392B] hover:bg-red-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"><Trash2 size={13} /></button>
                   </div>
                 </div>
                 <p className="text-xs text-gray-500 leading-relaxed mb-3">{comm.description}</p>
@@ -364,16 +370,14 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
   const [isDragging, setIsDragging] = useState(false);
   const [photoInputMode, setPhotoInputMode] = useState<'upload' | 'link'>('upload');
   const [optimizationSummary, setOptimizationSummary] = useState<string | null>(null);
+  const ownedPreviewUrlsRef = useRef<Set<string>>(new Set());
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    return () => {
-      if (previewUrl && previewUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(previewUrl);
-      }
-    };
-  }, [previewUrl]);
+  useEffect(() => () => {
+    ownedPreviewUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+    ownedPreviewUrlsRef.current.clear();
+  }, []);
 
   const validateFile = (file: File): string | null => {
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
@@ -395,7 +399,9 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
       return;
     }
 
+    revokeObjectUrl(previewUrl, ownedPreviewUrlsRef.current);
     const objectUrl = URL.createObjectURL(file);
+    ownedPreviewUrlsRef.current.add(objectUrl);
     setSelectedFile(file);
     setPreviewUrl(objectUrl);
     setForm(prev => ({ ...prev, photo_url: objectUrl }));
@@ -421,6 +427,7 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
   };
 
   const handleRemovePhoto = () => {
+    revokeObjectUrl(previewUrl, ownedPreviewUrlsRef.current);
     setSelectedFile(null);
     setPreviewUrl('');
     setForm(prev => ({ ...prev, photo_url: '' }));
@@ -470,6 +477,7 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
       console.error('Error uploading officer photo:', err);
       showToast(err instanceof Error ? err.message : 'Failed to upload photo', 'error');
     } finally {
+      revokeObjectUrl(previewUrl, ownedPreviewUrlsRef.current);
       setIsUploading(false);
       setUploadProgress(null);
     }
@@ -478,11 +486,12 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
   return (
     <div className="space-y-4 text-left">
       <div>
-        <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">
+         <label htmlFor="officer-name" className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">
           Full Name <span className="text-rose-500">*</span>
         </label>
         <input
-          type="text"
+           id="officer-name"
+           type="text"
           value={form.name || ''}
           onChange={(e) => setForm({ ...form, name: e.target.value })}
           placeholder="e.g. Juan Dela Cruz"
@@ -492,9 +501,10 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Position</label>
+           <label htmlFor="officer-position" className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Position</label>
           <input
-            type="text"
+             id="officer-position"
+             type="text"
             value={form.position || ''}
             onChange={(e) => setForm({ ...form, position: e.target.value })}
             placeholder="e.g. Vice Chairperson"
@@ -502,9 +512,10 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
           />
         </div>
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Committee / Classification</label>
+           <label htmlFor="officer-committee" className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Committee / Classification</label>
           <select
-            value={form.committee_id || ''}
+             id="officer-committee"
+             value={form.committee_id || ''}
             onChange={(e) => setForm({ ...form, committee_id: e.target.value })}
             className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400]"
           >
@@ -516,9 +527,10 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Academic Year (Term)</label>
+           <label htmlFor="officer-term" className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Academic Year (Term)</label>
           <select
-            value={form.term || '2026-2027'}
+             id="officer-term"
+             value={form.term || '2026-2027'}
             onChange={(e) => setForm({ ...form, term: e.target.value })}
             className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400]"
           >
@@ -528,9 +540,10 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
           </select>
         </div>
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Organization</label>
+           <label htmlFor="officer-organization" className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Organization</label>
           <select
-            value={form.organization || 'Student Council'}
+             id="officer-organization"
+             value={form.organization || 'Student Council'}
             onChange={(e) => setForm({ ...form, organization: e.target.value })}
             className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400]"
           >
@@ -542,9 +555,10 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
       </div>
 
       <div>
-        <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Quote / Campaign Tagline</label>
+         <label htmlFor="officer-quote" className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Quote / Campaign Tagline</label>
         <input
-          type="text"
+           id="officer-quote"
+           type="text"
           value={form.quote || ''}
           onChange={(e) => setForm({ ...form, quote: e.target.value })}
           className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400]"
@@ -555,9 +569,9 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
       {/* Officer Photo Management Section */}
       <div className="bg-gray-50 p-4 rounded-xl border border-gray-200/80 space-y-3">
         <div className="flex items-center justify-between">
-          <label className="block text-xs font-bold uppercase tracking-wider text-gray-600">
+           <span className="block text-xs font-bold uppercase tracking-wider text-gray-600">
             Officer Photo
-          </label>
+           </span>
           {previewUrl && (
             <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60 font-semibold">
               {selectedFile ? 'New Image Ready' : 'Photo Attached'}
@@ -577,6 +591,7 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
           accept="image/jpeg,image/png,image/webp"
           className="hidden"
           id="officer-photo-file-input"
+          aria-label="Upload officer photo"
         />
 
         {previewUrl ? (
@@ -680,11 +695,14 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
             ) : (
               /* Direct URL Input Field (Preserved Link) */
               <div>
+                <label htmlFor="officer-photo-url" className="sr-only">Officer photo URL</label>
                 <input
+                  id="officer-photo-url"
                   type="text"
                   value={form.photo_url || ''}
                   onChange={(e) => {
                     const val = e.target.value;
+                    revokeObjectUrl(previewUrl, ownedPreviewUrlsRef.current);
                     setForm({ ...form, photo_url: val });
                     setPreviewUrl(val);
                   }}
@@ -701,8 +719,9 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
       </div>
 
       <div>
-        <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Email</label>
+         <label htmlFor="officer-email" className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Email</label>
         <input
+          id="officer-email"
           type="email"
           value={form.email || ''}
           onChange={(e) => setForm({ ...form, email: e.target.value })}
@@ -759,17 +778,17 @@ function CommitteeForm({ committee, onSave, onClose }: { committee: Partial<Comm
   const [form, setForm] = useState({ ...committee });
   return (
     <div className="space-y-4">
-      <div>
-        <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Committee Name</label>
-        <input type="text" value={form.name || ''} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400]" />
+       <div>
+         <label htmlFor="committee-name" className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Committee Name</label>
+         <input id="committee-name" type="text" value={form.name || ''} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400]" />
       </div>
       <div>
-        <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Description</label>
-        <textarea value={form.description || ''} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400] resize-none" />
+         <label htmlFor="committee-description" className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Description</label>
+         <textarea id="committee-description" value={form.description || ''} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400] resize-none" />
       </div>
       <div>
-        <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Head</label>
-        <input type="text" value={form.head_name || ''} onChange={(e) => setForm({ ...form, head_name: e.target.value })} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400]" />
+         <label htmlFor="committee-head" className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Head</label>
+         <input id="committee-head" type="text" value={form.head_name || ''} onChange={(e) => setForm({ ...form, head_name: e.target.value })} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400]" />
       </div>
       <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
         <button onClick={() => onSave(form)} className="px-5 py-2.5 bg-[#F5B400] hover:bg-[#ffc522] text-[#1A3C2E] rounded-lg font-bold text-xs uppercase tracking-wider shadow-sm transition-colors">Save Committee</button>
