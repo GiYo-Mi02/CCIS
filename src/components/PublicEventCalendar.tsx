@@ -186,6 +186,8 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
 
   // Fetch events scoped to visible month
   useEffect(() => {
+    let cancelled = false;
+
     const fetchMonthEvents = async () => {
       setLoading(true);
       const startOfMonth = `${year}-${String(month + 1).padStart(2, '0')}-01`;
@@ -199,16 +201,23 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
           .lte('event_date', endOfMonth)
           .order('event_date');
 
+        if (cancelled) return;
+
         if (!error && data) {
           setEvents(data as EventItemDB[]);
         }
       } catch (err) {
         console.error('Error fetching calendar events:', err);
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
     fetchMonthEvents();
+    return () => {
+      cancelled = true;
+    };
   }, [year, month]);
 
   // Group events by date string

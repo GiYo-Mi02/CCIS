@@ -293,11 +293,13 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
       try {
         const pdfjsLib = await import('pdfjs-dist');
         pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
-        
+
         loadingTask = pdfjsLib.getDocument({ url: selectedModalReport.pdfUrl });
         const pdf = await loadingTask.promise;
+        if (!active) return;
+
         setPdfTotalPages(pdf.numPages);
-        
+
         const page = await pdf.getPage(modalPdfPage);
         if (!active) return;
         
