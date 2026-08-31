@@ -392,6 +392,12 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
     fetchVideos();
   }, []);
 
+  useEffect(() => {
+    if (customVideoRef.current) {
+      customVideoRef.current.volume = volume;
+    }
+  }, [isPlayerActive, volume]);
+
   // Netflix-style Custom Video Player Control Methods
   const togglePlay = useCallback(() => {
     if (!customVideoRef.current) return;
@@ -549,7 +555,6 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
           e.preventDefault();
           setVolume(prev => {
             const newVol = Math.min(1.0, prev + 0.1);
-            if (customVideoRef.current) customVideoRef.current.volume = newVol;
             return newVol;
           });
           setIsMuted(false);
@@ -559,7 +564,6 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
           e.preventDefault();
           setVolume(prev => {
             const newVol = Math.max(0.0, prev - 0.1);
-            if (customVideoRef.current) customVideoRef.current.volume = newVol;
             return newVol;
           });
           break;
