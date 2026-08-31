@@ -98,6 +98,15 @@ export default function HeroCarousel({
                   setActiveIndex(idx);
                 }
               }}
+              role={isPeek ? 'button' : undefined}
+              tabIndex={isPeek ? 0 : undefined}
+              aria-label={isPeek ? `Show slide ${idx + 1}` : undefined}
+              onKeyDown={isPeek ? (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  setActiveIndex(idx);
+                }
+              } : undefined}
               className={`absolute w-[80%] sm:w-[70%] md:w-[65%] h-[90%] rounded-3xl overflow-hidden shadow-2xl border border-[#1A3C2E]/10 bg-white transition-colors duration-700 ease-out select-none ${posClass}`}
             >
               <OptimizedImage
@@ -116,6 +125,14 @@ export default function HeroCarousel({
                   <div 
                     className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-black/30 flex flex-col justify-between p-4 sm:p-6 md:p-8 text-[#FAF7EA] cursor-pointer"
                     onClick={() => onOpenDetail(item)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        onOpenDetail(item);
+                      }
+                    }}
                   >
                     {/* Header: Category Badge */}
                     <div className="flex items-center justify-between">
@@ -154,12 +171,14 @@ export default function HeroCarousel({
                               onConfirmDelete(item.id);
                               setDeleteConfirmId(null);
                             }}
+                            type="button"
                             className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-black text-[9px] uppercase tracking-wider rounded-lg transition-colors shadow-sm cursor-pointer"
                           >
                             Confirm
                           </button>
                           <button
                             onClick={() => setDeleteConfirmId(null)}
+                            type="button"
                             className="px-2.5 py-1 bg-stone-100 hover:bg-stone-200 text-stone-600 font-bold text-[9px] uppercase tracking-wider rounded-lg transition-colors cursor-pointer"
                           >
                             Cancel

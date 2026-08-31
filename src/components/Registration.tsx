@@ -483,14 +483,16 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
               <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs font-sans">
                 
                 {/* Backdrop Click Closes */}
-                <div className="absolute inset-0" onClick={closeModal} />
+                 <button type="button" aria-label="Close registration" className="absolute inset-0" onClick={closeModal} />
                 
                 {/* Secure Entry Slot Form Content Card */}
                 <div className="relative w-full max-w-4xl bg-white rounded-3xl overflow-hidden shadow-2xl border border-zinc-200 animate-scale-up max-h-[90vh] flex flex-col md:flex-row overflow-y-auto md:overflow-y-hidden">
                   
                   {/* Close button */}
-                  <button
-                    onClick={closeModal}
+                   <button
+                     onClick={closeModal}
+                     type="button"
+                     aria-label="Close registration"
                     className="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/10 text-stone-600 md:bg-white/10 md:text-white hover:bg-black/20 md:hover:bg-white/20 transition-colors"
                   >
                     <X size={18} />

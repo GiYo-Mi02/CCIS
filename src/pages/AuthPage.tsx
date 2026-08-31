@@ -327,8 +327,9 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
                 </p>
               )}
 
-              <label className={`flex items-start gap-3 cursor-pointer select-none ${!hasScrolledToBottom ? 'opacity-40 pointer-events-none' : ''}`}>
+              <label htmlFor="privacy-consent" className={`flex items-start gap-3 cursor-pointer select-none ${!hasScrolledToBottom ? 'opacity-40 pointer-events-none' : ''}`}>
                 <input
+                  id="privacy-consent"
                   type="checkbox"
                   checked={privacyChecked}
                   disabled={!hasScrolledToBottom}
@@ -750,7 +751,7 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
         {/* BAN NOTICE POP-UP MODAL */}
         {banNotice && (
           <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs animate-scale-up font-sans">
-            <div className="absolute inset-0" onClick={clearBanNotice} />
+             <button type="button" aria-label="Close account restriction notice" className="absolute inset-0" onClick={clearBanNotice} />
             <div className="relative w-full max-w-sm bg-white rounded-2xl overflow-hidden shadow-2xl border border-zinc-150 p-6 text-center space-y-4">
               <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center mx-auto border border-rose-100 shadow-xs">
                 <ShieldAlert size={24} />

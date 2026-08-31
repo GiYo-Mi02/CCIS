@@ -32,7 +32,8 @@ export default function Footer({ onNavClick, onAdminSwitch, isUmakTheme = false 
           {/* Column 1: Organization brand info (4 cols on desktop) */}
           <div className="lg:col-span-4 md:col-span-2 space-y-4">
             {/* Institutional Brand Logo Block (Identical to Navbar) */}
-            <div 
+            <button
+              type="button"
               className="flex items-center gap-3 cursor-pointer select-none group inline-flex" 
               onClick={() => {
                 onNavClick('home');
@@ -64,7 +65,7 @@ export default function Footer({ onNavClick, onAdminSwitch, isUmakTheme = false 
                   College of Computing and Information Sciences
                 </span>
               </div>
-            </div>
+            </button>
             
             <p className="text-stone-300 text-xs leading-relaxed max-w-sm">
               Serving our herons with modern technical foundations, devoted administrative governance, and creative college spirits.
@@ -137,7 +138,7 @@ export default function Footer({ onNavClick, onAdminSwitch, isUmakTheme = false 
                 target="_blank"
                 rel="noreferrer"
                 className="bg-white/5 hover:bg-white/10 p-2 rounded-full border border-white/10 text-[#F5B400] transition-colors"
-                aria-label="GitHub"
+                 aria-label="Instagram"
               >
                 <Instagram size={14} />
               </a>

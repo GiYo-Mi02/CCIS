@@ -587,12 +587,13 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
             <div className="pt-2 border-t border-zinc-100 space-y-2.5">
               {/* Student ID */}
               <div className="flex items-start justify-between text-xs py-0.5">
-                <span className="text-[#5E6E64] font-mono text-[10px] uppercase tracking-wider flex items-center gap-1.5 mt-1">
-                  <Hash size={12} className="text-[var(--color-accent-gold,#F5B400)]" /> Student ID
-                </span>
+                 <label htmlFor="account-student-number" className="text-[#5E6E64] font-mono text-[10px] uppercase tracking-wider flex items-center gap-1.5 mt-1">
+                   <Hash size={12} className="text-[var(--color-accent-gold,#F5B400)]" /> Student ID
+                 </label>
                 {editing ? (
                   <div className="flex flex-col items-end w-1/2">
-                    <input
+                     <input
+                       id="account-student-number"
                       type="text" 
                       value={studentNumber} 
                       onChange={(e) => {
@@ -614,11 +615,11 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
 
               {/* Year Level */}
               <div className="flex items-center justify-between text-xs py-0.5">
-                <span className="text-[#5E6E64] font-mono text-[10px] uppercase tracking-wider flex items-center gap-1.5">
-                  <GraduationCap size={12} className="text-[var(--color-accent-gold,#F5B400)]" /> Year Level
-                </span>
+                 <label htmlFor="account-year-level" className="text-[#5E6E64] font-mono text-[10px] uppercase tracking-wider flex items-center gap-1.5">
+                   <GraduationCap size={12} className="text-[var(--color-accent-gold,#F5B400)]" /> Year Level
+                 </label>
                 {editing ? (
-                  <select 
+                   <select id="account-year-level"
                     value={yearLevel} 
                     onChange={(e) => setYearLevel(Number(e.target.value))}
                     className="bg-zinc-50 border border-zinc-200 rounded px-2 py-0.5 text-xs text-[var(--color-primary-green,#1A3C2E)] outline-none font-bold text-right"
@@ -635,11 +636,11 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
 
               {/* Program */}
               <div className="flex items-center justify-between text-xs py-0.5">
-                <span className="text-[#5E6E64] font-mono text-[10px] uppercase tracking-wider flex items-center gap-1.5">
-                  <User size={12} className="text-[var(--color-accent-gold,#F5B400)]" /> Program
-                </span>
+                 <label htmlFor="account-program" className="text-[#5E6E64] font-mono text-[10px] uppercase tracking-wider flex items-center gap-1.5">
+                   <User size={12} className="text-[var(--color-accent-gold,#F5B400)]" /> Program
+                 </label>
                 {editing ? (
-                  <select 
+                   <select id="account-program"
                     value={program} 
                     onChange={(e) => setProgram(e.target.value)}
                     className="bg-zinc-50 border border-zinc-200 rounded px-2 py-0.5 text-xs text-[var(--color-primary-green,#1A3C2E)] outline-none font-bold text-right"
@@ -668,11 +669,11 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
 
               {/* Contact Number */}
               <div className="flex items-center justify-between text-xs py-0.5">
-                <span className="text-[#5E6E64] font-mono text-[10px] uppercase tracking-wider flex items-center gap-1.5">
-                  <User size={12} className="text-[var(--color-accent-gold,#F5B400)]" /> Contact Number
-                </span>
+                 <label htmlFor="account-contact-number" className="text-[#5E6E64] font-mono text-[10px] uppercase tracking-wider flex items-center gap-1.5">
+                   <User size={12} className="text-[var(--color-accent-gold,#F5B400)]" /> Contact Number
+                 </label>
                 {editing ? (
-                  <input 
+                   <input id="account-contact-number"
                     type="tel"
                     value={contactNumber}
                     onChange={(e) => setContactNumber(e.target.value)}

@@ -547,7 +547,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       {children}
       {emailValidationError && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs font-sans">
-          <div className="absolute inset-0 cursor-pointer" onClick={clearEmailValidationError} />
+          <button type="button" aria-label="Close institutional email notice" className="absolute inset-0 cursor-pointer" onClick={clearEmailValidationError} />
           <div className="relative w-full max-w-md bg-white rounded-3xl overflow-hidden shadow-2xl border border-zinc-150 p-7 text-center space-y-5 animate-scale-up">
             <div className="w-14 h-14 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mx-auto border border-amber-100 shadow-sm">
               <ShieldAlert size={28} className="text-[#F5B400]" />

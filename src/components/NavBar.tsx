@@ -123,7 +123,7 @@ export default function NavBar({ activeTab, setActiveTab, isUmakTheme = false }:
         <div className="flex items-center justify-between h-16">
           
           {/* Left: Brand Logo Block */}
-          <div className="flex items-center gap-3 cursor-pointer select-none group" onClick={() => handleNavClick('home')} id="nav-brand-logo">
+          <button type="button" className="flex items-center gap-3 cursor-pointer select-none group" onClick={() => handleNavClick('home')} id="nav-brand-logo">
             {/* Logos: UMak Seal then CCIS Seal */}
             <div className="flex items-center gap-2 shrink-0">
               <img
@@ -148,7 +148,7 @@ export default function NavBar({ activeTab, setActiveTab, isUmakTheme = false }:
                 College of Computing and Information Sciences
               </span>
             </div>
-          </div>
+          </button>
 
           {/* Center/Right: Desktop Navigation Items */}
           <div className="hidden md:flex items-center gap-6">
@@ -175,6 +175,9 @@ export default function NavBar({ activeTab, setActiveTab, isUmakTheme = false }:
               <div className="relative" ref={userMenuRef}>
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  aria-expanded={userMenuOpen}
+                  aria-haspopup="menu"
+                  aria-label="Open account menu"
                   className="flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full pl-1 pr-3 py-1 transition-colors relative"
                   id="nav-user-menu-toggle"
                 >
