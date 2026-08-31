@@ -674,10 +674,11 @@ export default function TicketScanner() {
 
           {/* Active Event Target Selector */}
           <div className="w-full mb-4 bg-stone-50 border border-stone-200/80 p-3 rounded-2xl space-y-1.5 text-left">
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-[#5E6E64] flex items-center gap-1.5">
+            <label htmlFor="scanner-target-event" className="block text-[10px] font-bold uppercase tracking-wider text-[#5E6E64] flex items-center gap-1.5">
               <Calendar size={12} className="text-[#1A3C2E]" /> Target Event for Attendance Logging:
             </label>
             <select
+              id="scanner-target-event"
               value={selectedEventId}
               onChange={(e) => setSelectedEventId(e.target.value)}
               className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2 text-xs outline-none text-[#1A3C2E] font-bold focus:border-[#F5B400]"
@@ -694,6 +695,7 @@ export default function TicketScanner() {
           {/* Camera Selection controls */}
           <div className="w-full flex flex-col sm:flex-row gap-2 mb-4">
             <select
+              aria-label="Select camera"
               value={selectedCameraId}
               onChange={(e) => handleCameraChange(e.target.value)}
               className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs outline-none text-[#222B26] font-semibold"
@@ -799,6 +801,7 @@ export default function TicketScanner() {
             <form onSubmit={handleManualSubmit} className="flex items-center gap-2">
               <input
                 type="text"
+                aria-label="Manual ticket or student ID"
                 placeholder="Or paste QR payload / Student ID / Ticket UUID..."
                 value={manualId}
                 onChange={(e) => setManualId(e.target.value)}

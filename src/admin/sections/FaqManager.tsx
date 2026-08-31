@@ -317,10 +317,10 @@ function FaqForm({ faq, saving, onSave, onClose }: FaqFormProps) {
     <form onSubmit={handleSubmit} className="space-y-4 font-sans text-stone-800">
       {/* Question */}
       <div className="space-y-1">
-        <label className="block text-xs font-bold uppercase tracking-wider text-stone-500">
+        <label htmlFor="faq-question" className="block text-xs font-bold uppercase tracking-wider text-stone-500">
           Question Text
         </label>
-        <input 
+        <input id="faq-question"
           type="text" 
           value={form.question} 
           onChange={(e) => setForm({ ...form, question: e.target.value })} 
@@ -332,10 +332,10 @@ function FaqForm({ faq, saving, onSave, onClose }: FaqFormProps) {
 
       {/* Answer */}
       <div className="space-y-1">
-        <label className="block text-xs font-bold uppercase tracking-wider text-stone-500">
+        <label htmlFor="faq-answer" className="block text-xs font-bold uppercase tracking-wider text-stone-500">
           Answer Content
         </label>
-        <textarea 
+        <textarea id="faq-answer"
           value={form.answer} 
           onChange={(e) => setForm({ ...form, answer: e.target.value })} 
           placeholder="Provide a clear, helpful answer to students..."
@@ -348,10 +348,10 @@ function FaqForm({ faq, saving, onSave, onClose }: FaqFormProps) {
       <div className="grid grid-cols-2 gap-4">
         {/* Display Order */}
         <div className="space-y-1">
-          <label className="block text-xs font-bold uppercase tracking-wider text-stone-500">
+          <label htmlFor="faq-display-order" className="block text-xs font-bold uppercase tracking-wider text-stone-500">
             Display Order
           </label>
-          <input 
+          <input id="faq-display-order"
             type="number" 
             value={form.display_order} 
             onChange={(e) => setForm({ ...form, display_order: parseInt(e.target.value) || 0 })} 
@@ -363,7 +363,7 @@ function FaqForm({ faq, saving, onSave, onClose }: FaqFormProps) {
         {/* Active Toggle */}
         <div className="flex flex-col justify-end pb-1.5 pl-2">
           <label className="flex items-center gap-2 cursor-pointer select-none text-xs font-bold text-stone-600">
-            <input 
+            <input
               type="checkbox" 
               checked={form.is_active} 
               onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
