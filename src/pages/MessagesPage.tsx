@@ -38,6 +38,16 @@ export default function MessagesPage({ onNavigate }: MessagesPageProps) {
   }, []);
 
   useEffect(() => {
+    setConversation(null);
+    setMessages([]);
+    setInputText('');
+    setOffset(0);
+    setHasMore(false);
+    setErrorMessage(null);
+    setLoading(Boolean(user));
+  }, [user?.id]);
+
+  useEffect(() => {
     if (!user || !isRealtimeAvailable || conversation) return;
     let active = true;
     setLoading(true);
