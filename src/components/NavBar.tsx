@@ -10,6 +10,16 @@ interface NavBarProps {
   isUmakTheme?: boolean;
 }
 
+const navItems = [
+  { id: 'home', label: 'Home' },
+  { id: 'info', label: 'About' },
+  { id: 'announcements', label: 'Announcements' },
+  { id: 'registration', label: 'Our Events' },
+  { id: 'gallery', label: 'Gallery' },
+  { id: 'transparency', label: 'Bukas Kaban' },
+  { id: 'patch', label: 'Patch' },
+];
+
 export default function NavBar({ activeTab, setActiveTab, isUmakTheme = false }: NavBarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -83,16 +93,6 @@ export default function NavBar({ activeTab, setActiveTab, isUmakTheme = false }:
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  const navItems = [
-    { id: 'home', label: 'Home' },
-    { id: 'info', label: 'About' },
-    { id: 'announcements', label: 'Announcements' },
-    { id: 'registration', label: 'Our Events' },
-    { id: 'gallery', label: 'Gallery' },
-    { id: 'transparency', label: 'Bukas Kaban' },
-    { id: 'patch', label: 'Patch' },
-  ];
 
   const handleNavClick = async (tabId: string) => {
     setActiveTab(tabId);

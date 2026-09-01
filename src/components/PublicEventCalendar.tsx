@@ -12,6 +12,13 @@ const getTodayStr = (): string => {
   return `${year}-${month}-${day}`;
 };
 
+const monthLabels = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+
+const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
 interface EventItemDB {
   id: string;
   title: string;
@@ -286,13 +293,6 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
   const filteredSelectedEvents = selectedDayEvents.filter(
     e => filter === 'all' || e.category === filter
   );
-
-  const monthLabels = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
-
-  const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   // Today marker check
   const isToday = (dateStr: string) => dateStr === todayStr;
