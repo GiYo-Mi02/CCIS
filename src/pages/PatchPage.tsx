@@ -911,6 +911,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
             </div>
             <button
               onClick={() => setToasts(prev => prev.filter(item => item.id !== t.id))}
+              aria-label="Dismiss notification"
               className="text-[#FAF7EA] hover:opacity-75 focus:outline-none cursor-pointer"
             >
               <X size={14} />
@@ -1018,6 +1019,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                 <button
                   key={video.id}
                   onClick={() => setCurrentSlideIndex(featuredVideos.indexOf(video))}
+                  aria-label={`Go to slide ${featuredVideos.indexOf(video) + 1}`}
                   className={`w-2.5 h-2.5 rounded-full transition-colors cursor-pointer ${
                    currentSlideIndex === featuredVideos.indexOf(video) ? 'bg-[#F5B400] w-6' : 'bg-white/30 hover:bg-white/50'
                   }`}
@@ -1177,6 +1179,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                     src={selectedVideo.videoUrl}
                     autoPlay
                     loop
+                    muted
                     className="w-full h-full object-contain bg-black cursor-pointer"
                     onClick={togglePlay}
                     onTimeUpdate={handleTimeUpdate}
@@ -1279,6 +1282,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                         if (customVideoRef.current) customVideoRef.current.pause();
                         setIsPlaying(false);
                       }}
+                      aria-label="Back to video details"
                       className="p-2.5 rounded-full bg-black/40 hover:bg-[#F5B400] text-white hover:text-[#11241C] border border-white/10 transition-colors duration-300 cursor-pointer outline-none"
                       title="Back to Details"
                     >
@@ -1342,6 +1346,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                           {/* Skip Backward 10s */}
                           <button
                             onClick={() => skipSeconds(-10)}
+                            aria-label="Rewind 10 seconds"
                             className="text-white hover:text-[#F5B400] transition-colors cursor-pointer outline-none relative flex items-center justify-center"
                             title="Rewind 10s"
                           >
@@ -1352,6 +1357,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                           {/* Skip Forward 10s */}
                           <button
                             onClick={() => skipSeconds(10)}
+                            aria-label="Forward 10 seconds"
                             className="text-white hover:text-[#F5B400] transition-colors cursor-pointer outline-none relative flex items-center justify-center"
                             title="Forward 10s"
                           >
@@ -1399,6 +1405,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                           {/* Fullscreen Toggle */}
                           <button
                             onClick={toggleFullscreen}
+                            aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
                             className="text-white hover:text-[#F5B400] transition-colors cursor-pointer outline-none flex items-center justify-center"
                             title="Toggle Fullscreen"
                           >
@@ -1425,6 +1432,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                 {/* Close modal completely (top-right absolute icon) */}
                 <button
                   onClick={() => setLightboxOpen(false)}
+                  aria-label="Close video details"
                   className="absolute top-6 right-6 z-50 p-2.5 rounded-full bg-black/40 hover:bg-white/15 text-stone-300 hover:text-white border border-white/10 transition-colors cursor-pointer outline-none flex items-center justify-center"
                   title="Close Screen"
                 >
@@ -1827,6 +1835,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                         id="patch-video-file"
                         type="file"
                         accept="video/*"
+                        aria-label="Choose video file"
                         onChange={handleVideoFileChange}
                         className="absolute inset-0 opacity-0 cursor-pointer"
                         disabled={formSubmitting}
@@ -1880,6 +1889,7 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
                       id="patch-thumbnail-file"
                       type="file"
                       accept="image/*"
+                      aria-label="Choose thumbnail image"
                       onChange={handleFileChange}
                       className="absolute inset-0 opacity-0 cursor-pointer"
                       disabled={formSubmitting}
