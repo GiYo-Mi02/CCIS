@@ -1,5 +1,5 @@
-import type { MediaCategory } from '../../src/lib/media/types';
-import { MAX_UPLOAD_IMAGE_BYTES } from '../../src/lib/media/limits';
+import type { MediaCategory } from '../../src/lib/media/types.ts';
+import { MAX_UPLOAD_IMAGE_BYTES } from '../../src/lib/media/limits.ts';
 
 export const IMAGE_STAGING_BUCKET = 'ccis-private-drafts';
 export const MAX_IMAGE_INPUT_BYTES = MAX_UPLOAD_IMAGE_BYTES;
@@ -50,7 +50,7 @@ const UPLOAD_POLICIES: readonly UploadPolicy[] = [
     bucket: 'banners',
     entityType: 'events',
     folder: 'events',
-    roles: ['devcom_head', 'comm_registration'],
+    roles: ['devcom_head', 'comm_content'],
   },
   {
     category: 'gallery',

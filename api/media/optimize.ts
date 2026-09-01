@@ -1,12 +1,12 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { Buffer } from 'node:buffer';
-import { processStagedImage, type MediaAssetInsert, type MediaPipelineGateway } from '../_lib/media-pipeline';
+import { processStagedImage, type MediaAssetInsert, type MediaPipelineGateway } from '../_lib/media-pipeline.ts';
 import {
   assertAuthorizedMediaRequest,
   MediaRequestError,
   parseOptimizeMediaRequest,
-} from '../_lib/media-policy';
+} from '../_lib/media-policy.ts';
 
 interface RequestWithBody extends IncomingMessage {
   body?: unknown;

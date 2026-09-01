@@ -1,12 +1,12 @@
 import sharp, { type Metadata, type OutputInfo, type Sharp } from 'sharp';
-import { MEDIA_PRESETS } from '../../src/lib/media/presets';
-import type { MediaCategory, MediaPreset, MediaVariant } from '../../src/lib/media/types';
+import { MEDIA_PRESETS } from '../../src/lib/media/presets.ts';
+import type { MediaCategory, MediaPreset, MediaVariant } from '../../src/lib/media/types.ts';
 import {
   MAX_IMAGE_DIMENSION,
   MAX_IMAGE_INPUT_BYTES,
   MAX_IMAGE_INPUT_PIXELS,
   MediaRequestError,
-} from './media-policy';
+} from './media-policy.ts';
 
 export interface OptimizedVariantBuffer {
   label: MediaVariant['label'];

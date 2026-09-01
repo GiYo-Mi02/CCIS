@@ -1,14 +1,14 @@
 import { randomUUID } from 'node:crypto';
 import { Buffer } from 'node:buffer';
-import type { MediaAsset, MediaVariant, UploadOptimizedImageResult } from '../../src/lib/media/types';
-import { LONG_LIVED_CACHE_CONTROL } from '../../src/lib/media/presets';
-import { optimizeImageBuffer, type ServerOptimizationResult } from './image-optimizer';
+import type { MediaAsset, MediaVariant, UploadOptimizedImageResult } from '../../src/lib/media/types.ts';
+import { LONG_LIVED_CACHE_CONTROL } from '../../src/lib/media/presets.ts';
+import { optimizeImageBuffer, type ServerOptimizationResult } from './image-optimizer.ts';
 import {
   IMAGE_STAGING_BUCKET,
   MAX_IMAGE_INPUT_BYTES,
   MediaRequestError,
   type OptimizeMediaRequest,
-} from './media-policy';
+} from './media-policy.ts';
 
 export interface MediaAssetInsert {
   provider: 'supabase';

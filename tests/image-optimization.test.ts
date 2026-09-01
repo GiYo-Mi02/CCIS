@@ -139,6 +139,22 @@ test('media request policy binds user path, role, destination, and entity type',
   );
 });
 
+test('event banners are available to the role that manages the event calendar', () => {
+  const request = parseOptimizeMediaRequest({
+    sourcePath: SOURCE_PATH,
+    category: 'banner',
+    bucket: 'banners',
+    folder: 'events',
+    entityType: 'events',
+  });
+
+  assert.doesNotThrow(() => assertAuthorizedMediaRequest(request, USER_ID, 'comm_content'));
+  assert.throws(
+    () => assertAuthorizedMediaRequest(request, USER_ID, 'comm_registration'),
+    /not authorized/i,
+  );
+});
+
 class FakeGateway implements MediaPipelineGateway {
   uploaded: string[] = [];
   removed: Array<{ bucket: string; paths: string[] }> = [];
