@@ -380,20 +380,17 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
   const [isDragging, setIsDragging] = useState(false);
   const [photoInputMode, setPhotoInputMode] = useState<'upload' | 'link'>('upload');
   const [optimizationSummary, setOptimizationSummary] = useState<string | null>(null);
-  const ownedPreviewUrlsRef = useRef<Set<string>>(new Set());
-  
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => () => {
-    ownedPreviewUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
-    ownedPreviewUrlsRef.current.clear();
-  }, []);
-
   const handleClose = () => {
-    ownedPreviewUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
-    ownedPreviewUrlsRef.current.clear();
     onClose();
   };
+
+  useEffect(() => {
+    if (!previewUrl.startsWith('blob:')) return;
+
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [previewUrl]);
 
   const handleFileChange = (file: File) => {
     const errorMsg = validateOfficerFile(file);
@@ -403,9 +400,7 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
       return;
     }
 
-    if (ownedPreviewUrlsRef.current.delete(previewUrl)) URL.revokeObjectURL(previewUrl);
     const objectUrl = URL.createObjectURL(file);
-    ownedPreviewUrlsRef.current.add(objectUrl);
     setSelectedFile(file);
     setPreviewUrl(objectUrl);
     setForm(prev => ({ ...prev, photo_url: objectUrl }));
@@ -431,7 +426,6 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
   };
 
   const handleRemovePhoto = () => {
-    if (ownedPreviewUrlsRef.current.delete(previewUrl)) URL.revokeObjectURL(previewUrl);
     setSelectedFile(null);
     setPreviewUrl('');
     setForm(prev => ({ ...prev, photo_url: '' }));
@@ -705,7 +699,7 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
                   value={form.photo_url || ''}
                   onChange={(e) => {
                     const val = e.target.value;
-                    if (ownedPreviewUrlsRef.current.delete(previewUrl)) URL.revokeObjectURL(previewUrl);
+                    setSelectedFile(null);
                     setForm({ ...form, photo_url: val });
                     setPreviewUrl(val);
                   }}
