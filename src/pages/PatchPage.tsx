@@ -76,6 +76,8 @@ const initialFormState: FormState = {
   selectedVideoFile: null,
 };
 
+const categories = ["Full Episodes", "Highlights", "Behind the Scenes"];
+
 type FormAction =
   | { type: 'open'; values: Omit<FormState, 'showFormModal' | 'formSubmitting'> }
   | { type: 'close' }
@@ -883,9 +885,6 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
   };
 
   // Resolve Facebook permalink to official plugin embed URL
-
-  // Group videos by category rows
-  const categories = ["Full Episodes", "Highlights", "Behind the Scenes"];
 
   return (
     <div className="min-h-screen bg-[#11241C] text-[#FAF7EA] font-sans select-none overflow-hidden relative">
