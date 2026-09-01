@@ -45,6 +45,11 @@ test('Info Hub exposes a branded More Orgs menu with official logos', () => {
   assert.match(infoHub, /Choose an official CCIS organization/);
 });
 
+test('Info Hub does not block static About tabs on organization data', () => {
+  assert.match(infoHub, /const \[loading, setLoading\] = useState\(false\)/);
+  assert.match(infoHub, /if \(activeInfoTab === 'org' && loading\)/);
+});
+
 test('developer cards retain their modal and the modal uses a responsive photo-content split', () => {
   assert.match(developerDedication, /setSelectedDev\(LEAD_DEVELOPER\)/);
   assert.match(developerDedication, /setSelectedDev\(QA_DEVELOPER\)/);

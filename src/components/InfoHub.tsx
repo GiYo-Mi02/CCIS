@@ -206,12 +206,13 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
   // Dynamic database collections
   const [officers, setOfficers] = useState<Officer[]>([]);
   const [committees, setCommittees] = useState<Committee[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const officersLoadedRef = useRef(false);
 
   useEffect(() => {
     if (activeInfoTab !== 'org' || officersLoadedRef.current) return;
     officersLoadedRef.current = true;
+    setLoading(true);
     let cancelled = false;
     void Promise.all([
         supabase.from('officers').select('*, committees(name, slug)').order('display_order'),
@@ -280,7 +281,7 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
 
   const selectedOrg = STUDENT_ORGS.find(org => org.id === selectedOrgId) || STUDENT_ORGS[0];
 
-  if (loading) {
+  if (activeInfoTab === 'org' && loading) {
     return <InfoHubSkeleton />;
   }
 
