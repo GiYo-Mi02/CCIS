@@ -338,15 +338,15 @@ export default function AdminForm({
   };
 
   return createPortal(
-    <div 
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 w-screen h-screen overflow-hidden"
-      onClick={(e) => {
-        if (e.target === e.currentTarget && !isSubmitting) {
-          handleCancel();
-        }
-      }}
-    >
-      <div className="bg-white rounded-3xl border border-stone-200/80 shadow-2xl overflow-y-auto max-h-[92vh] w-full max-w-4xl p-6 sm:p-8 animate-modal-zoom relative text-left scrollbar-thin scrollbar-thumb-stone-300">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 w-screen h-screen overflow-hidden">
+      <button
+        type="button"
+        aria-label="Close form modal"
+        onClick={handleCancel}
+        disabled={isSubmitting}
+        className="absolute inset-0"
+      />
+      <div className="relative z-10 bg-white rounded-3xl border border-stone-200/80 shadow-2xl overflow-y-auto max-h-[92vh] w-full max-w-4xl p-6 sm:p-8 animate-modal-zoom text-left scrollbar-thin scrollbar-thumb-stone-300">
         
         {/* Close Button overlay */}
         <button

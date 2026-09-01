@@ -30,13 +30,16 @@ export default function OfficersManager() {
   const deletingAllCommitteesRef = useRef(false);
 
   const fetchData = async () => {
-    const [offRes, commRes] = await Promise.all([
-      supabase.from('officers').select('id, name, position, committee_id, photo_url, email, display_order, created_at, quote, term, organization').order('display_order'),
-      supabase.from('committees').select('id, name, slug, description, icon, responsibilities, display_order, head_name, created_at').order('name'),
-    ]);
-    if (offRes.data) setOfficers(offRes.data as Officer[]);
-    if (commRes.data) setCommittees(commRes.data as Committee[]);
-    setLoading(false);
+    try {
+      const [offRes, commRes] = await Promise.all([
+        supabase.from('officers').select('id, name, position, committee_id, photo_url, email, display_order, created_at, quote, term, organization').order('display_order'),
+        supabase.from('committees').select('id, name, slug, description, icon, responsibilities, display_order, head_name, created_at').order('name'),
+      ]);
+      if (offRes.data) setOfficers(offRes.data as Officer[]);
+      if (commRes.data) setCommittees(commRes.data as Committee[]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchData(); }, []);
@@ -408,7 +411,7 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
     showToast('Image selected! Save officer to upload.', 'info');
   };
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
     e.preventDefault();
     setIsDragging(false);
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
@@ -416,12 +419,12 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
     }
   };
 
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDragOver = (e: React.DragEvent<HTMLLabelElement>) => {
     e.preventDefault();
     setIsDragging(true);
   };
 
-  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDragLeave = (e: React.DragEvent<HTMLLabelElement>) => {
     e.preventDefault();
     setIsDragging(false);
   };
@@ -477,7 +480,6 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
       console.error('Error uploading officer photo:', err);
       showToast(err instanceof Error ? err.message : 'Failed to upload photo', 'error');
     } finally {
-      revokeObjectUrl(previewUrl, ownedPreviewUrlsRef.current);
       setIsUploading(false);
       setUploadProgress(null);
     }
@@ -671,11 +673,11 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
 
             {photoInputMode === 'upload' ? (
               /* Drag and Drop Zone */
-              <div
+              <label
+                htmlFor="officer-photo-file-input"
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
-                onClick={() => fileInputRef.current?.click()}
                 className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-colors duration-200 ${
                   isDragging
                     ? 'border-[#F5B400] bg-[#FAF7EA] scale-[1.01]'
@@ -691,7 +693,7 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
                 <p className="text-[10px] text-gray-400 mt-1">
                   Supports JPG, PNG, WEBP (Max 10MB)
                 </p>
-              </div>
+                </label>
             ) : (
               /* Direct URL Input Field (Preserved Link) */
               <div>
