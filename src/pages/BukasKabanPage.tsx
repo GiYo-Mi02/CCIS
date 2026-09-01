@@ -131,7 +131,7 @@ function formReducer(state: FormState, action: FormAction): FormState {
       totalExpenses: action.report ? String(action.report.totalExpenses) : '0', thumbnailPreviewUrl: action.report?.thumbnailUrl || '',
     };
   }
-  if (action.type === 'close') return { ...state, showModal: false };
+  if (action.type === 'close') return initialFormState;
   if (action.type === 'set') return { ...state, [action.field]: action.value };
   if (action.type === 'setNewSemester') return { ...state, isNewSemester: action.value };
   if (action.type === 'fileSelected') return { ...state, selectedFile: action.file, isGeneratingThumbnail: true };
@@ -300,6 +300,17 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
     selectedFile, totalBudgetRequested: formTotalBudgetRequested, totalExpenses: formTotalExpenses,
     isGeneratingThumbnail, thumbnailPreviewUrl, submitting: formSubmitting } = formState;
   const generatedThumbnailBlobRef = useRef<Blob | null>(null);
+  const thumbnailRequestRef = useRef(0);
+
+  useEffect(() => {
+    if (!thumbnailPreviewUrl.startsWith('blob:')) return;
+
+    return () => URL.revokeObjectURL(thumbnailPreviewUrl);
+  }, [thumbnailPreviewUrl]);
+
+  useEffect(() => () => {
+    thumbnailRequestRef.current += 1;
+  }, []);
 
   // Toast Helper
   const triggerToast = (message: string, type: 'success' | 'error' | 'warning' | 'info') => {
@@ -467,8 +478,15 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
 
   // Initialize form for adding / editing
   const openForm = (report: TransparencyReport | null = null) => {
+    thumbnailRequestRef.current += 1;
     generatedThumbnailBlobRef.current = null;
     dispatchForm({ type: 'open', report, semester: formSemestersOptions[0] || '1st Semester A.Y. 2025-2026' });
+  };
+
+  const closeForm = () => {
+    thumbnailRequestRef.current += 1;
+    generatedThumbnailBlobRef.current = null;
+    dispatchForm({ type: 'close' });
   };
 
   // Handle PDF file selection
@@ -477,6 +495,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
     if (!files || files.length === 0) return;
 
     const file = files[0];
+    const request = ++thumbnailRequestRef.current;
     try {
       await validatePdfFile(file);
     } catch (error) {
@@ -491,10 +510,12 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
       return;
     }
 
+    if (request !== thumbnailRequestRef.current) return;
     dispatchForm({ type: 'fileSelected', file });
     
     try {
       const blob = await renderPdfThumbnail(file);
+      if (request !== thumbnailRequestRef.current) return;
       generatedThumbnailBlobRef.current = blob;
       const url = URL.createObjectURL(blob);
       dispatchForm({ type: 'thumbnailReady', url });
@@ -628,7 +649,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
         triggerToast('Transparency report published successfully.', 'success');
       }
 
-      dispatchForm({ type: 'close' });
+      closeForm();
       fetchReports();
     } catch (err: unknown) {
       if (uploadedThumbnailAsset) {
@@ -1000,7 +1021,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
                 {editTarget ? 'Edit Transparency Record' : 'Publish New Report'}
               </h3>
               <button
-                onClick={() => dispatchForm({ type: 'close' })}
+                onClick={closeForm}
                 className="text-white/70 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors cursor-pointer"
                 disabled={formSubmitting}
                 aria-label="Close report form"
@@ -1193,7 +1214,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
               <div className="pt-4 flex gap-3 border-t border-stone-150 shrink-0">
                 <button
                   type="button"
-                  onClick={() => dispatchForm({ type: 'close' })}
+                  onClick={closeForm}
                   className="flex-1 py-3 text-center border border-stone-200 rounded-xl hover:bg-stone-50 font-black uppercase tracking-wider text-stone-600 transition-colors cursor-pointer"
                   disabled={formSubmitting}
                 >
