@@ -32,6 +32,14 @@ function statusBadge(status: string): string {
   return STATUS_BADGE_CLASSES[status] || 'bg-zinc-100 text-zinc-600';
 }
 
+function handlePrint() {
+  window.print();
+}
+
+function handlePrintAudiencePass() {
+  window.print();
+}
+
 function getTicketDummyBarcode() {
   return (
     <div className="flex items-center h-12 w-full gap-[2px] bg-white p-1 rounded border border-zinc-200">
@@ -448,10 +456,6 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
     } finally {
       setPassDownloadLoading(false);
     }
-  };
-
-  const handlePrintAudiencePass = () => {
-    window.print();
   };
 
   // Compact, high-contrast QR Code Payload structure (Easy & instant to scan)
@@ -1234,10 +1238,6 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
 // Sub-component rendering official custom printable ticket 
 function TicketDashboard({ registration }: { registration: Registration; key?: string }) {
   const [isDownloading, setIsDownloading] = useState(false);
-
-  const handlePrint = () => {
-    window.print();
-  };
 
   const downloadPng = async () => {
     if (isDownloading) return;
