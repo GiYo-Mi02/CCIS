@@ -78,9 +78,19 @@ export default function AdminForm({
     previewUrlsRef.current.clear();
   }, []);
 
+  useEffect(() => {
+    if (!formState.imagePreview.startsWith('blob:')) return;
+
+    return () => URL.revokeObjectURL(formState.imagePreview);
+  }, [formState.imagePreview]);
+
   const cleanPreviews = () => {
-    previewUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
-    previewUrlsRef.current.clear();
+    previewUrlsRef.current.forEach(url => {
+      if (url !== formState.imagePreview) {
+        URL.revokeObjectURL(url);
+        previewUrlsRef.current.delete(url);
+      }
+    });
   };
 
   const handleCancel = () => {
@@ -101,9 +111,7 @@ export default function AdminForm({
         if (mainImageInputRef.current) mainImageInputRef.current.value = '';
         return;
       }
-      if (previewUrlsRef.current.delete(formState.imagePreview)) URL.revokeObjectURL(formState.imagePreview);
       const preview = URL.createObjectURL(file);
-      previewUrlsRef.current.add(preview);
       setFormState(prev => {
         return {
           ...prev,
@@ -497,7 +505,6 @@ export default function AdminForm({
                     <button
                       type="button"
                          onClick={() => {
-                           if (previewUrlsRef.current.delete(formState.imagePreview)) URL.revokeObjectURL(formState.imagePreview);
                            setFormState(prev => ({ ...prev, imageFile: null, imagePreview: '' }));
                         if (mainImageInputRef.current) mainImageInputRef.current.value = '';
                       }}
