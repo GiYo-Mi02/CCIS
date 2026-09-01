@@ -5,7 +5,8 @@ BEGIN;
 SELECT public.record_client_error_event(
   '11111111-1111-4111-8111-111111111111',
   '/account',
-  'local'
+  'local',
+  'Error: test failure\n    at testClientError (client-error.test.ts:1:1)'
 );
 
 DO $client_error_events$
@@ -15,21 +16,40 @@ BEGIN
     SELECT 1 FROM internal.client_error_events
     WHERE reference_id = '11111111-1111-4111-8111-111111111111'
       AND route = '/account' AND release = 'local'
+      AND stack_trace LIKE 'Error: test failure%'
   ) THEN
     RAISE EXCEPTION 'redacted client error event was not recorded';
   END IF;
 
+  v_rejected := false;
   BEGIN
     PERFORM public.record_client_error_event(
       '22222222-2222-4222-8222-222222222222',
       '/account?token=secret',
-      'local'
+      'local',
+      'Error: unsafe route'
     );
   EXCEPTION WHEN OTHERS THEN
     v_rejected := true;
   END;
   IF NOT v_rejected THEN
     RAISE EXCEPTION 'client error event accepted an unsafe route';
+  END IF;
+
+  v_rejected := false;
+  BEGIN
+    PERFORM public.record_client_error_event(
+      '44444444-4444-4444-8444-444444444444',
+      '/account',
+      'local',
+      repeat('x', 8193)
+    );
+    RAISE EXCEPTION 'client error event accepted an oversized stack trace';
+  EXCEPTION WHEN OTHERS THEN
+    v_rejected := true;
+  END;
+  IF NOT v_rejected THEN
+    RAISE EXCEPTION 'client error event accepted an oversized stack trace';
   END IF;
 END;
 $client_error_events$;

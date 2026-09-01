@@ -115,10 +115,10 @@ BEGIN
     RAISE EXCEPTION 'message-read authorization bypasses database roles';
   END IF;
 
-  IF to_regprocedure('public.record_client_error_event(uuid,text,text)') IS NULL
-     OR has_function_privilege('anon', 'public.record_client_error_event(uuid,text,text)', 'EXECUTE')
-     OR has_function_privilege('authenticated', 'public.record_client_error_event(uuid,text,text)', 'EXECUTE')
-     OR NOT has_function_privilege('service_role', 'public.record_client_error_event(uuid,text,text)', 'EXECUTE') THEN
+  IF to_regprocedure('public.record_client_error_event(uuid,text,text,text)') IS NULL
+     OR has_function_privilege('anon', 'public.record_client_error_event(uuid,text,text,text)', 'EXECUTE')
+     OR has_function_privilege('authenticated', 'public.record_client_error_event(uuid,text,text,text)', 'EXECUTE')
+     OR NOT has_function_privilege('service_role', 'public.record_client_error_event(uuid,text,text,text)', 'EXECUTE') THEN
     RAISE EXCEPTION 'client error reporting must be service-role-only';
   END IF;
 

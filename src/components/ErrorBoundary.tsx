@@ -27,13 +27,17 @@ export default class ErrorBoundary extends React.Component<Props, State> {
     return { hasError: true, referenceId: crypto.randomUUID() };
   }
 
-  public componentDidCatch() {
+  public componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     if (!this.state.referenceId) return;
+    const stackTrace = [error.stack, errorInfo.componentStack]
+      .filter(Boolean)
+      .join('\n\n');
     void supabase.functions.invoke('report-client-error', {
       body: {
         referenceId: this.state.referenceId,
         route: window.location.pathname,
         release: import.meta.env.VITE_APP_RELEASE,
+        stackTrace: stackTrace || 'No stack trace available',
       },
     }).catch(() => undefined);
   }

@@ -55,11 +55,13 @@ test('Edge Functions resolve migrated Supabase API key maps', () => {
   assert.match(config, /\[functions\.report-client-error\]\s+verify_jwt\s*=\s*false/);
 });
 
-test('the error boundary reports only a redacted reference event', () => {
+test('the error boundary reports the reference and stack trace', () => {
   const source = readFileSync(join(root, 'src', 'components', 'ErrorBoundary.tsx'), 'utf8');
   assert.match(source, /functions\.invoke\('report-client-error'/);
   assert.match(source, /referenceId/);
-  assert.doesNotMatch(source, /error\.message/);
+  assert.match(source, /error\.stack/);
+  assert.match(source, /errorInfo\.componentStack/);
+  assert.match(source, /stackTrace/);
 });
 
 test('client error reports use a bounded global rate limit', () => {
