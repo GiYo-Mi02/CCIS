@@ -3,7 +3,8 @@ import { Search, Download, ClipboardList, Eye, CheckCircle, Trash } from 'lucide
 import { useAdmin } from '../AdminContext';
 import { supabase } from '../../lib/supabase';
 import { EventRegistration, EventItem } from '../../types/database';
-import StatusBadge, { getRegistrationBadge } from '../components/StatusBadge';
+import StatusBadge from '../components/StatusBadge';
+import { getRegistrationBadge } from '../components/statusBadges';
 import Modal from '../components/Modal';
 import EmptyState from '../components/EmptyState';
 import Pagination from '../components/Pagination';
