@@ -27,7 +27,6 @@ create table "public"."profiles" (
   "last_ip"                        text,
   "attendance_qr_code"             text,
   "attendance_qr_generated_at"     timestamp with time zone default now(),
-  constraint "check_profile_email_domain" check (((email = 'ggiojoshua2006@gmail.com'::text) OR (email ~* '^[a-zA-Z0-9._%+-]+@umak\.edu\.ph$'::text))),
   constraint "check_profile_name_length" check (((full_name IS NULL) OR (length(full_name) <= 255))),
   constraint "check_profile_section" check (((section IS NULL) OR (section ~ '^[A-Z0-9-]+$'::text))),
   constraint "profiles_committee_id_fkey" foreign key (committee_id) references public.committees(id),

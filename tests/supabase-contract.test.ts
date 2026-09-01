@@ -108,3 +108,19 @@ test('OAuth session hydration is deferred outside the auth callback', () => {
     'profile hydration must run after the auth callback releases its lock',
   );
 });
+
+test('client authorization relies on database-backed profiles', () => {
+  const source = readFileSync(join(root, 'src', 'context', 'AuthContext.tsx'), 'utf8');
+
+  assert.doesNotMatch(source, /(?:DEFAULT_|ADMIN_)BYPASS_EMAILS|VITE_ADMIN_BYPASS_EMAILS/);
+  assert.match(source, /const isAdmin = Boolean\(profile && isAdminRole\(profile\.role\)\);/);
+  assert.match(source, /INSTITUTIONAL_EMAIL_REQUIRED/);
+});
+
+test('profile email exceptions use the private allowlist', () => {
+  const schema = readFileSync(join(root, 'supabase', 'schemas', 'public', 'tables', 'profiles.sql'), 'utf8');
+  const migration = readFileSync(join(migrationsDir, '20260901073804_remove_profile_email_bypass_constraint.sql'), 'utf8');
+
+  assert.doesNotMatch(schema, /check_profile_email_domain/);
+  assert.match(migration, /DROP CONSTRAINT IF EXISTS check_profile_email_domain/);
+});

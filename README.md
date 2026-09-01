@@ -113,7 +113,7 @@ Use a Slack, Discord, or incident-management webhook that accepts JSON. This is 
 ## 🎨 3. System Design & Design Patterns
 
 ### A. Authentication & Institutional Security Flow
-* **Domain Lock**: The system restricts account signup to emails ending in `@umak.edu.ph`. The main developer account (`ggiojoshua2006@gmail.com`) is explicitly exempt.
+* **Domain Lock**: The system restricts account signup to emails ending in `@umak.edu.ph`, with a private database allowlist for approved administrative exceptions.
 * **Metadata Sync (JWT Trigger)**: Roles changes in the public database table are immediately synchronized with the user's Auth metadata (`raw_app_meta_data`) via a database trigger. This enables JWT-based role assertions, eliminating redundant database lookups during RLS evaluations.
 
 ```mermaid
