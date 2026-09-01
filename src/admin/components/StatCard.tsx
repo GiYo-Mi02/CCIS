@@ -10,13 +10,13 @@ interface StatCardProps {
   badgeColor?: 'gold' | 'red' | 'green';
 }
 
-export default function StatCard({ label, value, subtitle, icon: Icon, badgeCount, badgeColor = 'gold' }: StatCardProps) {
-  const badgeClasses = {
-    gold: 'bg-[#F5B400]/15 text-[#F5B400]',
-    red: 'bg-[#C0392B]/15 text-[#C0392B]',
-    green: 'bg-[#2E7D32]/15 text-[#2E7D32]',
-  };
+const badgeClasses = {
+  gold: 'bg-[#F5B400]/15 text-[#F5B400]',
+  red: 'bg-[#C0392B]/15 text-[#C0392B]',
+  green: 'bg-[#2E7D32]/15 text-[#2E7D32]',
+};
 
+export default function StatCard({ label, value, subtitle, icon: Icon, badgeCount, badgeColor = 'gold' }: StatCardProps) {
   return (
     <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow relative group" id="admin-stat-card">
       <div className="flex items-start justify-between">

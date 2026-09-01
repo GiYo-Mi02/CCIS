@@ -10,6 +10,14 @@ interface AnnouncementsProps {
   onViewAllClick?: () => void;
 }
 
+const categories = [
+  { id: 'all', label: 'All Updates' },
+  { id: 'event', label: 'Events' },
+  { id: 'deadline', label: 'Deadlines' },
+  { id: 'result', label: 'Results' },
+  { id: 'general', label: 'General' },
+];
+
 export default function Announcements({ previewMode = false, onViewAllClick }: AnnouncementsProps) {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,14 +66,6 @@ export default function Announcements({ previewMode = false, onViewAllClick }: A
       cancelled = true;
     };
   }, [previewMode]);
-
-  const categories = [
-    { id: 'all', label: 'All Updates' },
-    { id: 'event', label: 'Events' },
-    { id: 'deadline', label: 'Deadlines' },
-    { id: 'result', label: 'Results' },
-    { id: 'general', label: 'General' },
-  ];
 
   // Filter logic
   const filtered = announcements.filter(ann => {

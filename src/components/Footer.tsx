@@ -9,14 +9,15 @@ interface FooterProps {
   isUmakTheme?: boolean;
 }
 
+const links = [
+  { id: 'info', label: 'Council Information' },
+  { id: 'announcements', label: 'Advisory Center' },
+  { id: 'registration', label: 'Event Booking Pass' },
+  { id: 'messages', label: 'Direct Messages' }
+];
+
 export default function Footer({ onNavClick, onAdminSwitch, isUmakTheme = false }: FooterProps) {
   const { isAdmin } = useAuth();
-  const links = [
-    { id: 'info', label: 'Council Information' },
-    { id: 'announcements', label: 'Advisory Center' },
-    { id: 'registration', label: 'Event Booking Pass' },
-    { id: 'messages', label: 'Direct Messages' }
-  ];
 
   return (
     <footer 
