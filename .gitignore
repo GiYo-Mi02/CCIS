@@ -11,3 +11,4 @@ k6_diagnostic.json
 supabase/.temp/
 supabase/.branches/
 .temp/
+.worktrees/
