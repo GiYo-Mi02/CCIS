@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Search, Bell, LogOut, Menu, X } from 'lucide-react';
 import { useAdmin } from '../AdminContext';
 import { useAuth } from '../../context/AuthContext';
-import { ROLE_LABELS } from '../../types/database';
+import { ROLE_LABELS, type UserRole } from '../../types/database';
 
 interface AdminTopbarProps {
   sidebarCollapsed: boolean;
@@ -14,17 +14,19 @@ const SECTION_TITLES: Record<string, string> = {
   dashboard: 'Dashboard',
   announcements: 'Announcements Manager',
   registration: 'Registration Manager',
-  photobooth: 'Photobooth Manager',
+  scanner: 'Ticket Scanner',
+  verification: 'Verifications',
   officers: 'Officers & Committees',
-  concerns: 'Concerns Inbox',
   messages: 'Concern Inbox',
   calendar: 'Event Calendar',
+  faqs: 'FAQ Manager',
+  users: 'User Management',
   settings: 'Settings & Roles',
 };
 
 export default function AdminTopbar({ sidebarCollapsed, onMobileMenuToggle, mobileMenuOpen }: AdminTopbarProps) {
   const { profile, signOut } = useAuth();
-  const { activeSection } = useAdmin();
+  const { activeSection, previewRole, effectiveRole, isRolePreviewing, startRolePreview, exitRolePreview } = useAdmin();
   const [showNotifs, setShowNotifs] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const notifRef = useRef<HTMLDivElement>(null);
@@ -78,6 +80,36 @@ export default function AdminTopbar({ sidebarCollapsed, onMobileMenuToggle, mobi
         />
       </div>
 
+      {profile?.role === 'devcom_head' && (
+        <div className="flex items-center gap-2">
+          <label className="sr-only" htmlFor="admin-role-preview">Preview admin role</label>
+          <select
+            id="admin-role-preview"
+            value={previewRole ?? ''}
+            onChange={(event) => {
+              const role = event.target.value as UserRole;
+              if (role) startRolePreview(role);
+              else exitRolePreview();
+            }}
+            className="max-w-36 rounded-lg border border-[#123524]/25 bg-stone-50 px-2 py-1.5 text-xs font-semibold text-[#123524]"
+          >
+            <option value="">Preview role</option>
+            {(Object.keys(ROLE_LABELS) as UserRole[]).map(role => (
+              <option key={role} value={role}>{ROLE_LABELS[role]}</option>
+            ))}
+          </select>
+          {isRolePreviewing && (
+            <button
+              type="button"
+              onClick={exitRolePreview}
+              className="rounded-lg border border-[#123524]/25 px-2 py-1.5 text-xs font-bold text-[#123524] hover:bg-stone-100"
+            >
+              Exit
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Notifications (lightweight placeholder — no DB table for notifs) */}
       <div className="relative" ref={notifRef}>
         <button
@@ -114,7 +146,7 @@ export default function AdminTopbar({ sidebarCollapsed, onMobileMenuToggle, mobi
         <div className="hidden lg:flex flex-col min-w-0">
           <span className="text-xs font-bold text-[#222B26] truncate">{profile?.full_name || 'Admin'}</span>
           <span className="text-[10px] text-gray-400 font-mono truncate">
-            {profile?.role ? ROLE_LABELS[profile.role] : 'Admin'}
+            {effectiveRole ? `${isRolePreviewing ? 'Preview: ' : ''}${ROLE_LABELS[effectiveRole]}` : 'Admin'}
           </span>
         </div>
         <button

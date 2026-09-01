@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Megaphone, ClipboardList, MessageSquare, Calendar, Edit3, ArrowRight, HelpCircle } from 'lucide-react';
 import { useAdmin } from '../AdminContext';
-import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';
 import StatCard from '../components/StatCard';
 import StatusBadge from '../components/StatusBadge';
@@ -41,8 +40,7 @@ interface UpcomingEvent {
 }
 
 export default function Dashboard() {
-  const { setActiveSection } = useAdmin();
-  const { profile } = useAuth();
+  const { setActiveSection, effectiveRole } = useAdmin();
   const [stats, setStats] = useState<DashStats>({
     announcementsTotal: 0, announcementsPublished: 0,
     registrationsTotal: 0, registrationsPending: 0,
@@ -54,7 +52,7 @@ export default function Dashboard() {
   const [upcomingEvents, setUpcomingEvents] = useState<UpcomingEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const hasMessageAccess = profile && ['devcom_head', 'officer'].includes(profile.role);
+  const hasMessageAccess = effectiveRole === 'devcom_head' || effectiveRole === 'officer';
 
   useEffect(() => {
     let ignore = false;

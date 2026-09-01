@@ -107,21 +107,6 @@ export interface FAQItem {
   answer: string;
 }
 
-// ============================================================
-// ADMIN PANEL TYPES
-// ============================================================
-
-export type UserRole = 'devcom_head' | 'comm_content' | 'comm_registration' | 'comm_photobooth' | 'officer_readonly';
-
-export interface AdminUser {
-  id: string;
-  name: string;
-  email: string;
-  role: UserRole;
-  avatarUrl?: string;
-  lastActive: string;
-}
-
 export interface PhotoboothSession {
   id: string;
   timestamp: string;
@@ -150,28 +135,6 @@ export interface Notification {
   read: boolean;
   link?: string;
 }
-
-export interface ToastMessage {
-  id: string;
-  message: string;
-  type: 'success' | 'error' | 'warning' | 'info';
-}
-
-const ROLE_LABELS: Record<UserRole, string> = {
-  devcom_head: 'DevCom Head',
-  comm_content: 'Comm — Content',
-  comm_registration: 'Comm — Registration',
-  comm_photobooth: 'Comm — Photobooth',
-  officer_readonly: 'Officer (Read-Only)',
-};
-
-const ROLE_COLORS: Record<UserRole, string> = {
-  devcom_head: 'bg-[#F5B400]/15 text-[#F5B400] border-[#F5B400]/30',
-  comm_content: 'bg-[#2E7D32]/15 text-[#2E7D32] border-[#2E7D32]/30',
-  comm_registration: 'bg-[#1565C0]/15 text-[#1565C0] border-[#1565C0]/30',
-  comm_photobooth: 'bg-[#7B1FA2]/15 text-[#7B1FA2] border-[#7B1FA2]/30',
-  officer_readonly: 'bg-[#546E7A]/15 text-[#546E7A] border-[#546E7A]/30',
-};
 
 export interface Conversation {
   id: string;

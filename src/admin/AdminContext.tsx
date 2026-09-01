@@ -1,10 +1,17 @@
 import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
-import { ToastMessage } from '../types/database';
+import { ToastMessage, UserRole } from '../types/database';
+import { canPreviewRoles } from './roleAccess';
+import { useAuth } from '../context/AuthContext';
 
 interface AdminContextType {
   // Navigation
   activeSection: string;
   setActiveSection: (s: string) => void;
+  previewRole: UserRole | null;
+  effectiveRole: UserRole | null;
+  isRolePreviewing: boolean;
+  startRolePreview: (role: UserRole) => void;
+  exitRolePreview: () => void;
 
   // Toast
   toasts: ToastMessage[];
@@ -59,8 +66,18 @@ function getInitialSection() {
 }
 
 export function AdminProvider({ children }: { children: React.ReactNode }) {
+  const { profile } = useAuth();
   // Navigation
   const [activeSection, setActiveSectionState] = useState(getInitialSection);
+  const [previewRole, setPreviewRole] = useState<UserRole | null>(null);
+  const [previewUserId, setPreviewUserId] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (previewUserId !== (profile?.id ?? null)) {
+      setPreviewRole(null);
+      setPreviewUserId(null);
+    }
+  }, [previewUserId, profile?.id]);
 
   // Listen to browser back/forward navigation within admin
   React.useEffect(() => {
@@ -83,6 +100,22 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const startRolePreview = useCallback((role: UserRole) => {
+    if (profile?.role !== 'devcom_head') return;
+    setPreviewRole(role);
+    setPreviewUserId(profile.id);
+    setActiveSection('dashboard');
+  }, [profile?.id, profile?.role, setActiveSection]);
+
+  const exitRolePreview = useCallback(() => {
+    setPreviewRole(null);
+    setPreviewUserId(null);
+  }, []);
+  const isRolePreviewing = previewRole !== null
+    && previewUserId === profile?.id
+    && canPreviewRoles(profile?.role);
+  const effectiveRole = isRolePreviewing ? previewRole : profile?.role ?? null;
+
   // Toasts
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
@@ -100,8 +133,10 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo(() => ({
     activeSection, setActiveSection,
+    previewRole: isRolePreviewing ? previewRole : null,
+    effectiveRole, isRolePreviewing, startRolePreview, exitRolePreview,
     toasts, showToast, dismissToast,
-  }), [activeSection, setActiveSection, toasts, showToast, dismissToast]);
+  }), [activeSection, setActiveSection, previewRole, effectiveRole, isRolePreviewing, startRolePreview, exitRolePreview, toasts, showToast, dismissToast]);
 
   return (
     <AdminContext.Provider value={value}>

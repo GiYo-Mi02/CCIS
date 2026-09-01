@@ -4,9 +4,9 @@ import {
   Users, CalendarDays, Settings, ArrowLeft, ChevronLeft, ChevronRight, MessageSquare, Scan, UserCog, HelpCircle, UserCheck
 } from 'lucide-react';
 import { useAdmin } from '../AdminContext';
-import { useAuth } from '../../context/AuthContext';
+import { AdminSection, canAccessAdminSection } from '../roleAccess';
 
-const NAV_ITEMS = [
+const NAV_ITEMS: { id: AdminSection; label: string; icon: typeof LayoutDashboard }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'announcements', label: 'Announcements', icon: Megaphone },
   { id: 'registration', label: 'Registration', icon: ClipboardList },
@@ -27,29 +27,10 @@ interface AdminSidebarProps {
 }
 
 export default function AdminSidebar({ collapsed, onToggle, onExitAdmin }: AdminSidebarProps) {
-  const { activeSection, setActiveSection } = useAdmin();
-  const { profile } = useAuth();
+  const { activeSection, setActiveSection, effectiveRole } = useAdmin();
 
   // Filter items by role
-  const visibleNavItems = NAV_ITEMS.filter(item => {
-    const role = profile?.role;
-    if (item.id === 'messages') {
-      return role === 'devcom_head' || role === 'officer';
-    }
-    if (item.id === 'scanner') {
-      return role === 'devcom_head' || role === 'comm_registration';
-    }
-    if (item.id === 'verification') {
-      return role === 'devcom_head' || role === 'comm_registration';
-    }
-    if (item.id === 'users') {
-      return role === 'devcom_head';
-    }
-    if (item.id === 'faqs') {
-      return role === 'devcom_head' || role === 'comm_content';
-    }
-    return true;
-  });
+  const visibleNavItems = NAV_ITEMS.filter(item => canAccessAdminSection(effectiveRole, item.id));
 
   return (
     <aside

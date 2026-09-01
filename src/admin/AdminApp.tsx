@@ -5,6 +5,7 @@ import AdminSidebar from './components/AdminSidebar';
 import AdminTopbar from './components/AdminTopbar';
 import ToastContainer from './components/Toast';
 import { useAuth } from '../context/AuthContext';
+import { canAccessAdminSection } from './roleAccess';
 
 const Dashboard = lazy(() => import('./sections/Dashboard'));
 const AnnouncementsManager = lazy(() => import('./sections/AnnouncementsManager'));
@@ -31,10 +32,15 @@ export default function AdminApp({ onExitAdmin }: AdminAppProps) {
 }
 
 function AdminAppInner({ onExitAdmin }: AdminAppProps) {
-  const { isAdmin, loading, profile } = useAuth();
-  const { activeSection } = useAdmin();
+  const { isAdmin, loading } = useAuth();
+  const { activeSection, effectiveRole, isRolePreviewing } = useAdmin();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const blockPreviewInteraction = (event: React.SyntheticEvent) => {
+    if (!isRolePreviewing) return;
+    event.preventDefault();
+    event.stopPropagation();
+  };
 
   if (loading) {
     return (
@@ -52,40 +58,27 @@ function AdminAppInner({ onExitAdmin }: AdminAppProps) {
   }
 
   const renderSection = () => {
-    // Role-based section visibility
-    const role = profile?.role;
+    if (!canAccessAdminSection(effectiveRole, activeSection)) {
+      if (!isRolePreviewing) return <Dashboard />;
+      return (
+        <div className="rounded-xl border border-[#123524]/25 bg-white p-8 text-center text-sm text-[#5E6E64]">
+          Student view: this role does not have access to the admin portal.
+        </div>
+      );
+    }
+
     switch (activeSection) {
       case 'dashboard': return <Dashboard />;
-      case 'announcements':
-        if (role === 'devcom_head' || role === 'comm_content') return <AnnouncementsManager />;
-        return <Dashboard />;
-      case 'registration':
-        if (role === 'devcom_head' || role === 'comm_registration') return <RegistrationManager />;
-        return <Dashboard />;
-      case 'scanner':
-        if (role === 'devcom_head' || role === 'comm_registration') return <TicketScanner />;
-        return <Dashboard />;
-      case 'officers':
-        if (role === 'devcom_head') return <OfficersManager />;
-        return <Dashboard />;
-      case 'messages':
-        if (role === 'devcom_head' || role === 'officer') return <MessagesInbox />;
-        return <Dashboard />;
-      case 'calendar':
-        if (role === 'devcom_head' || role === 'comm_content') return <EventCalendar />;
-        return <Dashboard />;
-      case 'settings':
-        if (role === 'devcom_head') return <SettingsRoles />;
-        return <Dashboard />;
-      case 'users':
-        if (role === 'devcom_head') return <UserManager />;
-        return <Dashboard />;
-      case 'verification':
-        if (role === 'devcom_head' || role === 'comm_registration') return <VerificationManager />;
-        return <Dashboard />;
-      case 'faqs':
-        if (role === 'devcom_head' || role === 'comm_content') return <FaqManager />;
-        return <Dashboard />;
+      case 'announcements': return <AnnouncementsManager />;
+      case 'registration': return <RegistrationManager />;
+      case 'scanner': return <TicketScanner />;
+      case 'officers': return <OfficersManager />;
+      case 'messages': return <MessagesInbox />;
+      case 'calendar': return <EventCalendar />;
+      case 'settings': return <SettingsRoles />;
+      case 'users': return <UserManager />;
+      case 'verification': return <VerificationManager />;
+      case 'faqs': return <FaqManager />;
       default: return <Dashboard />;
     }
   };
@@ -128,8 +121,20 @@ function AdminAppInner({ onExitAdmin }: AdminAppProps) {
           mobileMenuOpen={mobileMenuOpen}
         />
 
+        {isRolePreviewing && (
+          <div role="status" aria-live="polite" className="border-b border-[#123524]/25 bg-amber-50 px-4 py-2 text-center text-xs font-semibold text-amber-900">
+            Role preview only. Content uses your DevCom access; admin controls are disabled and no changes can be saved.
+          </div>
+        )}
+
         {/* Page content */}
-        <main className="flex-1 min-h-0 w-full p-4 md:p-6 overflow-y-auto admin-scrollbar">
+        <main
+          inert={isRolePreviewing}
+          onClickCapture={blockPreviewInteraction}
+          onKeyDownCapture={blockPreviewInteraction}
+          onSubmitCapture={blockPreviewInteraction}
+          className="flex-1 min-h-0 w-full p-4 md:p-6 overflow-y-auto admin-scrollbar"
+        >
           <Suspense fallback={<div className="p-8 text-sm text-[#5E6E64]">Loading section...</div>}>
             {renderSection()}
           </Suspense>

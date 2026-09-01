@@ -27,7 +27,7 @@ const formatMessageTimeHeader = (dateStr: string): string => {
 
 export default function MessagesInbox() {
   const { profile } = useAuth();
-  const { showToast } = useAdmin();
+  const { effectiveRole, isRolePreviewing, showToast } = useAdmin();
   const { isRealtimeAvailable } = useRealtimeAvailability();
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -56,7 +56,7 @@ export default function MessagesInbox() {
   const activeConIdRef = useRef<string | null>(null);
 
   // Security gate
-  const hasAccess = profile && ['devcom_head', 'officer'].includes(profile.role);
+  const hasAccess = effectiveRole === 'devcom_head' || effectiveRole === 'officer';
 
   // Sync active reference
   useEffect(() => {
@@ -189,7 +189,7 @@ export default function MessagesInbox() {
           if (message.sender_role === 'student' && !message.read_by_admin) unreadStudentMsgIds.push(message.id);
         }
 
-        if (unreadStudentMsgIds.length > 0) {
+        if (!isRolePreviewing && unreadStudentMsgIds.length > 0) {
           const currentUnread = unreadCounts[conversationId] || 0;
           // Perform DB update asynchronously in background
           supabase
@@ -218,7 +218,7 @@ export default function MessagesInbox() {
     } finally {
       setLoadingMessages(false);
     }
-  }, [showToast, unreadCounts]);
+  }, [isRolePreviewing, showToast, unreadCounts]);
 
   // Trigger loading of conversation messages on selection
   useEffect(() => {
@@ -234,7 +234,7 @@ export default function MessagesInbox() {
 
   // Realtime subscription setup
   useEffect(() => {
-    if (!hasAccess || !isRealtimeAvailable) return;
+    if (!hasAccess || !isRealtimeAvailable || isRolePreviewing) return;
 
     const channelId = `admin_inbox_messages_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     const channel = supabase
@@ -275,7 +275,7 @@ export default function MessagesInbox() {
       unregister();
       void supabase.removeChannel(channel);
     };
-  }, [currentPage, fetchConversationsList, hasAccess, isRealtimeAvailable]);
+  }, [currentPage, fetchConversationsList, hasAccess, isRealtimeAvailable, isRolePreviewing]);
 
   const scrollToBottom = () => {
     setTimeout(() => {
@@ -292,7 +292,7 @@ export default function MessagesInbox() {
 
   const handleSendReply = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profile || !selectedCon || !inputText.trim() || sending) return;
+    if (isRolePreviewing || !profile || !selectedCon || !inputText.trim() || sending) return;
 
     if (checkIsProfane(inputText)) {
       showToast('Inappropriate language detected. Please check your message.', 'error');
