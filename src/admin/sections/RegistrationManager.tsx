@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Search, Download, ClipboardList, Eye, CheckCircle, Trash } from 'lucide-react';
 import { useAdmin } from '../AdminContext';
 import { supabase } from '../../lib/supabase';
@@ -9,13 +9,7 @@ import Modal from '../components/Modal';
 import EmptyState from '../components/EmptyState';
 import Pagination from '../components/Pagination';
 import { withSessionRefreshRetry } from '../../lib/supabaseRequest';
-
-const PieChart = lazy(() => import('recharts').then(({ PieChart }) => ({ default: PieChart })));
-const Pie = lazy(() => import('recharts').then(({ Pie }) => ({ default: Pie })));
-const Cell = lazy(() => import('recharts').then(({ Cell }) => ({ default: Cell })));
-const ResponsiveContainer = lazy(() => import('recharts').then(({ ResponsiveContainer }) => ({ default: ResponsiveContainer })));
-const Legend = lazy(() => import('recharts').then(({ Legend }) => ({ default: Legend })));
-const Tooltip = lazy(() => import('recharts').then(({ Tooltip }) => ({ default: Tooltip })));
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 
 export default function RegistrationManager() {
   const { showToast } = useAdmin();
@@ -274,36 +268,34 @@ export default function RegistrationManager() {
             <p className="text-xs text-gray-400 py-6 text-center w-full">No records found</p>
           ) : (
             <div className="w-full h-24 min-h-0 min-w-0">
-              <Suspense fallback={null}>
-                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                  <PieChart>
-                    <Pie
-                      data={chartData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={18}
-                      outerRadius={32}
-                      paddingAngle={3}
-                      dataKey="value"
-                    >
-                      {chartData.map(entry => (
-                        <Cell key={entry.name} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{ fontSize: '10px', borderRadius: '8px', padding: '4px 8px' }}
-                      itemStyle={{ padding: 0 }}
-                    />
-                    <Legend
-                      verticalAlign="middle"
-                      align="right"
-                      layout="vertical"
-                      iconSize={6}
-                      wrapperStyle={{ fontSize: '9px', paddingLeft: '8px' }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </Suspense>
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                <PieChart>
+                  <Pie
+                    data={chartData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={18}
+                    outerRadius={32}
+                    paddingAngle={3}
+                    dataKey="value"
+                  >
+                    {chartData.map(entry => (
+                      <Cell key={entry.name} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{ fontSize: '10px', borderRadius: '8px', padding: '4px 8px' }}
+                    itemStyle={{ padding: 0 }}
+                  />
+                  <Legend
+                    verticalAlign="middle"
+                    align="right"
+                    layout="vertical"
+                    iconSize={6}
+                    wrapperStyle={{ fontSize: '9px', paddingLeft: '8px' }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
             </div>
           )}
         </div>

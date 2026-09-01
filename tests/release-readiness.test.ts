@@ -95,6 +95,14 @@ test('registration RPC repair is scoped and admin reads retry invalid sessions o
   assert.match(scanner, /withSessionRefreshRetry/);
 });
 
+test('registration chart keeps Recharts components in one synchronous tree', () => {
+  const registration = read('src', 'admin', 'sections', 'RegistrationManager.tsx');
+
+  assert.match(registration, /import \{ PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip \} from 'recharts';/);
+  assert.doesNotMatch(registration, /lazy\(\(\) => import\('recharts'\)/);
+  assert.doesNotMatch(registration, /<Suspense fallback=\{null\}>/);
+});
+
 test('release configuration is pinned and excludes the retired IP service', () => {
   const workflow = read('.github', 'workflows', 'typecheck.yml');
   const vercel = read('vercel.json');
