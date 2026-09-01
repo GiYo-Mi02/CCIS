@@ -16,6 +16,34 @@ interface GalleryPageProps {
   isAdmin?: boolean;
 }
 
+const useColumnsCount = () => {
+  const [cols, setCols] = useState(4);
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 640) setCols(1);
+      else if (window.innerWidth < 768) setCols(2);
+      else if (window.innerWidth < 1024) setCols(3);
+      else setCols(4);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  return cols;
+};
+
+const getStoragePathFromUrl = (url: string): string | null => {
+  const parts = url.split('gallery-images/');
+  return parts.length >= 2 ? parts.slice(1).join('gallery-images/') : null;
+};
+
+const handleDragOver = (e: React.DragEvent) => e.preventDefault();
+
+const getDerivedIndexLabel = (item: GalleryItem, filteredList: GalleryItem[]): string => {
+  const idx = filteredList.findIndex(i => i.id === item.id);
+  return idx === -1 ? '001' : String(idx + 1).padStart(3, '0');
+};
+
 export default function GalleryPage({ isAdmin = false }: GalleryPageProps) {
   const { user } = useAuth();
 
@@ -53,23 +81,6 @@ export default function GalleryPage({ isAdmin = false }: GalleryPageProps) {
   // Accessibility / Reduced Motion hook
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [visibleCount, setVisibleCount] = useState(24);
-
-  // Responsive masonry columns hook
-  const useColumnsCount = () => {
-    const [cols, setCols] = useState(4);
-    useEffect(() => {
-      const handleResize = () => {
-        if (window.innerWidth < 640) setCols(1);
-        else if (window.innerWidth < 768) setCols(2);
-        else if (window.innerWidth < 1024) setCols(3);
-        else setCols(4);
-      };
-      handleResize();
-      window.addEventListener('resize', handleResize);
-      return () => window.removeEventListener('resize', handleResize);
-    }, []);
-    return cols;
-  };
 
   const colsCount = useColumnsCount();
 
@@ -133,16 +144,6 @@ export default function GalleryPage({ isAdmin = false }: GalleryPageProps) {
     fetchGallery();
   }, []);
 
-  const getStoragePathFromUrl = (url: string): string | null => {
-    try {
-      const parts = url.split('gallery-images/');
-      if (parts.length >= 2) return parts.slice(1).join('gallery-images/');
-      return null;
-    } catch {
-      return null;
-    }
-  };
-
   // Sort items according to local storage custom order
   const getSortedItems = (itemsList: GalleryItem[]): GalleryItem[] => {
     if (!customOrder || customOrder.length === 0) return itemsList;
@@ -171,10 +172,6 @@ export default function GalleryPage({ isAdmin = false }: GalleryPageProps) {
   const handleDragStart = (e: React.DragEvent, id: string) => {
     setDraggedItemId(id);
     e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
   };
 
   const handleDrop = (e: React.DragEvent, targetId: string) => {
@@ -257,12 +254,6 @@ export default function GalleryPage({ isAdmin = false }: GalleryPageProps) {
     }
     setEditTargetItem(null);
     setShowAdminForm(false);
-  };
-
-  const getDerivedIndexLabel = (item: GalleryItem, filteredList: GalleryItem[]): string => {
-    const idx = filteredList.findIndex(i => i.id === item.id);
-    if (idx === -1) return '001';
-    return String(idx + 1).padStart(3, '0');
   };
 
   // Filter items

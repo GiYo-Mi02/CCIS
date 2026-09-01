@@ -243,6 +243,41 @@ const PDFPlaceholder = ({ title }: { title: string }) => (
   </div>
 );
 
+const renderPdfThumbnail = async (file: File): Promise<Blob> => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const pdfjsLib = await import('pdfjs-dist');
+      pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+      const fileReader = new FileReader();
+      fileReader.onload = async function() {
+        try {
+          const typedarray = new Uint8Array(this.result as ArrayBuffer);
+          const pdf = await pdfjsLib.getDocument({ data: typedarray }).promise;
+          if (pdf.numPages === 0) throw new Error('This PDF has no pages.');
+          const page = await pdf.getPage(1);
+          const viewport = page.getViewport({ scale: 1.2 });
+          const canvas = document.createElement('canvas');
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          await page.render({ canvas, viewport }).promise;
+          canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Canvas to Blob conversion failed.')), 'image/webp', 0.85);
+        } catch (error) {
+          reject(error);
+        }
+      };
+      fileReader.onerror = reject;
+      fileReader.readAsArrayBuffer(file);
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+
+const getStoragePathFromUrl = (url: string): string | null => {
+  const parts = url.split('/public/bukas-kaban-reports/');
+  return parts.length === 2 ? parts[1] : null;
+};
+
 export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps) {
   const [reports, setReports] = useState<TransparencyReport[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -436,64 +471,6 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
     dispatchForm({ type: 'open', report, semester: formSemestersOptions[0] || '1st Semester A.Y. 2025-2026' });
   };
 
-  // Client-side PDF page to canvas render function
-  const renderPdfThumbnail = async (file: File): Promise<Blob> => {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const pdfjsLib = await import('pdfjs-dist');
-        pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
-
-        const fileReader = new FileReader();
-        fileReader.onload = async function() {
-          try {
-            const arrayBuffer = this.result as ArrayBuffer;
-            const typedarray = new Uint8Array(arrayBuffer);
-            const loadingTask = pdfjsLib.getDocument({ data: typedarray });
-            const pdf = await loadingTask.promise;
-
-            if (pdf.numPages === 0) {
-              throw new Error('This PDF has no pages.');
-            }
-
-            const page = await pdf.getPage(1);
-            
-            // Scale for optimal rendering resolution (1.2 scale fits preview card)
-            const viewport = page.getViewport({ scale: 1.2 });
-            const canvas = document.createElement('canvas');
-            canvas.width = viewport.width;
-            canvas.height = viewport.height;
-
-            const renderContext = {
-              canvas,
-              viewport: viewport
-            };
-
-            await page.render(renderContext).promise;
-
-            canvas.toBlob((blob) => {
-              if (blob) {
-                resolve(blob);
-              } else {
-                reject(new Error('Canvas to Blob conversion failed.'));
-              }
-            }, 'image/webp', 0.85);
-
-          } catch (e) {
-            reject(e);
-          }
-        };
-
-        fileReader.onerror = function(e) {
-          reject(e);
-        };
-
-        fileReader.readAsArrayBuffer(file);
-      } catch (err) {
-        reject(err);
-      }
-    });
-  };
-
   // Handle PDF file selection
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -527,16 +504,6 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
       triggerToast('Failed to auto-generate PDF thumbnail preview. Using default file icon.', 'warning');
       generatedThumbnailBlobRef.current = null;
       dispatchForm({ type: 'thumbnailFailed' });
-    }
-  };
-
-  const getStoragePathFromUrl = (url: string): string | null => {
-    try {
-      const parts = url.split('/public/bukas-kaban-reports/');
-      if (parts.length === 2) return parts[1];
-      return null;
-    } catch {
-      return null;
     }
   };
 

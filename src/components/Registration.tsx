@@ -22,6 +22,8 @@ const PROGRAM_NAMES: Record<string, string> = {
   DAD: 'Diploma in Application Development (DAD)',
 };
 
+const getEventSlotsLeft = (ev: EventItem) => ev.slotsLeft === null ? null : ev.slotsLeft ?? ev.slots - ev.registeredCount;
+
 interface RegistrationSectionProps {
   onNavigate?: (tab: string, eventId?: string) => void;
   preselectedEventId?: string | null;
@@ -275,10 +277,6 @@ export default function RegistrationSection({ onNavigate, preselectedEventId, on
     } finally {
       setRegistering(false);
     }
-  };
-
-  const getEventSlotsLeft = (ev: EventItem) => {
-    return ev.slotsLeft === null ? null : ev.slotsLeft ?? ev.slots - ev.registeredCount;
   };
 
   if (loading) {

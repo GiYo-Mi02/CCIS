@@ -105,6 +105,77 @@ const STUDENT_ORGS: StudentOrgMeta[] = [
   }
 ];
 
+const getCommitteeIcon = (slug: string) => {
+  switch (slug) {
+    case 'logistics': return <ClipboardList className="text-[#F5B400]" size={18} />;
+    case 'finance': return <Coins className="text-[#F5B400]" size={18} />;
+    case 'inventory': return <Archive className="text-[#F5B400]" size={18} />;
+    case 'technical': return <Cpu className="text-[#F5B400]" size={18} />;
+    case 'external-affairs': return <Globe className="text-[#F5B400]" size={18} />;
+    case 'advertising': return <Megaphone className="text-[#F5B400]" size={18} />;
+    case 'developers': return <Code className="text-[#F5B400]" size={18} />;
+    case 'welfare': return <Heart className="text-[#F5B400]" size={18} />;
+    default: return <Shield className="text-[#F5B400]" size={18} />;
+  }
+};
+
+const getExecBoardRank = (position: string) => {
+  const pos = position.toLowerCase().replace(/\s+/g, ' ').trim();
+  if (pos.includes('chairperson') || pos.includes('president')) return 1;
+  if (pos.includes('vice chairperson') || pos.includes('vice president') || pos.includes('vp')) return 2;
+  if (pos.includes('secretary')) return 3;
+  if (pos.includes('treasurer')) return 4;
+  if (pos.includes('auditor')) return 5;
+  if (pos.includes('public information officer') || pos.includes('pio') || pos.includes('public relations officer') || pos.includes('pro')) return 6;
+  if (pos.includes('business manager')) return 7;
+  return 8;
+};
+
+const getYearLevel = (position: string) => {
+  const pos = position.toLowerCase().trim();
+  if (pos.includes('1st') || pos.includes('first')) return 1;
+  if (pos.includes('2nd') || pos.includes('second')) return 2;
+  if (pos.includes('3rd') || pos.includes('third')) return 3;
+  if (pos.includes('4th') || pos.includes('fourth')) return 4;
+  return 99;
+};
+
+const renderOfficerCard = (off: Officer) => (
+  <div
+    key={off.id}
+    className="relative w-[280px] max-w-[calc(100vw-3rem)] h-[395px] group overflow-visible mt-16 mb-6 flex flex-col justify-end transition-colors duration-500"
+    id={`officer-card-${off.id}`}
+  >
+    <div className="absolute inset-x-0 bottom-0 top-10 rounded-3xl border-2 border-[#F5B400]/15 translate-x-3 translate-y-3 -rotate-3 pointer-events-none group-hover:translate-x-0 group-hover:translate-y-0 group-hover:rotate-0 group-hover:border-[#F5B400]/35 transition-[background-color,border-color,color,box-shadow,transform] duration-500" />
+    <div className="absolute inset-x-0 bottom-0 top-10 bg-gradient-to-br from-[#163628] via-[#0E2219] to-[#060D0A] rounded-3xl border border-white/10 shadow-2xl group-hover:shadow-[0_30px_60px_rgba(0,0,0,0.6)] group-hover:shadow-[#123524]/30 transition-[background-color,border-color,color,box-shadow,transform] duration-500 origin-bottom transform group-hover:scale-[1.02] group-hover:-translate-y-3.5 -rotate-1 group-hover:rotate-0 overflow-hidden" />
+    <div className="absolute top-16 right-4 font-mono font-black text-[#F5B400]/10 group-hover:text-[#F5B400]/30 text-[9px] uppercase tracking-[0.3em] transition-[background-color,border-color,color,box-shadow,transform] duration-500 [writing-mode:vertical-lr] select-none pointer-events-none group-hover:translate-y-2">
+      {off.committee === 'Executive Board' ? 'EXEBOARD' : `EXECOM - ${off.committee.replace('Committee', '').trim()}`}
+    </div>
+    <div className="absolute bottom-20 left-1/2 -translate-x-1/2 w-[88%] h-[98%] overflow-hidden rounded-2xl border border-white/10 shadow-lg bg-white/5 pointer-events-none z-10 group-hover:shadow-2xl group-hover:scale-106 group-hover:-translate-y-4 group-hover:border-[#F5B400]/30 transition-[background-color,border-color,color,box-shadow,transform] duration-500 origin-bottom">
+      {off.photoUrl ? (
+        <div className="relative w-full h-full">
+          <OptimizedImage src={off.photoUrl} alt={off.name} width={720} height={900} className="w-full h-full object-cover select-none" />
+          <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none" />
+        </div>
+      ) : (
+        <div className="w-full h-full bg-[#FAF7EA] text-[#1A3C2E] flex items-center justify-center font-sans font-black text-2xl select-none">
+          {off.name.split(' ').map(n => n[0]).join('')}
+        </div>
+      )}
+    </div>
+    <div className="absolute bottom-4 left-4 right-4 bg-[#07130F]/90 backdrop-blur-md border border-white/10 p-3.5 rounded-2xl z-20 text-left shadow-2xl group-hover:shadow-[0_15px_30px_rgba(0,0,0,0.5)] group-hover:border-[#F5B400]/40 group-hover:-translate-y-4 transition-[background-color,border-color,color,box-shadow,transform] duration-500 flex flex-col justify-between">
+      <div>
+        <h3 className="font-sans font-black text-white text-xs md:text-sm group-hover:text-[#F5B400] transition-colors leading-tight mb-0.5 truncate">{off.name}</h3>
+        <span className="block font-mono text-[8px] md:text-[9px] font-black text-[#F5B400] uppercase tracking-wider leading-none">{off.position}</span>
+      </div>
+      <div className="h-0 opacity-0 group-hover:h-auto group-hover:opacity-100 group-hover:mt-2 border-t border-white/5 pt-1.5 transition-[width,height,margin-top,opacity] duration-500 overflow-hidden flex flex-col gap-1">
+        {off.quote && <p className="font-sans text-[9px] text-stone-300 leading-tight italic truncate">"{off.quote}"</p>}
+        <a href={`mailto:${off.email}`} className="font-mono text-[8px] text-stone-400 hover:text-[#F5B400] truncate transition-colors">{off.email}</a>
+      </div>
+    </div>
+  </div>
+);
+
 export interface InfoHubProps {
   onNavigate?: (tab: string, eventId?: string) => void;
   activeSubTab?: 'umak' | 'college' | 'org';
@@ -209,20 +280,6 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
 
   const selectedOrg = STUDENT_ORGS.find(org => org.id === selectedOrgId) || STUDENT_ORGS[0];
 
-  const getCommitteeIcon = (slug: string) => {
-    switch (slug) {
-      case 'logistics': return <ClipboardList className="text-[#F5B400]" size={18} />;
-      case 'finance': return <Coins className="text-[#F5B400]" size={18} />;
-      case 'inventory': return <Archive className="text-[#F5B400]" size={18} />;
-      case 'technical': return <Cpu className="text-[#F5B400]" size={18} />;
-      case 'external-affairs': return <Globe className="text-[#F5B400]" size={18} />;
-      case 'advertising': return <Megaphone className="text-[#F5B400]" size={18} />;
-      case 'developers': return <Code className="text-[#F5B400]" size={18} />;
-      case 'welfare': return <Heart className="text-[#F5B400]" size={18} />;
-      default: return <Shield className="text-[#F5B400]" size={18} />;
-    }
-  };
-
   if (loading) {
     return <InfoHubSkeleton />;
   }
@@ -236,27 +293,6 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
   );
 
   const execBoardRoles = ['chairperson', 'president', 'vice chairperson', 'vice president', 'secretary', 'treasurer', 'auditor', 'public information officer', 'pio', 'pro', 'public relations officer', 'business manager'];
-
-  const getExecBoardRank = (position: string) => {
-    const pos = position.toLowerCase().replace(/\s+/g, ' ').trim();
-    if (pos.includes('chairperson') || pos.includes('president')) return 1;
-    if (pos.includes('vice chairperson') || pos.includes('vice president') || pos.includes('vp')) return 2;
-    if (pos.includes('secretary')) return 3;
-    if (pos.includes('treasurer')) return 4;
-    if (pos.includes('auditor')) return 5;
-    if (pos.includes('public information officer') || pos.includes('pio') || pos.includes('public relations officer') || pos.includes('pro')) return 6;
-    if (pos.includes('business manager')) return 7;
-    return 8;
-  };
-
-  const getYearLevel = (position: string) => {
-    const pos = position.toLowerCase().trim();
-    if (pos.includes('1st') || pos.includes('first')) return 1;
-    if (pos.includes('2nd') || pos.includes('second')) return 2;
-    if (pos.includes('3rd') || pos.includes('third')) return 3;
-    if (pos.includes('4th') || pos.includes('fourth')) return 4;
-    return 99;
-  };
 
   const execBoard = filteredOfficers.filter(o => {
     const pos = o.position.toLowerCase().replace(/\s+/g, ' ').trim();
@@ -303,72 +339,6 @@ export default function InfoHub({ onNavigate, activeSubTab, onSubTabChange }: In
   });
 
   const com = committees.find(c => c.id === activeCommitteeTab);
-
-  const renderOfficerCard = (off: Officer) => (
-    <div
-      key={off.id}
-      className="relative w-[280px] max-w-[calc(100vw-3rem)] h-[395px] group overflow-visible mt-16 mb-6 flex flex-col justify-end transition-colors duration-500"
-      id={`officer-card-${off.id}`}
-    >
-      {/* 1. Offset Angled Accent Border Frame */}
-      <div className="absolute inset-x-0 bottom-0 top-10 rounded-3xl border-2 border-[#F5B400]/15 translate-x-3 translate-y-3 -rotate-3 pointer-events-none group-hover:translate-x-0 group-hover:translate-y-0 group-hover:rotate-0 group-hover:border-[#F5B400]/35 transition-[background-color,border-color,color,box-shadow,transform] duration-500" />
-
-      {/* 2. Main Skewed/Tilted Background Panel Card */}
-      <div className="absolute inset-x-0 bottom-0 top-10 bg-gradient-to-br from-[#163628] via-[#0E2219] to-[#060D0A] rounded-3xl border border-white/10 shadow-2xl group-hover:shadow-[0_30px_60px_rgba(0,0,0,0.6)] group-hover:shadow-[#123524]/30 transition-[background-color,border-color,color,box-shadow,transform] duration-500 origin-bottom transform group-hover:scale-[1.02] group-hover:-translate-y-3.5 -rotate-1 group-hover:rotate-0 overflow-hidden" />
-
-      {/* 3. Rotated/Vertical Department Label */}
-      <div className="absolute top-16 right-4 font-mono font-black text-[#F5B400]/10 group-hover:text-[#F5B400]/30 text-[9px] uppercase tracking-[0.3em] transition-[background-color,border-color,color,box-shadow,transform] duration-500 [writing-mode:vertical-lr] select-none pointer-events-none group-hover:translate-y-2">
-        {off.committee === 'Executive Board' ? 'EXEBOARD' : `EXECOM - ${off.committee.replace('Committee', '').trim()}`}
-      </div>
-
-      {/* 4. Overlapping 3D Pop-out Portrait Frame */}
-      <div className="absolute bottom-20 left-1/2 -translate-x-1/2 w-[88%] h-[98%] overflow-hidden rounded-2xl border border-white/10 shadow-lg bg-white/5 pointer-events-none z-10 group-hover:shadow-2xl group-hover:scale-106 group-hover:-translate-y-4 group-hover:border-[#F5B400]/30 transition-[background-color,border-color,color,box-shadow,transform] duration-500 origin-bottom">
-        {off.photoUrl ? (
-          <div className="relative w-full h-full">
-            <OptimizedImage
-              src={off.photoUrl} 
-              alt={off.name} 
-              width={720}
-              height={900}
-              className="w-full h-full object-cover select-none" 
-            />
-            <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none" />
-          </div>
-        ) : (
-          <div className="w-full h-full bg-[#FAF7EA] text-[#1A3C2E] flex items-center justify-center font-sans font-black text-2xl select-none">
-            {off.name.split(' ').map(n => n[0]).join('')}
-          </div>
-        )}
-      </div>
-
-      {/* 5. Floating Glassmorphic Footer Info Plate */}
-      <div className="absolute bottom-4 left-4 right-4 bg-[#07130F]/90 backdrop-blur-md border border-white/10 p-3.5 rounded-2xl z-20 text-left shadow-2xl group-hover:shadow-[0_15px_30px_rgba(0,0,0,0.5)] group-hover:border-[#F5B400]/40 group-hover:-translate-y-4 transition-[background-color,border-color,color,box-shadow,transform] duration-500 flex flex-col justify-between">
-        <div>
-          <h3 className="font-sans font-black text-white text-xs md:text-sm group-hover:text-[#F5B400] transition-colors leading-tight mb-0.5 truncate">
-            {off.name}
-          </h3>
-          <span className="block font-mono text-[8px] md:text-[9px] font-black text-[#F5B400] uppercase tracking-wider leading-none">
-            {off.position}
-          </span>
-        </div>
-        
-        {/* Hover-reveal Contact / Quote row */}
-        <div className="h-0 opacity-0 group-hover:h-auto group-hover:opacity-100 group-hover:mt-2 border-t border-white/5 pt-1.5 transition-[width,height,margin-top,opacity] duration-500 overflow-hidden flex flex-col gap-1">
-          {off.quote && (
-            <p className="font-sans text-[9px] text-stone-300 leading-tight italic truncate">
-              "{off.quote}"
-            </p>
-          )}
-          <a
-            href={`mailto:${off.email}`}
-            className="font-mono text-[8px] text-stone-400 hover:text-[#F5B400] truncate transition-colors"
-          >
-            {off.email}
-          </a>
-        </div>
-      </div>
-    </div>
-  );
 
   // Dynamic tokens per official UMak Design System:
   // UMak surface: #f5f6fa | Primary: #111c4e | Secondary: #f5ec3a | Tertiary: #105389 | Border: #d0d5e8
