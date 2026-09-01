@@ -164,17 +164,17 @@ export default function EventCalendar() {
                       const isComp = ev.event_type === 'competition';
                       return (
                          <button type="button" key={ev.id} onClick={() => { setIsCreating(false); setEditingEvent(ev); }} aria-label={`Edit event: ${ev.title}`}
-                           className={`pointer-events-auto text-[9.5px] font-bold px-2 py-1 rounded-md truncate cursor-pointer transition-colors border flex items-center gap-1 ${
+                           className={`pointer-events-auto w-full min-w-0 text-left text-[9.5px] font-bold px-2 py-1 rounded-md cursor-pointer transition-colors border flex items-start gap-1 ${
                             isComp
                               ? 'bg-amber-50 text-amber-900 border-amber-200 hover:bg-amber-100'
                               : 'bg-emerald-50 text-emerald-900 border-emerald-200 hover:bg-emerald-100'
                           }`}>
                           {isComp ? <Trophy size={10} className="text-amber-600 shrink-0" /> : <GraduationCap size={10} className="text-emerald-600 shrink-0" />}
-                          <span className="truncate">{ev.title}</span>
+                          <span className="min-w-0 flex-1 whitespace-normal break-words">{ev.title}</span>
                         </button>
                       );
                     })}
-                    {dayEvents.length > 3 && <span className="text-[9px] text-gray-500 font-mono pl-1 block font-semibold">+{dayEvents.length - 3} more</span>}
+                    {dayEvents.length > 3 && <span className="text-[9px] text-gray-500 font-mono pl-1 block font-semibold">and {dayEvents.length - 3} more</span>}
                   </div>
                 </div>
               );
