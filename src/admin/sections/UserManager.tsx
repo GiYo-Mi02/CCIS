@@ -113,9 +113,10 @@ export default function UserManager() {
     try {
       const newStatus = !user.profile_complete;
       const { error } = await supabase
-        .from('profiles')
-        .update({ profile_complete: newStatus })
-        .eq('id', user.id);
+        .rpc('admin_set_profile_completion', {
+          p_user_id: user.id,
+          p_profile_complete: newStatus,
+        });
 
       if (error) throw error;
 
@@ -172,12 +173,11 @@ export default function UserManager() {
       }
 
       const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          banned: true, 
-          banned_until: bannedUntilISO 
-        })
-        .eq('id', banningUser.id);
+        .rpc('admin_set_profile_ban', {
+          p_user_id: banningUser.id,
+          p_banned: true,
+          p_banned_until: bannedUntilISO,
+        });
 
       if (error) throw error;
 
@@ -209,9 +209,11 @@ export default function UserManager() {
     setActionLoadingId(user.id);
     try {
       const { error } = await supabase
-        .from('profiles')
-        .update({ banned: false, banned_until: null })
-        .eq('id', user.id);
+        .rpc('admin_set_profile_ban', {
+          p_user_id: user.id,
+          p_banned: false,
+          p_banned_until: null,
+        });
 
       if (error) throw error;
 

@@ -52,7 +52,6 @@ export default function AdminForm({
 
   const mainImageInputRef = useRef<HTMLInputElement>(null);
   const thumbnailsInputRef = useRef<HTMLInputElement>(null);
-  const previewUrlsRef = useRef<Set<string>>(new Set());
 
   const initialFormState: AdminFormState = itemToEdit ? {
     title: itemToEdit.title,
@@ -73,28 +72,25 @@ export default function AdminForm({
 
   const [formState, setFormState] = useState<AdminFormState>(initialFormState);
 
-  useEffect(() => () => {
-    previewUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
-    previewUrlsRef.current.clear();
-  }, []);
+  useEffect(() => {
+    if (!formState.imageFile) return;
+
+    const previewUrl = URL.createObjectURL(formState.imageFile);
+    setFormState(prev => ({ ...prev, imagePreview: previewUrl }));
+
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [formState.imageFile]);
 
   useEffect(() => {
-    if (!formState.imagePreview.startsWith('blob:')) return;
+    if (formState.thumbnailFiles.length === 0) return;
 
-    return () => URL.revokeObjectURL(formState.imagePreview);
-  }, [formState.imagePreview]);
+    const previewUrls = formState.thumbnailFiles.map(file => URL.createObjectURL(file));
+    setFormState(prev => ({ ...prev, thumbnailPreviews: previewUrls }));
 
-  const cleanPreviews = () => {
-    previewUrlsRef.current.forEach(url => {
-      if (url !== formState.imagePreview) {
-        URL.revokeObjectURL(url);
-        previewUrlsRef.current.delete(url);
-      }
-    });
-  };
+    return () => previewUrls.forEach(url => URL.revokeObjectURL(url));
+  }, [formState.thumbnailFiles]);
 
   const handleCancel = () => {
-    cleanPreviews();
     setFormState(INITIAL_FORM_STATE);
     if (mainImageInputRef.current) mainImageInputRef.current.value = '';
     if (thumbnailsInputRef.current) thumbnailsInputRef.current.value = '';
@@ -111,12 +107,10 @@ export default function AdminForm({
         if (mainImageInputRef.current) mainImageInputRef.current.value = '';
         return;
       }
-      const preview = URL.createObjectURL(file);
       setFormState(prev => {
         return {
           ...prev,
           imageFile: file,
-          imagePreview: preview
         };
       });
     }
@@ -143,20 +137,10 @@ export default function AdminForm({
         }
       }
 
-        formState.thumbnailPreviews.forEach(url => {
-          if (previewUrlsRef.current.delete(url)) URL.revokeObjectURL(url);
-        });
-        const newPreviews: string[] = [];
-        for (const file of filesArray) {
-          const preview = URL.createObjectURL(file);
-          previewUrlsRef.current.add(preview);
-          newPreviews.push(preview);
-        }
       setFormState(prev => {
         return {
           ...prev,
           thumbnailFiles: filesArray,
-          thumbnailPreviews: newPreviews
         };
       });
     }

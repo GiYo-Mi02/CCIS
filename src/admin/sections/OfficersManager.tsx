@@ -387,10 +387,14 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
   };
 
   useEffect(() => {
-    if (!previewUrl.startsWith('blob:')) return;
+    if (!selectedFile) return;
 
-    return () => URL.revokeObjectURL(previewUrl);
-  }, [previewUrl]);
+    const objectUrl = URL.createObjectURL(selectedFile);
+    setPreviewUrl(objectUrl);
+    setForm(prev => ({ ...prev, photo_url: objectUrl }));
+
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [selectedFile]);
 
   const handleFileChange = (file: File) => {
     const errorMsg = validateOfficerFile(file);
@@ -400,10 +404,7 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
       return;
     }
 
-    const objectUrl = URL.createObjectURL(file);
     setSelectedFile(file);
-    setPreviewUrl(objectUrl);
-    setForm(prev => ({ ...prev, photo_url: objectUrl }));
     showToast('Image selected! Save officer to upload.', 'info');
   };
 

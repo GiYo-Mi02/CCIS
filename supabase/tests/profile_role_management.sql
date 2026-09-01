@@ -34,6 +34,13 @@ BEGIN
     RAISE EXCEPTION 'DevCom Head role update did not return the updated role';
   END IF;
 
+  PERFORM public.admin_set_profile_completion(
+    '30000000-0000-0000-0000-000000000002', false
+  );
+  PERFORM public.admin_set_profile_ban(
+    '30000000-0000-0000-0000-000000000002', true, now() + interval '1 hour'
+  );
+
   PERFORM set_config('request.jwt.claims', json_build_object(
     'role', 'authenticated', 'sub', '30000000-0000-0000-0000-000000000002'
   )::TEXT, true);
@@ -42,6 +49,14 @@ BEGIN
       '30000000-0000-0000-0000-000000000003', 'devcom_head', 'Escalated'
     );
     RAISE EXCEPTION 'Officer role could invoke profile role management';
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM <> 'FORBIDDEN' THEN RAISE; END IF;
+  END;
+  BEGIN
+    PERFORM public.admin_set_profile_ban(
+      '30000000-0000-0000-0000-000000000003', true, NULL
+    );
+    RAISE EXCEPTION 'Officer could invoke profile ban management';
   EXCEPTION WHEN OTHERS THEN
     IF SQLERRM <> 'FORBIDDEN' THEN RAISE; END IF;
   END;
@@ -69,8 +84,12 @@ WHERE id = '30000000-0000-0000-0000-000000000002';
 DO $$
 BEGIN
   IF (SELECT role FROM role_management_result) <> 'comm_content'
-     OR (SELECT position FROM role_management_result) <> 'Content Coordinator' THEN
+      OR (SELECT position FROM role_management_result) <> 'Content Coordinator' THEN
     RAISE EXCEPTION 'Unauthorized role attempt changed the target profile';
+  END IF;
+  IF (SELECT profile_complete FROM public.profiles WHERE id = '30000000-0000-0000-0000-000000000002')
+     OR NOT (SELECT banned FROM public.profiles WHERE id = '30000000-0000-0000-0000-000000000002') THEN
+    RAISE EXCEPTION 'DevCom Head profile access-control update did not persist';
   END IF;
 END;
 $$;
