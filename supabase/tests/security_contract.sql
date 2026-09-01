@@ -56,9 +56,11 @@ BEGIN
     AND procedure.prosecdef
     AND has_function_privilege('authenticated', procedure.oid, 'EXECUTE')
     AND procedure.proname <> ALL (ARRAY[
-      'admin_approve_user',
-      'admin_reject_user',
-      'activate_theme',
+       'admin_approve_user',
+       'admin_reject_user',
+       'admin_set_profile_ban',
+       'admin_set_profile_completion',
+       'activate_theme',
       'check_in_audience',
       'check_in_event_registration',
       'check_in_registration',
@@ -216,6 +218,16 @@ BEGIN
      OR pg_get_functiondef('public.admin_update_profile_role(uuid,text,text)'::regprocedure) NOT LIKE '%get_user_role()%'
      OR pg_get_functiondef('public.admin_update_profile_role(uuid,text,text)'::regprocedure) NOT LIKE '%devcom_head%' THEN
     RAISE EXCEPTION 'Profile role management RPC is missing or incorrectly exposed';
+  END IF;
+  IF to_regprocedure('public.admin_set_profile_completion(uuid,boolean)') IS NULL
+     OR to_regprocedure('public.admin_set_profile_ban(uuid,boolean,timestamp with time zone)') IS NULL
+     OR NOT has_function_privilege('authenticated', 'public.admin_set_profile_completion(uuid,boolean)', 'EXECUTE')
+     OR NOT has_function_privilege('authenticated', 'public.admin_set_profile_ban(uuid,boolean,timestamp with time zone)', 'EXECUTE')
+     OR has_function_privilege('anon', 'public.admin_set_profile_completion(uuid,boolean)', 'EXECUTE')
+     OR has_function_privilege('anon', 'public.admin_set_profile_ban(uuid,boolean,timestamp with time zone)', 'EXECUTE')
+     OR pg_get_functiondef('public.admin_set_profile_completion(uuid,boolean)'::regprocedure) NOT LIKE '%get_user_role()%'
+     OR pg_get_functiondef('public.admin_set_profile_ban(uuid,boolean,timestamp with time zone)'::regprocedure) NOT LIKE '%get_user_role()%' THEN
+    RAISE EXCEPTION 'Profile access-control RPCs are missing or incorrectly exposed';
   END IF;
 END;
 $$;
