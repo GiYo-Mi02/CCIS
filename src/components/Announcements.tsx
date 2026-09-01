@@ -18,6 +18,15 @@ const categories = [
   { id: 'general', label: 'General' },
 ];
 
+function getCategoryColor(cat: string) {
+  switch (cat) {
+    case 'event': return 'bg-amber-100 text-amber-800 border-amber-200';
+    case 'deadline': return 'bg-rose-100 text-rose-800 border-rose-200';
+    case 'result': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+    default: return 'bg-blue-100 text-blue-800 border-blue-200';
+  }
+}
+
 export default function Announcements({ previewMode = false, onViewAllClick }: AnnouncementsProps) {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,15 +83,6 @@ export default function Announcements({ previewMode = false, onViewAllClick }: A
     const matchesCategory = activeCategory === 'all' || ann.category === activeCategory;
     return matchesSearch && matchesCategory;
   });
-
-  const getCategoryColor = (cat: string) => {
-    switch (cat) {
-      case 'event': return 'bg-amber-100 text-amber-800 border-amber-200';
-      case 'deadline': return 'bg-rose-100 text-rose-800 border-rose-200';
-      case 'result': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
-      default: return 'bg-blue-100 text-blue-800 border-blue-200';
-    }
-  };
 
   if (loading) {
     return <AnnouncementsSkeleton previewMode={previewMode} />;

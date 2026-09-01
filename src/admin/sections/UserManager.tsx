@@ -13,6 +13,25 @@ import { postgrestIlike } from '../../lib/postgrest';
 
 type BanDuration = 'permanent' | '1h' | '1d' | '1w' | '30d' | 'custom';
 
+function checkUserBanStatus(user: Profile): { isBanned: boolean; text: string; subtext?: string } {
+  if (!user.banned) return { isBanned: false, text: 'Active' };
+
+  if (!user.banned_until) {
+    return { isBanned: true, text: 'Banned', subtext: 'Permanent' };
+  }
+
+  const expireTime = new Date(user.banned_until);
+  if (expireTime > new Date()) {
+    return {
+      isBanned: true,
+      text: 'Suspended',
+      subtext: `Until ${expireTime.toLocaleString()}`
+    };
+  }
+
+  return { isBanned: false, text: 'Active', subtext: 'Ban Expired' };
+}
+
 export default function UserManager() {
   const { showToast } = useAdmin();
   const { profile: currentAdmin } = useAuth();
@@ -246,26 +265,6 @@ export default function UserManager() {
     } finally {
       setActionLoadingId(null);
     }
-  };
-
-  // Helper: check if a user is active or currently under a ban timer
-  const checkUserBanStatus = (user: Profile): { isBanned: boolean; text: string; subtext?: string } => {
-    if (!user.banned) return { isBanned: false, text: 'Active' };
-    
-    if (!user.banned_until) {
-      return { isBanned: true, text: 'Banned', subtext: 'Permanent' };
-    }
-
-    const expireTime = new Date(user.banned_until);
-    if (expireTime > new Date()) {
-      return { 
-        isBanned: true, 
-        text: 'Suspended', 
-        subtext: `Until ${expireTime.toLocaleString()}` 
-      };
-    }
-
-    return { isBanned: false, text: 'Active', subtext: 'Ban Expired' };
   };
 
   // Clean purge of all load test and dummy accounts
