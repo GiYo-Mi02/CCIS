@@ -569,9 +569,8 @@ export default function AdminForm({
                               <img src={previewUrl} alt="" className="w-full h-full object-cover" />
                               <button
                                 type="button"
-                                 onClick={() => {
-                                   if (previewUrlsRef.current.delete(previewUrl)) URL.revokeObjectURL(previewUrl);
-                                   const updatedFiles = [...formState.thumbnailFiles];
+                                  onClick={() => {
+                                    const updatedFiles = [...formState.thumbnailFiles];
                                   updatedFiles.splice(idx, 1);
                                   const updatedPreviews = [...formState.thumbnailPreviews];
                                   updatedPreviews.splice(idx, 1);
