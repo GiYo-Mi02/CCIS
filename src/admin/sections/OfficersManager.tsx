@@ -14,6 +14,17 @@ function revokeObjectUrl(url: string, ownedUrls: Set<string>) {
   if (ownedUrls.delete(url)) URL.revokeObjectURL(url);
 }
 
+function validateOfficerFile(file: File): string | null {
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+  if (!allowedTypes.includes(file.type)) {
+    return `File format ${file.type} is not supported. Use JPG, PNG or WEBP.`;
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    return `File "${file.name}" exceeds the 10MB size limit.`;
+  }
+  return null;
+}
+
 export default function OfficersManager() {
   const { showToast } = useAdmin();
   const [tab, setTab] = useState<Tab>('officers');
@@ -378,31 +389,18 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => () => {
-    ownedPreviewUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
-    ownedPreviewUrlsRef.current.clear();
+    ownedPreviewUrlsRef.current.forEach(url => revokeObjectUrl(url, ownedPreviewUrlsRef.current));
   }, []);
 
-  const validateFile = (file: File): string | null => {
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
-      return `File format ${file.type} is not supported. Use JPG, PNG or WEBP.`;
-    }
-    const maxSize = 10 * 1024 * 1024; // 10MB
-    if (file.size > maxSize) {
-      return `File "${file.name}" exceeds the 10MB size limit.`;
-    }
-    return null;
-  };
-
   const handleFileChange = (file: File) => {
-    const errorMsg = validateFile(file);
+    const errorMsg = validateOfficerFile(file);
     if (errorMsg) {
       showToast(errorMsg, 'error');
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
 
-    if (ownedPreviewUrlsRef.current.delete(previewUrl)) URL.revokeObjectURL(previewUrl);
+    revokeObjectUrl(previewUrl, ownedPreviewUrlsRef.current);
     const objectUrl = URL.createObjectURL(file);
     ownedPreviewUrlsRef.current.add(objectUrl);
     setSelectedFile(file);

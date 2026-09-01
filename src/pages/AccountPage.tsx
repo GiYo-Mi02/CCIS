@@ -18,6 +18,32 @@ interface AccountPageProps {
   onNavigate?: (tab: string) => void;
 }
 
+const STATUS_BADGE_CLASSES: Record<string, string> = {
+  confirmed: 'bg-amber-100 text-amber-800',
+  pending: 'bg-amber-100 text-amber-800',
+  cancelled: 'bg-rose-100 text-rose-800',
+  attended: 'bg-emerald-100 text-emerald-800',
+  new: 'bg-blue-100 text-blue-800',
+  in_progress: 'bg-amber-100 text-amber-800',
+  resolved: 'bg-emerald-100 text-emerald-800',
+};
+
+function statusBadge(status: string): string {
+  return STATUS_BADGE_CLASSES[status] || 'bg-zinc-100 text-zinc-600';
+}
+
+function getTicketDummyBarcode() {
+  return (
+    <div className="flex items-center h-12 w-full gap-[2px] bg-white p-1 rounded border border-zinc-200">
+      {Array.from({ length: 42 }).map((_, i) => {
+        const widthClass = (i % 3 === 0 || i % 7 === 0) ? 'w-[3px]' : 'w-[1px]';
+        const opacityClass = (i % 2 === 0 || i % 5 === 0) ? 'bg-[#1A3C2E]' : 'bg-transparent';
+        return <div key={i} className={`h-full ${widthClass} ${opacityClass}`} />;
+      })}
+    </div>
+  );
+}
+
 const getDummyBarcode = (idStr: string) => {
   const hash = idStr.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
   const bars = [];
@@ -363,19 +389,6 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
   };
 
   if (!user || !profile) return null;
-
-  const statusBadge = (status: string) => {
-    const map: Record<string, string> = {
-      confirmed: 'bg-amber-100 text-amber-800',
-      pending: 'bg-amber-100 text-amber-800',
-      cancelled: 'bg-rose-100 text-rose-800',
-      attended: 'bg-emerald-100 text-emerald-800',
-      new: 'bg-blue-100 text-blue-800',
-      in_progress: 'bg-amber-100 text-amber-800',
-      resolved: 'bg-emerald-100 text-emerald-800',
-    };
-    return map[status] || 'bg-zinc-100 text-zinc-600';
-  };
 
   // Handler to regenerate audience attendance QR pass and SAVE to Supabase database
   const handleRegeneratePass = async () => {
@@ -1222,20 +1235,6 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
 function TicketDashboard({ registration }: { registration: Registration; key?: string }) {
   const [isDownloading, setIsDownloading] = useState(false);
 
-  const getDummyBarcode = (id: string) => {
-    return (
-      <div className="flex items-center h-12 w-full gap-[2px] bg-white p-1 rounded border border-zinc-200">
-        {Array.from({ length: 42 }).map((_, i) => {
-          const widthClass = (i % 3 === 0 || i % 7 === 0) ? 'w-[3px]' : 'w-[1px]';
-          const opacityClass = (i % 2 === 0 || i % 5 === 0) ? 'bg-[#1A3C2E]' : 'bg-transparent';
-          return (
-            <div key={i} className={`h-full ${widthClass} ${opacityClass}`} />
-          );
-        })}
-      </div>
-    );
-  };
-
   const handlePrint = () => {
     window.print();
   };
@@ -1384,7 +1383,7 @@ function TicketDashboard({ registration }: { registration: Registration; key?: s
         </div>
 
         <div className="w-full mt-4 space-y-2">
-          {getDummyBarcode(registration.id)}
+          {getTicketDummyBarcode()}
           <div className="grid grid-cols-2 gap-2" data-html2canvas-ignore="true">
             <button
               onClick={handlePrint}
