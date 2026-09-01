@@ -20,8 +20,6 @@
   "workspace": {
     "packageJson": {
       "dependencies": [
-        "npm:@emnapi/core@^1.11.3",
-        "npm:@emnapi/runtime@^1.11.3",
         "npm:@supabase/supabase-js@^2.108.2",
         "npm:@tailwindcss/vite@^4.1.14",
         "npm:@types/node@^22.14.0",
@@ -30,7 +28,6 @@
         "npm:@vitejs/plugin-react@^5.0.4",
         "npm:autoprefixer@^10.4.21",
         "npm:deno@2.9.5",
-        "npm:dotenv@^17.2.3",
         "npm:esbuild@0.25",
         "npm:gsap@^3.15.0",
         "npm:html2canvas-pro@^2.0.4",
