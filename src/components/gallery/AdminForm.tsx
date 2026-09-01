@@ -7,10 +7,6 @@ import { getManagedImagePathsFromUrl } from '../../lib/media/managedPaths';
 import type { MediaAsset, UploadOptimizedImageResult } from '../../lib/media/types';
 import { GalleryItem, AdminFormState, GalleryCategory } from '../../types/gallery';
 
-function revokeObjectUrl(url: string, ownedUrls: Set<string>) {
-  if (ownedUrls.delete(url)) URL.revokeObjectURL(url);
-}
-
 function validateGalleryFile(file: File): string | null {
   const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
   if (!allowedTypes.includes(file.type)) {
@@ -78,11 +74,13 @@ export default function AdminForm({
   const [formState, setFormState] = useState<AdminFormState>(initialFormState);
 
   useEffect(() => () => {
-    previewUrlsRef.current.forEach(url => revokeObjectUrl(url, previewUrlsRef.current));
+    previewUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+    previewUrlsRef.current.clear();
   }, []);
 
   const cleanPreviews = () => {
-    previewUrlsRef.current.forEach(url => revokeObjectUrl(url, previewUrlsRef.current));
+    previewUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+    previewUrlsRef.current.clear();
   };
 
   const handleCancel = () => {
@@ -103,7 +101,7 @@ export default function AdminForm({
         if (mainImageInputRef.current) mainImageInputRef.current.value = '';
         return;
       }
-      revokeObjectUrl(formState.imagePreview, previewUrlsRef.current);
+      if (previewUrlsRef.current.delete(formState.imagePreview)) URL.revokeObjectURL(formState.imagePreview);
       const preview = URL.createObjectURL(file);
       previewUrlsRef.current.add(preview);
       setFormState(prev => {
@@ -137,7 +135,9 @@ export default function AdminForm({
         }
       }
 
-        formState.thumbnailPreviews.forEach(url => revokeObjectUrl(url, previewUrlsRef.current));
+        formState.thumbnailPreviews.forEach(url => {
+          if (previewUrlsRef.current.delete(url)) URL.revokeObjectURL(url);
+        });
         const newPreviews: string[] = [];
         for (const file of filesArray) {
           const preview = URL.createObjectURL(file);
@@ -497,7 +497,7 @@ export default function AdminForm({
                     <button
                       type="button"
                          onClick={() => {
-                           revokeObjectUrl(formState.imagePreview, previewUrlsRef.current);
+                           if (previewUrlsRef.current.delete(formState.imagePreview)) URL.revokeObjectURL(formState.imagePreview);
                            setFormState(prev => ({ ...prev, imageFile: null, imagePreview: '' }));
                         if (mainImageInputRef.current) mainImageInputRef.current.value = '';
                       }}
@@ -579,7 +579,7 @@ export default function AdminForm({
                               <button
                                 type="button"
                                  onClick={() => {
-                                   revokeObjectUrl(previewUrl, previewUrlsRef.current);
+                                   if (previewUrlsRef.current.delete(previewUrl)) URL.revokeObjectURL(previewUrl);
                                    const updatedFiles = [...formState.thumbnailFiles];
                                   updatedFiles.splice(idx, 1);
                                   const updatedPreviews = [...formState.thumbnailPreviews];

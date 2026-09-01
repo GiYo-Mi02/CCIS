@@ -10,10 +10,6 @@ import type { MediaAsset } from '../../lib/media/types';
 
 type Tab = 'officers' | 'committees';
 
-function revokeObjectUrl(url: string, ownedUrls: Set<string>) {
-  if (ownedUrls.delete(url)) URL.revokeObjectURL(url);
-}
-
 function validateOfficerFile(file: File): string | null {
   const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
   if (!allowedTypes.includes(file.type)) {
@@ -389,8 +385,15 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => () => {
-    ownedPreviewUrlsRef.current.forEach(url => revokeObjectUrl(url, ownedPreviewUrlsRef.current));
+    ownedPreviewUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+    ownedPreviewUrlsRef.current.clear();
   }, []);
+
+  const handleClose = () => {
+    ownedPreviewUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+    ownedPreviewUrlsRef.current.clear();
+    onClose();
+  };
 
   const handleFileChange = (file: File) => {
     const errorMsg = validateOfficerFile(file);
@@ -400,7 +403,7 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
       return;
     }
 
-    revokeObjectUrl(previewUrl, ownedPreviewUrlsRef.current);
+    if (ownedPreviewUrlsRef.current.delete(previewUrl)) URL.revokeObjectURL(previewUrl);
     const objectUrl = URL.createObjectURL(file);
     ownedPreviewUrlsRef.current.add(objectUrl);
     setSelectedFile(file);
@@ -428,7 +431,7 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
   };
 
   const handleRemovePhoto = () => {
-    revokeObjectUrl(previewUrl, ownedPreviewUrlsRef.current);
+    if (ownedPreviewUrlsRef.current.delete(previewUrl)) URL.revokeObjectURL(previewUrl);
     setSelectedFile(null);
     setPreviewUrl('');
     setForm(prev => ({ ...prev, photo_url: '' }));
@@ -702,7 +705,7 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
                   value={form.photo_url || ''}
                   onChange={(e) => {
                     const val = e.target.value;
-                    revokeObjectUrl(previewUrl, ownedPreviewUrlsRef.current);
+                    if (ownedPreviewUrlsRef.current.delete(previewUrl)) URL.revokeObjectURL(previewUrl);
                     setForm({ ...form, photo_url: val });
                     setPreviewUrl(val);
                   }}
@@ -763,7 +766,7 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
         </button>
         <button
           type="button"
-          onClick={onClose}
+          onClick={handleClose}
           disabled={isUploading}
           className="px-4 py-2.5 text-xs text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
         >
