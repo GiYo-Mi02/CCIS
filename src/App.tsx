@@ -25,6 +25,7 @@ const RegistrationSection = lazy(() => import('./components/Registration'));
 import { useAuth } from './context/AuthContext';
 import { useRolePreview } from './context/RolePreviewContext';
 import { canManagePublicPage } from './admin/roleAccess';
+import { ROLE_LABELS, type UserRole } from './types/database';
 import SubscriptionPreferenceModal from './components/SubscriptionPreferenceModal';
 import SupportWidget from './components/SupportWidget';
 
@@ -37,7 +38,7 @@ export default function App({ onAdminSwitch }: AppProps) {
   const [infoSubTab, setInfoSubTab] = useState<'umak' | 'college' | 'org'>('umak');
   const [preselectedEventId, setPreselectedEventId] = useState<string | null>(null);
   const { user, profile, setEmailPreferences, isPending, isUnverified, isAdmin, loading } = useAuth();
-  const { effectiveRole, isRolePreviewing, exitRolePreview } = useRolePreview();
+  const { effectiveRole, isRolePreviewing, previewRole, startRolePreview, exitRolePreview } = useRolePreview();
 
   const isUmakTheme = activeTab === 'info' && infoSubTab === 'umak';
 
@@ -131,9 +132,29 @@ export default function App({ onAdminSwitch }: AppProps) {
       <NavBar activeTab={activeTab} setActiveTab={handleNavigate} isUmakTheme={isUmakTheme} />
 
       {isRolePreviewing && (
-        <div role="status" aria-live="polite" className="border-b border-[#123524]/25 bg-amber-50 px-4 py-2 text-center text-xs font-semibold text-amber-900">
-          Public role preview: viewing {effectiveRole?.replace('_', ' ')}. Management controls are read-only.
-          <button type="button" onClick={exitRolePreview} className="ml-3 underline underline-offset-2">Exit preview</button>
+        <div role="status" aria-live="polite" className="flex flex-wrap items-center justify-center gap-2 border-b border-[#123524]/25 bg-amber-50 px-4 py-2 text-center text-xs font-semibold text-amber-900">
+          <span>Public role preview: viewing {effectiveRole?.replace('_', ' ')}. Management controls are read-only.</span>
+          {profile?.role === 'devcom_head' && (
+            <>
+              <label className="sr-only" htmlFor="public-role-preview">Preview public role</label>
+              <select
+                id="public-role-preview"
+                value={previewRole ?? ''}
+                onChange={(event) => {
+                  const role = event.target.value as UserRole;
+                  if (role) startRolePreview(role);
+                  else exitRolePreview();
+                }}
+                className="rounded border border-[#123524]/25 bg-white px-2 py-1 text-xs font-semibold text-[#123524]"
+              >
+                <option value="">Preview role</option>
+                {(Object.keys(ROLE_LABELS) as UserRole[]).map(role => (
+                  <option key={role} value={role}>{ROLE_LABELS[role]}</option>
+                ))}
+              </select>
+            </>
+          )}
+          <button type="button" onClick={exitRolePreview} className="underline underline-offset-2">Exit preview</button>
         </div>
       )}
 

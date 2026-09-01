@@ -48,5 +48,8 @@ test('preview blocks UI interaction and inbox mutations', () => {
   assert.match(messagesInbox, /!isRolePreviewingRef\.current && unreadStudentMsgIds\.length > 0/);
   assert.match(messagesInbox, /if \(isRolePreviewingRef\.current\) return;/);
   assert.match(messagesInbox, /pendingReadRequestsRef\.current\.forEach\(controller => controller\.abort\(\)\)/);
+  const publicApp = readFileSync('src/App.tsx', 'utf8');
+  assert.match(publicApp, /id="public-role-preview"/);
+  assert.match(publicApp, /startRolePreview\(role\)/);
   assert.match(messagesInbox, /if \(isRolePreviewing \|\| !profile/);
 });
