@@ -4,22 +4,12 @@ import { supabase } from '../lib/supabase';
 import { Profile, isAdminRole } from '../types/database';
 import { GraduationCap, ShieldAlert } from 'lucide-react';
 
-const DEFAULT_BYPASS_EMAILS = [
-  'ggiojoshua2006@gmail.com',
-  'devcommgio2006@gmail.com',
-  'cciscsc.dev@gmail.com',
-];
-
-const ADMIN_BYPASS_EMAILS: Set<string> = new Set([
-  ...DEFAULT_BYPASS_EMAILS,
-  ...(import.meta.env.VITE_ADMIN_BYPASS_EMAILS || '')
-    .split(',')
-    .map((e: string) => e.trim().toLowerCase())
-    .filter(Boolean),
-]);
-
-const isAllowedEmail = (email: string) =>
-  email.toLowerCase().endsWith('@umak.edu.ph') || ADMIN_BYPASS_EMAILS.has(email.toLowerCase());
+const isInstitutionalEmailRequiredError = (error: unknown) =>
+  typeof error === 'object'
+  && error !== null
+  && 'message' in error
+  && typeof error.message === 'string'
+  && error.message.includes('INSTITUTIONAL_EMAIL_REQUIRED');
 
 interface AuthContextType {
   session: Session | null;
@@ -149,7 +139,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!ensureErr && ensuredProfile) {
           return ensuredProfile as Profile;
         }
+        if (isInstitutionalEmailRequiredError(ensureErr)) throw ensureErr;
       } catch (ensureEx) {
+        if (isInstitutionalEmailRequiredError(ensureEx)) throw ensureEx;
         console.warn('[AuthContext] ensure_user_profile notice:', ensureEx);
       }
 
@@ -288,15 +280,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       revision: number,
     ) => {
       try {
-        const email = newSession.user.email || '';
-        if (!isAllowedEmail(email)) {
-          if (!isCurrentRevision(revision)) return;
-          setEmailValidationError('Only institutional email accounts (@umak.edu.ph) are allowed to access this platform.');
-          clearSessionState();
-          await supabase.auth.signOut();
-          return;
-        }
-
         setEmailValidationError(null);
         let nextProfile = await fetchProfile(newSession.user.id);
 
@@ -331,6 +314,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (err) {
         if (!isCurrentRevision(revision)) return;
+        if (isInstitutionalEmailRequiredError(err)) {
+          setEmailValidationError('Only institutional email accounts (@umak.edu.ph) are allowed to access this platform.');
+          clearSessionState();
+          await supabase.auth.signOut();
+          return;
+        }
         console.error('[AuthContext] Auth session processing failed:', err);
         // Keep the valid session snapshot so AuthPage can offer an automatic
         // profile retry instead of trapping the student behind a global loader.
@@ -483,7 +472,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [profile]);
 
-  const isAdmin = Boolean((profile && isAdminRole(profile.role)) || (user?.email && ADMIN_BYPASS_EMAILS.has(user.email.toLowerCase())));
+  const isAdmin = Boolean(profile && isAdminRole(profile.role));
   const isPending = profile ? profile.status === 'pending' : false;
   const isApproved = profile ? profile.status === 'approved' : false;
   const isRejected = profile ? profile.status === 'rejected' : false;

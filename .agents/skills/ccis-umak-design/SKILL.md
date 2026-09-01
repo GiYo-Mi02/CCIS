@@ -200,6 +200,6 @@ graph TD
 ## 7. Security & Database Standards
 
 1. **Per-Profile Bans**: Use `profiles.banned` and `profiles.banned_until`. Avoid network-wide IP bans to prevent locking shared campus WiFi subnets.
-2. **Institutional Access**: Require `@umak.edu.ph` email for student registration. Admin exceptions handled via `VITE_ADMIN_BYPASS_EMAILS`.
+2. **Institutional Access**: Require `@umak.edu.ph` email for student registration. Admin exceptions are handled by the private database allowlist.
 3. **Load Test & Anonymous Purging**: Use [`supabase/33_clean_loadtest_and_test_users.sql`](file:///c:/Users/gio%20joshua%20gonzales/OneDrive/Desktop/ccis_website/supabase/33_clean_loadtest_and_test_users.sql) or the Admin **"Purge Load Test Users"** RPC action to maintain a pristine student database.
 4. **Production Headers**: Strict CSP, `X-Frame-Options: DENY`, and `X-Content-Type-Options: nosniff` configured in `vercel.json`.
