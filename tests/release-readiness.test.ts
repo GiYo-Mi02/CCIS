@@ -106,6 +106,14 @@ test('release configuration is pinned and excludes the retired IP service', () =
   assert.doesNotMatch(headers, /api\.ipify\.org/);
 });
 
+test('admin deep links resolve to the SPA and initialize admin mode', () => {
+  const vercel = read('vercel.json');
+  const router = read('src', 'RootRouter.tsx');
+
+  assert.match(vercel, /"source":\s*"\/admin\/:path\*"[\s\S]*"destination":\s*"\/"/);
+  assert.match(router, /window\.location\.pathname\.toLowerCase\(\)\.startsWith\('\/admin'\)/);
+});
+
 test('all deployment policies allow approved Patch video sources', () => {
   const policies = [read('index.html'), read('vercel.json'), read('public', '_headers')];
   const approvedMediaSources = /media-src 'self' blob: https:\/\/\*\.supabase\.co https:\/\/res\.cloudinary\.com;/;

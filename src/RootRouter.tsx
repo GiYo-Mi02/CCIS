@@ -9,7 +9,9 @@ import { applyTheme, DEFAULT_THEME } from './utils/theme';
 
 export default function RootRouter() {
   const { isAdmin } = useAuth();
-  const [mode, setMode] = useState<'public' | 'admin'>('public');
+  const [mode, setMode] = useState<'public' | 'admin'>(() =>
+    window.location.pathname.toLowerCase().startsWith('/admin') ? 'admin' : 'public',
+  );
 
   // Fetch active theme from Supabase on mount, fallback to default
   useEffect(() => {
