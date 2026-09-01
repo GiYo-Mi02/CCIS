@@ -1,14 +1,31 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useReducer } from 'react';
 import { Plus, Edit3, Trash2, Shield, Paintbrush, RotateCcw, Search, UserCheck, X } from 'lucide-react';
 import { useAdmin } from '../AdminContext';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { Profile, ThemeSetting, UserRole, ROLE_LABELS, ROLE_COLORS, ADMIN_ROLES } from '../../types/database';
-import Modal from '../components/Modal';
 import EmptyState from '../components/EmptyState';
 import { applyTheme } from '../../utils/theme';
 
 type Tab = 'roles' | 'theme';
+type CustomColors = { primary: string; accent: string; canvas: string };
+type CustomColorsAction =
+  | { type: 'set'; colors: CustomColors }
+  | { type: 'update'; key: keyof CustomColors; value: string }
+  | { type: 'reset' };
+
+const DEFAULT_CUSTOM_COLORS: CustomColors = {
+  primary: '#1A3C2E',
+  accent: '#F5B400',
+  canvas: '#FAF7EA',
+};
+const STAFF_ROLE_KEYS = Object.keys(ROLE_LABELS).filter(role => role !== 'student' && role !== 'comm_photobooth');
+
+function customColorsReducer(state: CustomColors, action: CustomColorsAction): CustomColors {
+  if (action.type === 'set') return action.colors;
+  if (action.type === 'reset') return DEFAULT_CUSTOM_COLORS;
+  return { ...state, [action.key]: action.value };
+}
 
 export default function SettingsRoles() {
   const { showToast } = useAdmin();
@@ -17,7 +34,6 @@ export default function SettingsRoles() {
   const [tab, setTab] = useState<Tab>('roles');
   const [adminUsers, setAdminUsers] = useState<Profile[]>([]);
   const [themes, setThemes] = useState<ThemeSetting[]>([]);
-  const [activeTheme, setActiveTheme] = useState<ThemeSetting | null>(null);
   
   // Loading states
   const [loadingUsers, setLoadingUsers] = useState(true);
@@ -35,47 +51,51 @@ export default function SettingsRoles() {
   const [editingUser, setEditingUser] = useState<Profile | null>(null);
 
   // Custom colors form state (live customizer)
-  const [customPrimary, setCustomPrimary] = useState('#1A3C2E');
-  const [customAccent, setCustomAccent] = useState('#F5B400');
-  const [customCanvas, setCustomCanvas] = useState('#FAF7EA');
+  const [customColors, dispatchCustomColors] = useReducer(customColorsReducer, DEFAULT_CUSTOM_COLORS);
 
   const fetchThemes = useCallback(async () => {
     setLoadingThemes(true);
-    const { data, error } = await supabase
-      .from('theme_settings')
-      .select('*')
-      .order('created_at');
+    try {
+      const { data, error } = await supabase
+        .from('theme_settings')
+        .select('*')
+        .order('created_at');
 
-    if (error) {
-      showToast('Failed to load themes', 'error');
-    } else if (data) {
-      setThemes(data as ThemeSetting[]);
-      const active = data.find(t => t.is_active);
-      if (active) {
-        setActiveTheme(active);
-        setCustomPrimary(active.primary_color);
-        setCustomAccent(active.accent_color);
-        setCustomCanvas(active.canvas_color);
+      if (error) {
+        showToast('Failed to load themes', 'error');
+      } else if (data) {
+        setThemes(data as ThemeSetting[]);
+        const active = data.find(t => t.is_active);
+        if (active) {
+          dispatchCustomColors({
+            type: 'set',
+            colors: { primary: active.primary_color, accent: active.accent_color, canvas: active.canvas_color },
+          });
+        }
       }
+    } finally {
+      setLoadingThemes(false);
     }
-    setLoadingThemes(false);
   }, [showToast]);
 
   const fetchAdminUsers = useCallback(async () => {
     setLoadingUsers(true);
-    // Fetch profiles that have administrative roles
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .in('role', ADMIN_ROLES)
-      .order('full_name');
+    try {
+      // Fetch profiles that have administrative roles
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('role', ADMIN_ROLES)
+        .order('full_name');
 
-    if (error) {
-      showToast('Failed to load admin users', 'error');
-    } else if (data) {
-      setAdminUsers(data as Profile[]);
+      if (error) {
+        showToast('Failed to load admin users', 'error');
+      } else if (data) {
+        setAdminUsers(data as Profile[]);
+      }
+    } finally {
+      setLoadingUsers(false);
     }
-    setLoadingUsers(false);
   }, [showToast]);
 
   useEffect(() => {
@@ -170,40 +190,42 @@ export default function SettingsRoles() {
 
   const handleApplyTheme = async (theme: ThemeSetting) => {
     setLoadingThemes(true);
-
-    const { data, error } = await supabase.rpc('activate_theme', {
-      p_theme_id: theme.id,
-    });
-    const resultTheme = data as ThemeSetting | null;
-
-    if (error || !resultTheme || resultTheme.id !== theme.id || !resultTheme.is_active) {
-      showToast('Failed to activate theme', 'error');
-    } else {
-      setActiveTheme(resultTheme);
-      setCustomPrimary(resultTheme.primary_color);
-      setCustomAccent(resultTheme.accent_color);
-      setCustomCanvas(resultTheme.canvas_color);
-      
-      applyTheme({
-        primaryGreen: resultTheme.primary_color,
-        accentGold: resultTheme.accent_color,
-        bgCream: resultTheme.canvas_color
+    try {
+      const { data, error } = await supabase.rpc('activate_theme', {
+        p_theme_id: theme.id,
       });
+      const resultTheme = data as ThemeSetting | null;
 
-      // Update the local list state
-      setThemes(prev => prev.map(t => t.id === resultTheme.id ? resultTheme : { ...t, is_active: false }));
-      showToast(`Theme "${resultTheme.preset_name}" is now active globally!`, 'success');
+      if (error || !resultTheme || resultTheme.id !== theme.id || !resultTheme.is_active) {
+        showToast('Failed to activate theme', 'error');
+      } else {
+        dispatchCustomColors({
+          type: 'set',
+          colors: { primary: resultTheme.primary_color, accent: resultTheme.accent_color, canvas: resultTheme.canvas_color },
+        });
+
+        applyTheme({
+          primaryGreen: resultTheme.primary_color,
+          accentGold: resultTheme.accent_color,
+          bgCream: resultTheme.canvas_color
+        });
+
+        // Update the local list state
+        setThemes(prev => prev.map(t => t.id === resultTheme.id ? resultTheme : { ...t, is_active: false }));
+        showToast(`Theme "${resultTheme.preset_name}" is now active globally!`, 'success');
+      }
+    } finally {
+      setLoadingThemes(false);
     }
-    setLoadingThemes(false);
   };
 
   const handleSaveCustomTheme = async () => {
     const customName = 'Custom Workspace Palette';
     const { data, error } = await supabase.rpc('activate_theme', {
       p_preset_name: customName,
-      p_primary_color: customPrimary,
-      p_accent_color: customAccent,
-      p_canvas_color: customCanvas,
+      p_primary_color: customColors.primary,
+      p_accent_color: customColors.accent,
+      p_canvas_color: customColors.canvas,
     });
     const resultData = data as ThemeSetting | null;
 
@@ -211,8 +233,6 @@ export default function SettingsRoles() {
       showToast('Failed to save colors', 'error');
       if (error) console.error('Save custom theme error:', error.message);
     } else if (resultData) {
-      setActiveTheme(resultData);
-      
       applyTheme({
         primaryGreen: resultData.primary_color,
         accentGold: resultData.accent_color,
@@ -226,9 +246,7 @@ export default function SettingsRoles() {
 
 
   const handleResetThemeDefaults = () => {
-    setCustomPrimary('#1A3C2E');
-    setCustomAccent('#F5B400');
-    setCustomCanvas('#FAF7EA');
+    dispatchCustomColors({ type: 'reset' });
     showToast('Color fields reset to default values', 'info');
   };
 
@@ -346,6 +364,7 @@ export default function SettingsRoles() {
                           <div className="flex items-center justify-end gap-1.5">
                             <button
                               onClick={() => setEditingUser(user)}
+                              aria-label={`Edit credentials for ${user.full_name || user.email}`}
                               className="p-1.5 rounded-lg text-stone-400 hover:text-[#1A3C2E] hover:bg-stone-100 transition-colors"
                               title="Edit Credentials"
                             >
@@ -353,6 +372,7 @@ export default function SettingsRoles() {
                             </button>
                             <button
                               onClick={() => handleDemote(user)}
+                              aria-label={`Demote ${user.full_name || user.email}`}
                               disabled={user.id === currentAuthProfile?.id}
                               className={`p-1.5 rounded-lg transition-colors ${
                                 user.id === currentAuthProfile?.id
@@ -398,13 +418,18 @@ export default function SettingsRoles() {
                   {themes.map(theme => (
                     <div
                       key={theme.id}
-                      onClick={() => handleApplyTheme(theme)}
-                      className={`cursor-pointer rounded-xl border p-4 transition-all duration-300 relative overflow-hidden flex flex-col justify-between h-28 hover:shadow-md ${
+                      className={`rounded-xl border p-4 transition-all duration-300 relative overflow-hidden flex flex-col justify-between h-28 hover:shadow-md ${
                         theme.is_active
                           ? 'border-2 border-[#F5B400] ring-2 ring-[#F5B400]/10 bg-amber-50/5'
                           : 'border-stone-200 bg-white hover:border-[#1A3C2E]/30'
                       }`}
                     >
+                      <button
+                        type="button"
+                        onClick={() => handleApplyTheme(theme)}
+                        aria-label={`Apply ${theme.preset_name} theme`}
+                        className="absolute inset-0 z-0 border-0 bg-transparent p-0"
+                      />
                       <div className="flex items-start justify-between">
                         <div>
                           <h3 className="font-bold text-xs text-stone-800">{theme.preset_name}</h3>
@@ -451,54 +476,60 @@ export default function SettingsRoles() {
               {/* Color pickers */}
               <div className="space-y-3 font-sans">
                 <div>
-                  <label className="text-xs font-bold text-stone-500 uppercase tracking-wider block mb-1.5">Primary Branding Green</label>
+                  <label htmlFor="custom-primary" className="text-xs font-bold text-stone-500 uppercase tracking-wider block mb-1.5">Primary Branding Green</label>
                   <div className="flex gap-2">
                     <input
                       type="color"
-                      value={customPrimary}
-                      onChange={(e) => setCustomPrimary(e.target.value)}
+                      value={customColors.primary}
+                      onChange={(e) => dispatchCustomColors({ type: 'update', key: 'primary', value: e.target.value })}
+                      aria-label="Primary branding green color picker"
                       className="w-10 h-10 border border-stone-200 rounded-lg cursor-pointer bg-white"
                     />
                     <input
                       type="text"
-                      value={customPrimary}
-                      onChange={(e) => setCustomPrimary(e.target.value)}
+                      id="custom-primary"
+                      value={customColors.primary}
+                      onChange={(e) => dispatchCustomColors({ type: 'update', key: 'primary', value: e.target.value })}
                       className="flex-1 border border-stone-200 rounded-lg px-3 text-sm font-mono outline-none uppercase"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-stone-500 uppercase tracking-wider block mb-1.5">Accent Branding Gold</label>
+                  <label htmlFor="custom-accent" className="text-xs font-bold text-stone-500 uppercase tracking-wider block mb-1.5">Accent Branding Gold</label>
                   <div className="flex gap-2">
                     <input
                       type="color"
-                      value={customAccent}
-                      onChange={(e) => setCustomAccent(e.target.value)}
+                      value={customColors.accent}
+                      onChange={(e) => dispatchCustomColors({ type: 'update', key: 'accent', value: e.target.value })}
+                      aria-label="Accent branding gold color picker"
                       className="w-10 h-10 border border-stone-200 rounded-lg cursor-pointer bg-white"
                     />
                     <input
                       type="text"
-                      value={customAccent}
-                      onChange={(e) => setCustomAccent(e.target.value)}
+                      id="custom-accent"
+                      value={customColors.accent}
+                      onChange={(e) => dispatchCustomColors({ type: 'update', key: 'accent', value: e.target.value })}
                       className="flex-1 border border-stone-200 rounded-lg px-3 text-sm font-mono outline-none uppercase"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-stone-500 uppercase tracking-wider block mb-1.5">Background Canvas Cream</label>
+                  <label htmlFor="custom-canvas" className="text-xs font-bold text-stone-500 uppercase tracking-wider block mb-1.5">Background Canvas Cream</label>
                   <div className="flex gap-2">
                     <input
                       type="color"
-                      value={customCanvas}
-                      onChange={(e) => setCustomCanvas(e.target.value)}
+                      value={customColors.canvas}
+                      onChange={(e) => dispatchCustomColors({ type: 'update', key: 'canvas', value: e.target.value })}
+                      aria-label="Background canvas cream color picker"
                       className="w-10 h-10 border border-stone-200 rounded-lg cursor-pointer bg-white"
                     />
                     <input
                       type="text"
-                      value={customCanvas}
-                      onChange={(e) => setCustomCanvas(e.target.value)}
+                      id="custom-canvas"
+                      value={customColors.canvas}
+                      onChange={(e) => dispatchCustomColors({ type: 'update', key: 'canvas', value: e.target.value })}
                       className="flex-1 border border-stone-200 rounded-lg px-3 text-sm font-mono outline-none uppercase"
                     />
                   </div>
@@ -530,13 +561,18 @@ export default function SettingsRoles() {
       {/* MODAL: PROMOTE USER */}
       {showPromoteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs font-sans">
-          <div className="absolute inset-0" onClick={() => setShowPromoteModal(false)} />
+          <button
+            type="button"
+            aria-label="Close promote user dialog"
+            className="absolute inset-0 border-0 bg-transparent p-0"
+            onClick={() => setShowPromoteModal(false)}
+          />
           <div className="relative w-full max-w-lg bg-white rounded-2xl overflow-hidden shadow-2xl border border-stone-200 animate-scale-up">
             <div className="bg-[#1A3C2E] px-6 py-4 flex items-center justify-between text-white">
               <h3 className="font-sans font-black text-base flex items-center gap-2">
                 <Shield size={18} className="text-[#F5B400]" /> Promote User to Staff
               </h3>
-              <button onClick={() => setShowPromoteModal(false)} className="text-white/80 hover:text-white">
+              <button type="button" aria-label="Close promote user dialog" onClick={() => setShowPromoteModal(false)} className="text-white/80 hover:text-white">
                 <X size={18} />
               </button>
             </div>
@@ -545,11 +581,12 @@ export default function SettingsRoles() {
               {/* Search user list field */}
               {!promotingUser ? (
                 <div className="space-y-3">
-                  <label className="text-xs font-bold text-stone-500 uppercase tracking-wider block">1. Select Student Profile</label>
+                  <label htmlFor="student-search" className="text-xs font-bold text-stone-500 uppercase tracking-wider block">1. Select Student Profile</label>
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" size={15} />
                     <input
                       type="text"
+                      id="student-search"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search students by name or email..."
@@ -562,17 +599,18 @@ export default function SettingsRoles() {
                       <p className="p-4 text-xs text-stone-400 text-center">No student accounts found</p>
                     ) : (
                       filteredStudents.map(student => (
-                        <div
+                        <button
+                          type="button"
                           key={student.id}
                           onClick={() => setPromotingUser(student)}
-                          className="p-3 text-xs flex items-center justify-between hover:bg-stone-50 cursor-pointer transition-colors"
+                          className="w-full p-3 text-xs flex items-center justify-between text-left hover:bg-stone-50 transition-colors"
                         >
                           <div>
                             <span className="font-bold text-stone-700 block">{student.full_name || 'Anonymous User'}</span>
                             <span className="text-stone-400 font-mono text-[10px]">{student.email}</span>
                           </div>
                           <span className="text-[10px] font-bold text-[#1A3C2E] bg-[#1A3C2E]/5 px-2 py-0.5 rounded">Select</span>
-                        </div>
+                        </button>
                       ))
                     )}
                   </div>
@@ -597,13 +635,14 @@ export default function SettingsRoles() {
 
                   {/* Role input select */}
                   <div>
-                    <label className="text-xs font-bold text-stone-500 uppercase tracking-wider block mb-1.5">2. Choose Coordinator Role</label>
+                    <label htmlFor="assigning-role" className="text-xs font-bold text-stone-500 uppercase tracking-wider block mb-1.5">2. Choose Coordinator Role</label>
                     <select
+                      id="assigning-role"
                       value={assigningRole}
                       onChange={(e) => setAssigningRole(e.target.value as UserRole)}
                       className="bg-white border border-stone-200 text-stone-700 text-sm rounded-lg p-2.5 w-full focus:ring-1 focus:ring-[#F5B400] focus:border-[#F5B400] outline-none"
                     >
-                      {Object.keys(ROLE_LABELS).filter(r => r !== 'student' && r !== 'comm_photobooth').map(roleKey => (
+                      {STAFF_ROLE_KEYS.map(roleKey => (
                         <option key={roleKey} value={roleKey}>
                           {ROLE_LABELS[roleKey as UserRole]}
                         </option>
@@ -613,9 +652,10 @@ export default function SettingsRoles() {
 
                   {/* Position text input */}
                   <div>
-                    <label className="text-xs font-bold text-stone-500 uppercase tracking-wider block mb-1.5">3. Position Title</label>
+                    <label htmlFor="assigning-position" className="text-xs font-bold text-stone-500 uppercase tracking-wider block mb-1.5">3. Position Title</label>
                     <input
                       type="text"
+                      id="assigning-position"
                       value={assigningPosition}
                       onChange={(e) => setAssigningPosition(e.target.value)}
                       placeholder="e.g. Lead Developer, Publicity Head, Executive Chairperson"
@@ -649,13 +689,18 @@ export default function SettingsRoles() {
       {/* MODAL: EDIT ROLE */}
       {editingUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs font-sans">
-          <div className="absolute inset-0" onClick={() => setEditingUser(null)} />
+          <button
+            type="button"
+            aria-label="Close modify credentials dialog"
+            className="absolute inset-0 border-0 bg-transparent p-0"
+            onClick={() => setEditingUser(null)}
+          />
           <div className="relative w-full max-w-lg bg-white rounded-2xl overflow-hidden shadow-2xl border border-stone-200 animate-scale-up">
             <div className="bg-[#1A3C2E] px-6 py-4 flex items-center justify-between text-white">
               <h3 className="font-sans font-black text-base flex items-center gap-2">
                 <Shield size={18} className="text-[#F5B400]" /> Modify Credentials
               </h3>
-              <button onClick={() => setEditingUser(null)} className="text-white/80 hover:text-white">
+              <button type="button" aria-label="Close modify credentials dialog" onClick={() => setEditingUser(null)} className="text-white/80 hover:text-white">
                 <X size={18} />
               </button>
             </div>
@@ -668,14 +713,15 @@ export default function SettingsRoles() {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-stone-500 uppercase tracking-wider block mb-1.5">Coordinator Role</label>
+                <label htmlFor="editing-role" className="text-xs font-bold text-stone-500 uppercase tracking-wider block mb-1.5">Coordinator Role</label>
                 <select
+                  id="editing-role"
                   value={editingUser.role}
                   onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value as UserRole })}
                   disabled={editingUser.id === currentAuthProfile?.id}
                   className="bg-white border border-stone-200 text-stone-700 text-sm rounded-lg p-2.5 w-full focus:ring-1 focus:ring-[#F5B400] focus:border-[#F5B400] outline-none disabled:bg-stone-50 disabled:text-stone-400"
                 >
-                  {Object.keys(ROLE_LABELS).filter(r => r !== 'student' && r !== 'comm_photobooth').map(roleKey => (
+                  {STAFF_ROLE_KEYS.map(roleKey => (
                     <option key={roleKey} value={roleKey}>
                       {ROLE_LABELS[roleKey as UserRole]}
                     </option>
@@ -687,9 +733,10 @@ export default function SettingsRoles() {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-stone-500 uppercase tracking-wider block mb-1.5">Position Title</label>
+                <label htmlFor="editing-position" className="text-xs font-bold text-stone-500 uppercase tracking-wider block mb-1.5">Position Title</label>
                 <input
                   type="text"
+                  id="editing-position"
                   value={editingUser.position || ''}
                   onChange={(e) => setEditingUser({ ...editingUser, position: e.target.value })}
                   placeholder="e.g. Lead Developer"
