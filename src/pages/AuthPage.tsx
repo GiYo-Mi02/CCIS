@@ -6,6 +6,13 @@ interface AuthPageProps {
   onNavigate?: (tab: string) => void;
 }
 
+function formatCountdown(secs: number): string {
+  const h = Math.floor(secs / 3600).toString().padStart(2, '0');
+  const m = Math.floor((secs % 3600) / 60).toString().padStart(2, '0');
+  const s = (secs % 60).toString().padStart(2, '0');
+  return `${h}:${m}:${s}`;
+}
+
 export default function AuthPage({ onNavigate }: AuthPageProps) {
   const { 
     user, 
@@ -582,13 +589,6 @@ export default function AuthPage({ onNavigate }: AuthPageProps) {
 
   // Pending Verification Wait page (age < 24 hours)
   if (user && profile?.profile_complete && isPending && !isUnverified) {
-    const formatCountdown = (secs: number) => {
-      const h = Math.floor(secs / 3600).toString().padStart(2, '0');
-      const m = Math.floor((secs % 3600) / 60).toString().padStart(2, '0');
-      const s = (secs % 60).toString().padStart(2, '0');
-      return `${h}:${m}:${s}`;
-    };
-
     return (
       <div className="min-h-screen bg-[var(--color-primary-green,#1A3C2E)] flex items-center justify-center p-4 relative overflow-hidden font-sans">
         <div className="absolute inset-0 opacity-5 pointer-events-none">

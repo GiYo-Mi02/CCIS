@@ -11,6 +11,26 @@ function revokeObjectUrl(url: string, ownedUrls: Set<string>) {
   if (ownedUrls.delete(url)) URL.revokeObjectURL(url);
 }
 
+function validateGalleryFile(file: File): string | null {
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+  if (!allowedTypes.includes(file.type)) {
+    return `File type ${file.type} is not supported. Use JPG, PNG or WEBP.`;
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    return `File ${file.name} exceeds the 10MB size limit.`;
+  }
+  return null;
+}
+
+function getStoragePathFromUrl(url: string): string | null {
+  const parts = url.split('gallery-images/');
+  return parts.length >= 2 ? parts.slice(1).join('gallery-images/') : null;
+}
+
+function getCategorySlug(category: string): string {
+  return category.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+}
+
 const INITIAL_FORM_STATE: AdminFormState = {
   title: '', category: 'Student Council', description: '', postedBy: '',
   aspectRatio: 'landscape', imageFile: null, imagePreview: '',
@@ -58,13 +78,11 @@ export default function AdminForm({
   const [formState, setFormState] = useState<AdminFormState>(initialFormState);
 
   useEffect(() => () => {
-    previewUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
-    previewUrlsRef.current.clear();
+    previewUrlsRef.current.forEach(url => revokeObjectUrl(url, previewUrlsRef.current));
   }, []);
 
   const cleanPreviews = () => {
-    previewUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
-    previewUrlsRef.current.clear();
+    previewUrlsRef.current.forEach(url => revokeObjectUrl(url, previewUrlsRef.current));
   };
 
   const handleCancel = () => {
@@ -75,29 +93,17 @@ export default function AdminForm({
     onClose();
   };
 
-  const validateFile = (file: File): string | null => {
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
-      return `File type ${file.type} is not supported. Use JPG, PNG or WEBP.`;
-    }
-    const maxSize = 10 * 1024 * 1024; // 10MB
-    if (file.size > maxSize) {
-      return `File ${file.name} exceeds the 10MB size limit.`;
-    }
-    return null;
-  };
-
   const handleMainImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
       const file = files[0];
-      const errorMsg = validateFile(file);
+      const errorMsg = validateGalleryFile(file);
       if (errorMsg) {
         triggerToast(errorMsg, 'error');
         if (mainImageInputRef.current) mainImageInputRef.current.value = '';
         return;
       }
-      if (previewUrlsRef.current.delete(formState.imagePreview)) URL.revokeObjectURL(formState.imagePreview);
+      revokeObjectUrl(formState.imagePreview, previewUrlsRef.current);
       const preview = URL.createObjectURL(file);
       previewUrlsRef.current.add(preview);
       setFormState(prev => {
@@ -123,7 +129,7 @@ export default function AdminForm({
       }
 
       for (const file of filesArray) {
-        const errorMsg = validateFile(file);
+        const errorMsg = validateGalleryFile(file);
         if (errorMsg) {
           triggerToast(errorMsg, 'error');
           if (thumbnailsInputRef.current) thumbnailsInputRef.current.value = '';
@@ -131,9 +137,7 @@ export default function AdminForm({
         }
       }
 
-        formState.thumbnailPreviews.forEach(url => {
-          if (previewUrlsRef.current.delete(url)) URL.revokeObjectURL(url);
-        });
+        formState.thumbnailPreviews.forEach(url => revokeObjectUrl(url, previewUrlsRef.current));
         const newPreviews: string[] = [];
         for (const file of filesArray) {
           const preview = URL.createObjectURL(file);
@@ -156,20 +160,6 @@ export default function AdminForm({
       existingThumbnails: prev.existingThumbnails.filter(t => t !== thumbUrl),
       removedThumbnails: [...prev.removedThumbnails, thumbUrl]
     }));
-  };
-
-  const getStoragePathFromUrl = (url: string): string | null => {
-    try {
-      const parts = url.split('gallery-images/');
-      if (parts.length >= 2) return parts.slice(1).join('gallery-images/');
-      return null;
-    } catch {
-      return null;
-    }
-  };
-
-  const getCategorySlug = (cat: string) => {
-    return cat.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
   };
 
   const uploadToStorage = async (file: File, categorySlug: string): Promise<UploadOptimizedImageResult> => {
