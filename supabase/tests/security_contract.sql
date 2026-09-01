@@ -82,6 +82,7 @@ BEGIN
       'record_privacy_consent',
       'register_for_event',
       'resolve_attendance_pass',
+      'search_users',
       'resubmit_for_verification',
       'set_email_preferences',
       'swap_faq_order',
@@ -119,6 +120,13 @@ BEGIN
      OR has_function_privilege('authenticated', 'public.record_client_error_event(uuid,text,text)', 'EXECUTE')
      OR NOT has_function_privilege('service_role', 'public.record_client_error_event(uuid,text,text)', 'EXECUTE') THEN
     RAISE EXCEPTION 'client error reporting must be service-role-only';
+  END IF;
+
+  IF to_regprocedure('public.search_users(text,integer)') IS NULL
+     OR NOT has_function_privilege('authenticated', 'public.search_users(text,integer)', 'EXECUTE')
+     OR has_function_privilege('anon', 'public.search_users(text,integer)', 'EXECUTE')
+     OR pg_get_functiondef('public.search_users(text,integer)'::regprocedure) NOT LIKE '%devcom_head%' THEN
+    RAISE EXCEPTION 'search_users() must be authenticated-only and restricted to devcom_head';
   END IF;
 
   IF to_regprocedure('internal.reconcile_email_worker_invocations()') IS NULL

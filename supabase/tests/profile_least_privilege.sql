@@ -64,6 +64,16 @@ BEGIN
      OR v_row ? 'subscribe_announcements_events' THEN
     RAISE EXCEPTION 'scoped verification RPC exposed an unrelated private field';
   END IF;
+
+  BEGIN
+    PERFORM public.search_users('Pending', 10);
+    RAISE EXCEPTION 'registration role can search users for officer creation';
+  EXCEPTION
+    WHEN OTHERS THEN
+      IF SQLERRM <> 'FORBIDDEN' THEN
+        RAISE;
+      END IF;
+  END;
 END;
 $least_privilege$;
 

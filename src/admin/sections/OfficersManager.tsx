@@ -356,7 +356,7 @@ export default function OfficersManager() {
       {/* Officer edit/create modal */}
       {editingOfficer && (
         <Modal isOpen={true} onClose={() => { setEditingOfficer(null); setIsCreating(false); }} title={isCreating ? 'Add Officer' : 'Edit Officer'}>
-          <OfficerForm officer={editingOfficer} committees={committees} onSave={saveOfficer} onClose={() => { setEditingOfficer(null); setIsCreating(false); }} />
+          <OfficerForm officer={editingOfficer} committees={committees} isCreating={isCreating} onSave={saveOfficer} onClose={() => { setEditingOfficer(null); setIsCreating(false); }} />
         </Modal>
       )}
 
@@ -370,9 +370,13 @@ export default function OfficersManager() {
   );
 }
 
-function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partial<Officer>; committees: Committee[]; onSave: (o: Partial<Officer>) => Promise<void> | void; onClose: () => void }) {
+type UserSearchResult = { id: string; name: string; email: string };
+
+function OfficerForm({ officer, committees, isCreating, onSave, onClose }: { officer: Partial<Officer>; committees: Committee[]; isCreating: boolean; onSave: (o: Partial<Officer>) => Promise<void> | void; onClose: () => void }) {
   const { showToast } = useAdmin();
   const [form, setForm] = useState({ ...officer });
+  const [userSearchResults, setUserSearchResults] = useState<UserSearchResult[]>([]);
+  const [isSearchingUsers, setIsSearchingUsers] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>(officer.photo_url || '');
   const [isUploading, setIsUploading] = useState(false);
@@ -381,6 +385,48 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
   const [photoInputMode, setPhotoInputMode] = useState<'upload' | 'link'>('upload');
   const [optimizationSummary, setOptimizationSummary] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const suppressUserSearchRef = useRef(false);
+
+  useEffect(() => {
+    if (!isCreating) return;
+
+    if (suppressUserSearchRef.current) {
+      suppressUserSearchRef.current = false;
+      return;
+    }
+
+    const search = form.name?.trim() || '';
+    if (search.length < 2) {
+      setUserSearchResults([]);
+      setIsSearchingUsers(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsSearchingUsers(true);
+    const timeoutId = window.setTimeout(async () => {
+      const { data, error } = await supabase.rpc('search_users', {
+        p_search: search,
+        p_limit: 10,
+      });
+      if (cancelled) return;
+      setIsSearchingUsers(false);
+      if (error) {
+        setUserSearchResults([]);
+        return;
+      }
+      setUserSearchResults((data || []).map((user: { id: string; full_name: string | null; email: string | null }) => ({
+        id: user.id,
+        name: user.full_name || '',
+        email: user.email || '',
+      })));
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+    };
+  }, [form.name, isCreating]);
 
   const handleClose = () => {
     onClose();
@@ -483,7 +529,7 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
 
   return (
     <div className="space-y-4 text-left">
-      <div>
+      <div className="relative">
          <label htmlFor="officer-name" className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">
           Full Name <span className="text-rose-500">*</span>
         </label>
@@ -495,6 +541,30 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
           placeholder="e.g. Juan Dela Cruz"
           className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400]"
         />
+        {isCreating && (isSearchingUsers || userSearchResults.length > 0) && (
+          <div className="absolute z-10 left-0 right-0 mt-1 rounded-lg border border-gray-200 bg-white shadow-lg overflow-hidden" role="listbox" aria-label="Matching users">
+            {isSearchingUsers ? (
+              <p className="px-4 py-3 text-xs text-gray-400">Searching users...</p>
+            ) : (
+              userSearchResults.map((user) => (
+                <button
+                  key={user.id}
+                  type="button"
+                  role="option"
+                  onClick={() => {
+                    suppressUserSearchRef.current = true;
+                    setForm((prev) => ({ ...prev, name: user.name, email: user.email }));
+                    setUserSearchResults([]);
+                  }}
+                  className="w-full px-4 py-2.5 text-left hover:bg-gray-50 transition-colors"
+                >
+                  <span className="block text-sm font-semibold text-gray-800">{user.name || 'Unnamed user'}</span>
+                  <span className="block text-xs text-gray-400">{user.email}</span>
+                </button>
+              ))
+            )}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -674,7 +744,7 @@ function OfficerForm({ officer, committees, onSave, onClose }: { officer: Partia
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
-                className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-colors duration-200 ${
+                className={`block w-full border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-colors duration-200 ${
                   isDragging
                     ? 'border-[#F5B400] bg-[#FAF7EA] scale-[1.01]'
                     : 'border-gray-300 hover:border-[#F5B400] bg-white hover:bg-gray-50'
