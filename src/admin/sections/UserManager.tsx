@@ -13,6 +13,12 @@ import { postgrestIlike } from '../../lib/postgrest';
 
 type BanDuration = 'permanent' | '1h' | '1d' | '1w' | '30d' | 'custom';
 
+function getMinimumBanDateTime(): string {
+  const minimum = new Date(Date.now() + 60_000);
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return `${minimum.getFullYear()}-${pad(minimum.getMonth() + 1)}-${pad(minimum.getDate())}T${pad(minimum.getHours())}:${pad(minimum.getMinutes())}`;
+}
+
 function checkUserBanStatus(user: Profile): { isBanned: boolean; text: string; subtext?: string } {
   if (!user.banned) return { isBanned: false, text: 'Active' };
 
@@ -302,7 +308,7 @@ export default function UserManager() {
   };
 
   return (
-    <div className="space-y-6 font-sans animate-fade-in">
+    <div className="w-full min-h-full space-y-6 font-sans animate-fade-in">
       {/* Title Header */}
       <div>
         <h1 className="text-2xl font-black text-[#1A3C2E]">User Management Directory</h1>
@@ -616,14 +622,15 @@ export default function UserManager() {
                    <label htmlFor="custom-ban-time" className="text-xs font-bold text-stone-500 uppercase tracking-wider block">
                     Unban Date &amp; Time
                   </label>
-                  <input
-                     id="custom-ban-time"
-                     type="datetime-local"
-                    value={customBanTime}
-                    onChange={(e) => setCustomBanTime(e.target.value)}
-                    className="bg-white border border-stone-200 text-stone-700 text-sm rounded-lg p-2.5 w-full focus:ring-1 focus:ring-[#F5B400] focus:border-[#F5B400] outline-none"
-                    required
-                  />
+                   <input
+                      id="custom-ban-time"
+                      type="datetime-local"
+                     value={customBanTime}
+                     onChange={(e) => setCustomBanTime(e.target.value)}
+                     min={getMinimumBanDateTime()}
+                     className="bg-white border border-stone-200 text-stone-700 text-sm rounded-lg p-2.5 w-full focus:ring-1 focus:ring-[#F5B400] focus:border-[#F5B400] outline-none"
+                     required
+                   />
                   <span className="text-[10px] text-stone-400 block leading-tight">
                     Select the exact local date/time when this restriction will expire automatically.
                   </span>
@@ -647,10 +654,11 @@ export default function UserManager() {
                 >
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-lg text-xs font-bold bg-[#C0392B] text-white hover:bg-rose-700 flex items-center gap-1.5 shadow-sm"
-                >
+                 <button
+                   type="submit"
+                   disabled={actionLoadingId === banningUser.id}
+                   className="px-5 py-2 rounded-lg text-xs font-bold bg-[#C0392B] text-white hover:bg-rose-700 flex items-center gap-1.5 shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                 >
                   <Ban size={14} /> Ban Student
                 </button>
               </div>
