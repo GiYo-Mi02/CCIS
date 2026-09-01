@@ -71,6 +71,7 @@ export default function AdminTopbar({ sidebarCollapsed, onMobileMenuToggle, mobi
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
+          aria-label="Search admin content"
           placeholder="Search..."
           className="w-full bg-gray-50 border border-gray-200 rounded-lg pl-9 pr-4 py-2 text-sm text-gray-700 outline-none focus:border-[#F5B400] focus:ring-1 focus:ring-[#F5B400] transition-colors"
           id="admin-global-search"
