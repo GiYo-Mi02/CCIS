@@ -785,6 +785,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
             <button
               onClick={() => setToasts(prev => prev.filter(item => item.id !== t.id))}
               className="text-[#FAF7EA] hover:opacity-75 focus:outline-none cursor-pointer"
+              aria-label="Dismiss notification"
             >
               <X size={14} />
             </button>
@@ -1035,6 +1036,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
                 onClick={() => dispatchForm({ type: 'close' })}
                 className="text-white/70 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors cursor-pointer"
                 disabled={formSubmitting}
+                aria-label="Close report form"
               >
                 <X size={18} />
               </button>
@@ -1158,15 +1160,21 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
                   </select>
 
                   {formIsNewSemester && (
-                    <input
-                      type="text"
-                      required
-                      value={formCustomSemester}
-                      onChange={(e) => dispatchForm({ type: 'set', field: 'customSemester', value: e.target.value })}
-                      placeholder="e.g. 1st Semester A.Y. 2026-2027"
-                      className="w-full bg-[#FAF7EA]/50 border border-[#F5B400]/40 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E] transition-colors text-xs font-mono"
-                      disabled={formSubmitting}
-                    />
+                    <div>
+                      <label htmlFor="report-custom-semester" className="block text-[10px] font-mono uppercase font-bold text-stone-400 mb-1.5">
+                        New Semester / Term *
+                      </label>
+                      <input
+                        id="report-custom-semester"
+                        type="text"
+                        required
+                        value={formCustomSemester}
+                        onChange={(e) => dispatchForm({ type: 'set', field: 'customSemester', value: e.target.value })}
+                        placeholder="e.g. 1st Semester A.Y. 2026-2027"
+                        className="w-full bg-[#FAF7EA]/50 border border-[#F5B400]/40 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#1A3C2E] transition-colors text-xs font-mono"
+                        disabled={formSubmitting}
+                      />
+                    </div>
                   )}
                 </div>
               </div>
@@ -1205,9 +1213,9 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
 
               {thumbnailPreviewUrl && !isGeneratingThumbnail && (
                 <div>
-                  <label className="block text-[10px] font-mono uppercase font-bold text-stone-400 mb-1.5">
+                  <span className="block text-[10px] font-mono uppercase font-bold text-stone-400 mb-1.5">
                     Preview Thumbnail (Generated from PDF page 1)
-                  </label>
+                  </span>
                   <div className="w-20 h-28 border border-stone-200 shadow-sm rounded-lg overflow-hidden relative">
                     <img src={thumbnailPreviewUrl} alt="Thumbnail Preview" width={160} height={224} decoding="async" className="w-full h-full object-cover" />
                   </div>
@@ -1334,6 +1342,7 @@ export default function BukasKabanPage({ isAdmin = false }: BukasKabanPageProps)
               <button
                 onClick={() => dispatchDetail({ type: 'close' })}
                 className="absolute top-6 right-6 p-1.5 rounded-full bg-stone-100 text-stone-500 hover:text-stone-900 hover:bg-stone-200 transition-colors cursor-pointer focus:ring-2 focus:ring-[#1A3C2E] outline-none"
+                aria-label="Close report detail"
               >
                 <X size={18} />
               </button>

@@ -706,6 +706,7 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
                   }`}
                   role="switch"
                   aria-checked={profile.subscribe_announcements_events}
+                  aria-label="Subscribe to email updates"
                 >
                   <span
                     aria-hidden="true"
@@ -835,10 +836,11 @@ export default function AccountPage({ onNavigate }: AccountPageProps) {
                 </div>
 
                 <form onSubmit={handleConcernSubmit} className="pt-3 border-t border-zinc-100 space-y-3 font-sans">
-                  <label className="block text-[#5E6E64] font-mono text-[9px] uppercase tracking-wider font-bold">
+                  <label htmlFor="account-concern-message" className="block text-[#5E6E64] font-mono text-[9px] uppercase tracking-wider font-bold">
                     Submit Verification Concern / Support Ticket
                   </label>
                   <textarea
+                    id="account-concern-message"
                     value={concernMessage}
                     onChange={(e) => setConcernMessage(e.target.value)}
                     rows={3}
