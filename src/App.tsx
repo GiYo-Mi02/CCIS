@@ -226,19 +226,19 @@ export default function App({ onAdminSwitch }: AppProps) {
 
           {activeTab === 'gallery' && (
             <div className="animate-fade-in">
-              <GalleryPage isAdmin={isAdmin} />
+              <GalleryPage isAdmin={isAdmin && (profile?.role === 'devcom_head' || profile?.role === 'comm_photobooth')} />
             </div>
           )}
 
           {activeTab === 'transparency' && (
             <div className="animate-fade-in">
-              <BukasKabanPage isAdmin={isAdmin} />
+              <BukasKabanPage isAdmin={isAdmin && (profile?.role === 'devcom_head' || profile?.role === 'officer')} />
             </div>
           )}
 
           {activeTab === 'patch' && (
             <div className="animate-fade-in">
-              <PatchPage isAdmin={isAdmin} />
+              <PatchPage isAdmin={isAdmin && (profile?.role === 'devcom_head' || profile?.role === 'comm_content')} />
             </div>
           )}
 

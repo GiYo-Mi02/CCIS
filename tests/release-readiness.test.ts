@@ -131,6 +131,24 @@ test('all deployment policies allow approved Patch video sources', () => {
   }
 });
 
+test('media write roles are enforced in both UI and database policies', () => {
+  const app = read('src', 'App.tsx');
+  const migration = read(
+    'supabase',
+    'migrations',
+    '20260901132547_restrict_media_write_roles.sql',
+  );
+
+  assert.match(app, /GalleryPage isAdmin=\{isAdmin && \(profile\?\.role === 'devcom_head' \|\| profile\?\.role === 'comm_photobooth'\)\}/);
+  assert.match(app, /BukasKabanPage isAdmin=\{isAdmin && \(profile\?\.role === 'devcom_head' \|\| profile\?\.role === 'officer'\)\}/);
+  assert.match(app, /PatchPage isAdmin=\{isAdmin && \(profile\?\.role === 'devcom_head' \|\| profile\?\.role === 'comm_content'\)\}/);
+  assert.match(migration, /gallery_staff_insert[\s\S]*IN \('devcom_head', 'comm_photobooth'\)/);
+  assert.match(migration, /gallery_staff_update[\s\S]*IN \('devcom_head', 'comm_photobooth'\)/);
+  assert.match(migration, /gallery_staff_delete[\s\S]*IN \('devcom_head', 'comm_photobooth'\)/);
+  assert.match(migration, /bucket_id IN \('patch-thumbnails', 'patch-videos'\)[\s\S]*IN \('devcom_head', 'comm_content'\)/);
+  assert.match(migration, /bucket_id = 'bukas-kaban-reports'[\s\S]*IN \('devcom_head', 'officer'\)/);
+});
+
 test('legacy queue rows without leases are quarantined and cannot auto-retry', () => {
   const migration = read(
     'supabase',
