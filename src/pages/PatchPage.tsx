@@ -189,6 +189,19 @@ const ThumbnailPlaceholder = ({ epNumber, title }: { epNumber: number; title: st
   </div>
 );
 
+const formatTime = (timeInSeconds: number) => {
+  if (isNaN(timeInSeconds)) return "00:00";
+  const mins = Math.floor(timeInSeconds / 60);
+  const secs = Math.floor(timeInSeconds % 60);
+  return `${mins < 10 ? `0${mins}` : mins}:${secs < 10 ? `0${secs}` : secs}`;
+};
+
+const getFbEmbedUrl = (permalink: string) => {
+  let cleanUrl = permalink.trim();
+  if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) cleanUrl = 'https://' + cleanUrl;
+  return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(cleanUrl)}&show_text=false&t=0`;
+};
+
 export default function PatchPage({ isAdmin = false }: PatchPageProps) {
   const [videos, setVideos] = useState<PatchVideo[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -552,15 +565,6 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
     }
   };
 
-  const formatTime = (timeInSeconds: number) => {
-    if (isNaN(timeInSeconds)) return "00:00";
-    const mins = Math.floor(timeInSeconds / 60);
-    const secs = Math.floor(timeInSeconds % 60);
-    const minsStr = mins < 10 ? `0${mins}` : `${mins}`;
-    const secsStr = secs < 10 ? `0${secs}` : `${secs}`;
-    return `${minsStr}:${secsStr}`;
-  };
-
   // Keyboard Shortcuts Effect
   useEffect(() => {
     if (!isPlayerActive) return;
@@ -879,13 +883,6 @@ export default function PatchPage({ isAdmin = false }: PatchPageProps) {
   };
 
   // Resolve Facebook permalink to official plugin embed URL
-  const getFbEmbedUrl = (permalink: string) => {
-    let cleanUrl = permalink.trim();
-    if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
-      cleanUrl = 'https://' + cleanUrl;
-    }
-    return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(cleanUrl)}&show_text=false&t=0`;
-  };
 
   // Group videos by category rows
   const categories = ["Full Episodes", "Highlights", "Behind the Scenes"];
