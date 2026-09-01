@@ -28,3 +28,10 @@ export const canAccessAdminSection = (role: UserRole | null | undefined, section
   Boolean(role && isAdminSection(section) && sectionRoles[section].includes(role));
 
 export const canPreviewRoles = (role: UserRole | null | undefined): boolean => role === 'devcom_head';
+
+export const canManagePublicPage = (role: UserRole | null | undefined, page: 'gallery' | 'transparency' | 'patch'): boolean => {
+  if (role === 'devcom_head') return true;
+  return (page === 'gallery' && role === 'comm_photobooth')
+    || (page === 'transparency' && role === 'officer')
+    || (page === 'patch' && role === 'comm_content');
+};

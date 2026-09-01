@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { ADMIN_SECTIONS, canAccessAdminSection, canPreviewRoles } from '../src/admin/roleAccess';
+import { ADMIN_SECTIONS, canAccessAdminSection, canManagePublicPage, canPreviewRoles } from '../src/admin/roleAccess';
 import type { UserRole } from '../src/types/database';
 
 const allowedSections: Record<UserRole, string[]> = {
@@ -28,6 +28,14 @@ test('only DevCom Head can start a role preview', () => {
   assert.equal(canPreviewRoles(null), false);
 });
 
+test('public management matches the role access matrix', () => {
+  assert.equal(canManagePublicPage('comm_photobooth', 'gallery'), true);
+  assert.equal(canManagePublicPage('officer', 'transparency'), true);
+  assert.equal(canManagePublicPage('comm_content', 'patch'), true);
+  assert.equal(canManagePublicPage('comm_content', 'gallery'), false);
+  assert.equal(canManagePublicPage('student', 'patch'), false);
+});
+
 test('preview blocks UI interaction and inbox mutations', () => {
   const adminApp = readFileSync('src/admin/AdminApp.tsx', 'utf8');
   const messagesInbox = readFileSync('src/admin/sections/MessagesInbox.tsx', 'utf8');
@@ -36,6 +44,9 @@ test('preview blocks UI interaction and inbox mutations', () => {
   assert.match(adminApp, /onClickCapture=\{blockPreviewInteraction\}/);
   assert.match(adminApp, /onKeyDownCapture=\{blockPreviewInteraction\}/);
   assert.match(adminApp, /onSubmitCapture=\{blockPreviewInteraction\}/);
-  assert.match(messagesInbox, /!isRolePreviewing && unreadStudentMsgIds\.length > 0/);
+  assert.match(adminApp, /effectiveRole !== 'student' && !canAccessAdminSection\(effectiveRole, activeSection\)/);
+  assert.match(messagesInbox, /!isRolePreviewingRef\.current && unreadStudentMsgIds\.length > 0/);
+  assert.match(messagesInbox, /if \(isRolePreviewingRef\.current\) return;/);
+  assert.match(messagesInbox, /pendingReadRequestsRef\.current\.forEach\(controller => controller\.abort\(\)\)/);
   assert.match(messagesInbox, /if \(isRolePreviewing \|\| !profile/);
 });

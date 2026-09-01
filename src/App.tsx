@@ -23,6 +23,8 @@ const DeveloperDedication = lazy(() => import('./components/DeveloperDedication'
 const RegistrationSection = lazy(() => import('./components/Registration'));
 
 import { useAuth } from './context/AuthContext';
+import { useRolePreview } from './context/RolePreviewContext';
+import { canManagePublicPage } from './admin/roleAccess';
 import SubscriptionPreferenceModal from './components/SubscriptionPreferenceModal';
 import SupportWidget from './components/SupportWidget';
 
@@ -35,6 +37,7 @@ export default function App({ onAdminSwitch }: AppProps) {
   const [infoSubTab, setInfoSubTab] = useState<'umak' | 'college' | 'org'>('umak');
   const [preselectedEventId, setPreselectedEventId] = useState<string | null>(null);
   const { user, profile, setEmailPreferences, isPending, isUnverified, isAdmin, loading } = useAuth();
+  const { effectiveRole, isRolePreviewing, exitRolePreview } = useRolePreview();
 
   const isUmakTheme = activeTab === 'info' && infoSubTab === 'umak';
 
@@ -94,6 +97,12 @@ export default function App({ onAdminSwitch }: AppProps) {
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+  const previewingManagedPage = isRolePreviewing && ['gallery', 'transparency', 'patch'].includes(activeTab);
+  const blockPreviewInteraction = (event: React.SyntheticEvent) => {
+    if (!previewingManagedPage) return;
+    event.preventDefault();
+    event.stopPropagation();
+  };
 
 
   // Full-screen pages (no navbar/footer)
@@ -121,8 +130,21 @@ export default function App({ onAdminSwitch }: AppProps) {
       {/* 1. Header Navigation Bar */}
       <NavBar activeTab={activeTab} setActiveTab={handleNavigate} isUmakTheme={isUmakTheme} />
 
+      {isRolePreviewing && (
+        <div role="status" aria-live="polite" className="border-b border-[#123524]/25 bg-amber-50 px-4 py-2 text-center text-xs font-semibold text-amber-900">
+          Public role preview: viewing {effectiveRole?.replace('_', ' ')}. Management controls are read-only.
+          <button type="button" onClick={exitRolePreview} className="ml-3 underline underline-offset-2">Exit preview</button>
+        </div>
+      )}
+
       {/* 2. Primary Layout Render */}
-      <main className="flex-1">
+      <main
+        inert={previewingManagedPage}
+        onClickCapture={blockPreviewInteraction}
+        onKeyDownCapture={blockPreviewInteraction}
+        onSubmitCapture={blockPreviewInteraction}
+        className="flex-1"
+      >
         {activeTab === 'home' && (
           <div className="animate-fade-in">
             {/* Hero welcome sector */}
@@ -226,19 +248,19 @@ export default function App({ onAdminSwitch }: AppProps) {
 
           {activeTab === 'gallery' && (
             <div className="animate-fade-in">
-              <GalleryPage isAdmin={isAdmin && (profile?.role === 'devcom_head' || profile?.role === 'comm_photobooth')} />
+              <GalleryPage isAdmin={isAdmin && canManagePublicPage(effectiveRole, 'gallery')} />
             </div>
           )}
 
           {activeTab === 'transparency' && (
             <div className="animate-fade-in">
-              <BukasKabanPage isAdmin={isAdmin && (profile?.role === 'devcom_head' || profile?.role === 'officer')} />
+              <BukasKabanPage isAdmin={isAdmin && canManagePublicPage(effectiveRole, 'transparency')} />
             </div>
           )}
 
           {activeTab === 'patch' && (
             <div className="animate-fade-in">
-              <PatchPage isAdmin={isAdmin && (profile?.role === 'devcom_head' || profile?.role === 'comm_content')} />
+              <PatchPage isAdmin={isAdmin && canManagePublicPage(effectiveRole, 'patch')} />
             </div>
           )}
 

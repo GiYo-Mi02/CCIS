@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { AuthProvider } from './context/AuthContext';
+import { RolePreviewProvider } from './context/RolePreviewContext';
 import RootRouter from './RootRouter';
 import ErrorBoundary from './components/ErrorBoundary';
 import './index.css';
@@ -26,7 +27,9 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
       <AuthProvider>
-        <RootRouter />
+        <RolePreviewProvider>
+          <RootRouter />
+        </RolePreviewProvider>
       </AuthProvider>
     </ErrorBoundary>
   </StrictMode>,

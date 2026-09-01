@@ -3,6 +3,7 @@ import { Search, Send, Clock, User, MessageSquare, AlertCircle, Loader2, ArrowLe
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { useAdmin } from '../AdminContext';
+import { useRolePreview } from '../../context/RolePreviewContext';
 import { Conversation, Message } from '../../types/database';
 import Pagination from '../components/Pagination';
 import { checkIsProfane } from '../../lib/profanity';
@@ -27,8 +28,20 @@ const formatMessageTimeHeader = (dateStr: string): string => {
 
 export default function MessagesInbox() {
   const { profile } = useAuth();
-  const { effectiveRole, isRolePreviewing, showToast } = useAdmin();
+  const { showToast } = useAdmin();
+  const { effectiveRole, isRolePreviewing } = useRolePreview();
   const { isRealtimeAvailable } = useRealtimeAvailability();
+  const isRolePreviewingRef = useRef(isRolePreviewing);
+  const pendingReadRequestsRef = useRef(new Set<AbortController>());
+
+  isRolePreviewingRef.current = isRolePreviewing;
+
+  useEffect(() => {
+    if (isRolePreviewing) {
+      pendingReadRequestsRef.current.forEach(controller => controller.abort());
+      pendingReadRequestsRef.current.clear();
+    }
+  }, [isRolePreviewing]);
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedCon, setSelectedCon] = useState<Conversation | null>(null);
@@ -189,12 +202,16 @@ export default function MessagesInbox() {
           if (message.sender_role === 'student' && !message.read_by_admin) unreadStudentMsgIds.push(message.id);
         }
 
-        if (!isRolePreviewing && unreadStudentMsgIds.length > 0) {
+        if (!isRolePreviewingRef.current && unreadStudentMsgIds.length > 0) {
           const currentUnread = unreadCounts[conversationId] || 0;
+          const controller = new AbortController();
+          pendingReadRequestsRef.current.add(controller);
           // Perform DB update asynchronously in background
           supabase
             .rpc('mark_messages_read_by_admin', { p_message_ids: unreadStudentMsgIds })
+            .abortSignal(controller.signal)
             .then(({ error }) => {
+              if (isRolePreviewingRef.current) return;
               if (error) {
                 console.error('Error marking messages as read on Supabase:', error.message);
                 return;
@@ -210,7 +227,11 @@ export default function MessagesInbox() {
                 ...prev,
                 [conversationId]: 0
               }));
-            });
+            })
+            .then(
+              () => pendingReadRequestsRef.current.delete(controller),
+              () => pendingReadRequestsRef.current.delete(controller),
+            );
         }
       }
     } catch (err) {
@@ -248,11 +269,15 @@ export default function MessagesInbox() {
           if (!newMsg) return;
             // If the message is for the active thread, append it
             if (activeConId && newMsg.conversation_id === activeConId) {
-              if (newMsg.sender_role === 'student' && !newMsg.read_by_admin) {
+                if (!isRolePreviewingRef.current && newMsg.sender_role === 'student' && !newMsg.read_by_admin) {
                 // Mark as read immediately
+                const controller = new AbortController();
+                pendingReadRequestsRef.current.add(controller);
                 const { error: readError } = await supabase.rpc('mark_messages_read_by_admin', {
                   p_message_ids: [newMsg.id],
-                });
+                }).abortSignal(controller.signal);
+                pendingReadRequestsRef.current.delete(controller);
+                if (isRolePreviewingRef.current) return;
                 if (readError) {
                   console.error('Error marking incoming message as read:', readError.message);
                 } else {

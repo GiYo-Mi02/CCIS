@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Megaphone, ClipboardList, MessageSquare, Calendar, Edit3, ArrowRight, HelpCircle } from 'lucide-react';
 import { useAdmin } from '../AdminContext';
+import { useRolePreview } from '../../context/RolePreviewContext';
 import { supabase } from '../../lib/supabase';
 import StatCard from '../components/StatCard';
 import StatusBadge from '../components/StatusBadge';
@@ -40,7 +41,8 @@ interface UpcomingEvent {
 }
 
 export default function Dashboard() {
-  const { setActiveSection, effectiveRole } = useAdmin();
+  const { setActiveSection } = useAdmin();
+  const { effectiveRole } = useRolePreview();
   const [stats, setStats] = useState<DashStats>({
     announcementsTotal: 0, announcementsPublished: 0,
     registrationsTotal: 0, registrationsPending: 0,

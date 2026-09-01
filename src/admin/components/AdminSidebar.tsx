@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { useAdmin } from '../AdminContext';
 import { AdminSection, canAccessAdminSection } from '../roleAccess';
+import { useRolePreview } from '../../context/RolePreviewContext';
 
 const NAV_ITEMS: { id: AdminSection; label: string; icon: typeof LayoutDashboard }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -27,7 +28,8 @@ interface AdminSidebarProps {
 }
 
 export default function AdminSidebar({ collapsed, onToggle, onExitAdmin }: AdminSidebarProps) {
-  const { activeSection, setActiveSection, effectiveRole } = useAdmin();
+  const { activeSection, setActiveSection } = useAdmin();
+  const { effectiveRole } = useRolePreview();
 
   // Filter items by role
   const visibleNavItems = NAV_ITEMS.filter(item => canAccessAdminSection(effectiveRole, item.id));

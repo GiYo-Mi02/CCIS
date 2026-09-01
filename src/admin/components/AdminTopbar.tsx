@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Search, Bell, LogOut, Menu, X } from 'lucide-react';
 import { useAdmin } from '../AdminContext';
 import { useAuth } from '../../context/AuthContext';
+import { useRolePreview } from '../../context/RolePreviewContext';
 import { ROLE_LABELS, type UserRole } from '../../types/database';
 
 interface AdminTopbarProps {
@@ -26,7 +27,8 @@ const SECTION_TITLES: Record<string, string> = {
 
 export default function AdminTopbar({ sidebarCollapsed, onMobileMenuToggle, mobileMenuOpen }: AdminTopbarProps) {
   const { profile, signOut } = useAuth();
-  const { activeSection, previewRole, effectiveRole, isRolePreviewing, startRolePreview, exitRolePreview } = useAdmin();
+  const { activeSection, setActiveSection } = useAdmin();
+  const { previewRole, effectiveRole, isRolePreviewing, startRolePreview, exitRolePreview } = useRolePreview();
   const [showNotifs, setShowNotifs] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const notifRef = useRef<HTMLDivElement>(null);
@@ -88,7 +90,10 @@ export default function AdminTopbar({ sidebarCollapsed, onMobileMenuToggle, mobi
             value={previewRole ?? ''}
             onChange={(event) => {
               const role = event.target.value as UserRole;
-              if (role) startRolePreview(role);
+              if (role) {
+                startRolePreview(role);
+                setActiveSection('dashboard');
+              }
               else exitRolePreview();
             }}
             className="max-w-36 rounded-lg border border-[#123524]/25 bg-stone-50 px-2 py-1.5 text-xs font-semibold text-[#123524]"

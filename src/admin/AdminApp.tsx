@@ -1,10 +1,11 @@
-import React, { lazy, Suspense, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useState } from 'react';
 import { AdminProvider, useAdmin } from './AdminContext';
 import AdminLogin from './AdminLogin';
 import AdminSidebar from './components/AdminSidebar';
 import AdminTopbar from './components/AdminTopbar';
 import ToastContainer from './components/Toast';
 import { useAuth } from '../context/AuthContext';
+import { useRolePreview } from '../context/RolePreviewContext';
 import { canAccessAdminSection } from './roleAccess';
 
 const Dashboard = lazy(() => import('./sections/Dashboard'));
@@ -33,7 +34,8 @@ export default function AdminApp({ onExitAdmin }: AdminAppProps) {
 
 function AdminAppInner({ onExitAdmin }: AdminAppProps) {
   const { isAdmin, loading } = useAuth();
-  const { activeSection, effectiveRole, isRolePreviewing } = useAdmin();
+  const { activeSection, setActiveSection } = useAdmin();
+  const { effectiveRole, isRolePreviewing } = useRolePreview();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const blockPreviewInteraction = (event: React.SyntheticEvent) => {
@@ -41,6 +43,12 @@ function AdminAppInner({ onExitAdmin }: AdminAppProps) {
     event.preventDefault();
     event.stopPropagation();
   };
+
+  useEffect(() => {
+    if (isRolePreviewing && effectiveRole !== 'student' && !canAccessAdminSection(effectiveRole, activeSection)) {
+      setActiveSection('dashboard');
+    }
+  }, [activeSection, effectiveRole, isRolePreviewing, setActiveSection]);
 
   if (loading) {
     return (
