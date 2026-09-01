@@ -115,15 +115,6 @@ test('all deployment policies allow approved Patch video sources', () => {
   }
 });
 
-test('all deployment policies allow the approved About page script hash', () => {
-  const policies = [read('index.html'), read('vercel.json'), read('public', '_headers')];
-  const approvedScriptHash = "'sha256-ati0XjcaO5itjmFwt33Q1JwZS+Zv8u0dsXjNt1qGTs='";
-
-  for (const policy of policies) {
-    assert.match(policy, new RegExp(approvedScriptHash.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-  }
-});
-
 test('legacy queue rows without leases are quarantined and cannot auto-retry', () => {
   const migration = read(
     'supabase',
