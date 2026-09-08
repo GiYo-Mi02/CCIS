@@ -18,7 +18,7 @@ export default function FaqSection() {
         .order('display_order')
         .limit(100);
       if (!error && data) {
-        setFaqs(data.map((f: any) => ({
+        setFaqs(data.map((f) => ({
           id: f.id,
           question: f.question,
           answer: f.answer
@@ -35,7 +35,7 @@ export default function FaqSection() {
 
   if (loading) {
     return (
-      <section className="py-16 bg-[#FAF7EA]/50 border-b border-[#1A3C2E]/10" id="faq-accordions">
+      <section className="border-b border-[#123524]/10 bg-[#FAF7EA]/50 py-16" id="faq-accordions">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
           <FaqSkeleton />
         </div>
@@ -46,50 +46,59 @@ export default function FaqSection() {
   if (faqs.length === 0) return null;
 
   return (
-    <section className="py-16 bg-[#FAF7EA]/50 border-b border-[#1A3C2E]/10" id="faq-accordions">
+    <section className="border-b border-[#123524]/10 bg-[#FAF7EA]/50 py-16" id="faq-accordions">
       <div className="max-w-3xl mx-auto px-4 sm:px-6">
         
-        <div className="text-center mb-10">
-          <span className="font-mono text-xs uppercase tracking-[0.2em] text-[#5E6E64] font-bold">Inquiries</span>
-          <h2 className="font-sans font-extrabold text-3xl text-[#1A3C2E] mt-1">Frequently Asked Questions</h2>
-          <div className="h-1 w-16 bg-[#F5B400] mx-auto mt-3 rounded-full" />
+        <div className="mb-10 text-center">
+          <span className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-[#5E6E64]">Inquiries</span>
+          <h2 className="mt-1 font-marcellus text-3xl text-[#123524] sm:text-[2rem]">Frequently Asked Questions</h2>
+          <div className="mx-auto mt-3 h-1 w-16 rounded-full bg-[#FFBC00]" />
         </div>
 
-        <div className="space-y-3.5 font-sans">
+        <div className="space-y-3.5">
           {faqs.map((item) => {
             const isOpen = openId === item.id;
+            const answerId = `faq-answer-${item.id}`;
             return (
               <div
                 key={item.id}
-                className={`overflow-hidden rounded-xl border-y border-l-4 border-r-0 bg-white shadow-sm transition-all duration-300 ${
+                className={`overflow-hidden rounded-xl border bg-white shadow-sm transition-colors duration-200 ${
                   isOpen 
-                    ? 'border-l-[#FFBC00] border-y-zinc-200'
-                    : 'border-l-[#123524] border-y-zinc-100'
+                    ? 'border-[#FFBC00]/40'
+                    : 'border-[#123524]/10'
                 }`}
                 id={`faq-accordion-item-${item.id}`}
               >
                 <button
+                  type="button"
                   onClick={() => toggleFaq(item.id)}
-                  className="flex w-full items-start justify-between gap-3 p-4 text-left text-sm font-bold text-[#123524] transition-colors hover:text-[#FFBC00] focus:outline-none sm:items-center sm:p-5 md:text-base"
+                  className="group flex min-h-[68px] w-full items-center justify-between gap-4 px-5 py-4 text-left text-[15px] font-medium leading-6 text-[#123524] transition-colors hover:text-[#8b6800] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#FFBC00] sm:px-5 md:text-base"
+                  id={`faq-question-${item.id}`}
                   aria-expanded={isOpen}
+                  aria-controls={answerId}
                 >
-                  <span className="flex min-w-0 items-start gap-3 leading-relaxed sm:items-center">
-                    <HelpCircle size={18} className="mt-0.5 flex-shrink-0 text-[#FFBC00] sm:mt-0" />
+                  <span className="flex min-w-0 items-center gap-3">
+                    <HelpCircle size={18} strokeWidth={2} className="flex-shrink-0 text-[#FFBC00]" aria-hidden="true" />
                     {item.question}
                   </span>
-                  <span className="shrink-0 rounded-full bg-[#FAF7EA] p-1.5 text-[#123524]">
-                    {isOpen ? <Minus size={15} /> : <Plus size={15} />}
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#FAF7EA] text-[#123524] transition-transform duration-200 group-active:scale-95">
+                    {isOpen ? <Minus size={15} strokeWidth={2} aria-hidden="true" /> : <Plus size={15} strokeWidth={2} aria-hidden="true" />}
                   </span>
                 </button>
 
                 <div
-                  className={`border-t border-zinc-100/50 transition-all duration-300 ease-in-out ${
-                    isOpen ? 'max-h-96 bg-zinc-50/50 p-4 opacity-100 sm:p-5' : 'max-h-0 overflow-hidden opacity-0'
+                  id={answerId}
+                  role="region"
+                  aria-labelledby={`faq-question-${item.id}`}
+                  className={`grid transition-[grid-template-rows,opacity] duration-300 ease-in-out ${
+                    isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
                   }`}
                 >
-                  <p className="pl-1 text-sm leading-relaxed text-stone-600 md:text-base">
-                    {item.answer}
-                  </p>
+                  <div className="min-h-0 overflow-hidden">
+                    <p className="border-t border-[#123524]/10 px-5 py-4 text-sm leading-relaxed text-stone-600 md:text-base">
+                      {item.answer}
+                    </p>
+                  </div>
                 </div>
               </div>
             );
