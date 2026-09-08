@@ -252,7 +252,7 @@ export default function DeveloperDedication() {
       {selectedDev && createPortal(
         <dialog
           ref={dialogRef}
-          className="fixed inset-0 z-[9999] m-0 flex h-full w-full max-h-none max-w-none items-start justify-center overflow-y-auto bg-black/70 p-3 font-sans backdrop-blur-xs animate-fade-in sm:items-center sm:p-4"
+          className="fixed inset-0 z-[9999] m-0 flex h-full w-full max-h-none max-w-none items-start justify-center overflow-x-hidden overflow-y-auto bg-black/70 p-3 font-sans backdrop-blur-xs animate-fade-in sm:items-center sm:p-4"
           aria-label="Developer details"
         >
           <div 
