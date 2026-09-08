@@ -81,6 +81,7 @@ const CHARLES_TOGLE: Developer = {
   initials: "CT",
   department: "ENGINEERING",
   quote: "Built the systems that keep the portal secure, reliable, and ready to scale.",
+  email: "ctogle.a12345617@umak.edu.ph",
   github: "https://github.com/CharlesTogle",
   linkedin: "#",
   portfolioUrl: "https://6digits.dev",
