@@ -232,7 +232,7 @@ export default function DeveloperDedication() {
           </div>
 
           {/* Right Column: Clickable 3D Officer-Style Cards */}
-          <div className="lg:col-span-7 flex flex-wrap gap-6 md:gap-8 justify-center items-center">
+          <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-3 gap-6 md:gap-8 justify-items-center">
             {[LEAD_DEVELOPER, QA_DEVELOPER, CHARLES_TOGLE].map((developer) => (
               <DeveloperCard
                 key={developer.name}
