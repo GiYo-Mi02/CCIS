@@ -6,6 +6,8 @@ SELECT public.record_client_error_event(
   '11111111-1111-4111-8111-111111111111',
   '/account',
   'local',
+  'TypeError',
+  'test failure message',
   'Error: test failure\n    at testClientError (client-error.test.ts:1:1)'
 );
 
@@ -16,6 +18,8 @@ BEGIN
     SELECT 1 FROM internal.client_error_events
     WHERE reference_id = '11111111-1111-4111-8111-111111111111'
       AND route = '/account' AND release = 'local'
+      AND error_name = 'TypeError'
+      AND error_message = 'test failure message'
       AND stack_trace LIKE 'Error: test failure%'
   ) THEN
     RAISE EXCEPTION 'redacted client error event was not recorded';

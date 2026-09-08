@@ -37,6 +37,8 @@ export default class ErrorBoundary extends React.Component<Props, State> {
         referenceId: this.state.referenceId,
         route: window.location.pathname,
         release: import.meta.env.VITE_APP_RELEASE,
+        errorName: error.name,
+        errorMessage: error.message,
         stackTrace: stackTrace || 'No stack trace available',
       },
     }).catch(() => undefined);

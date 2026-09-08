@@ -40,6 +40,8 @@ async function readErrorEvent(req: Request) {
     referenceId?: unknown;
     route?: unknown;
     release?: unknown;
+    errorName?: unknown;
+    errorMessage?: unknown;
     stackTrace?: unknown;
   };
   if (
@@ -47,6 +49,10 @@ async function readErrorEvent(req: Request) {
     typeof body.referenceId !== "string" || !UUID_RE.test(body.referenceId) ||
     typeof body.route !== "string" || !ROUTE_RE.test(body.route) ||
     typeof body.release !== "string" || !RELEASE_RE.test(body.release) ||
+    (body.errorName !== undefined && typeof body.errorName !== "string") ||
+    (typeof body.errorName === "string" && body.errorName.length > 256) ||
+    (body.errorMessage !== undefined && typeof body.errorMessage !== "string") ||
+    (typeof body.errorMessage === "string" && body.errorMessage.length > 2048) ||
     (body.stackTrace !== undefined && typeof body.stackTrace !== "string") ||
     (typeof body.stackTrace === "string" &&
       new TextEncoder().encode(body.stackTrace).byteLength >
@@ -58,6 +64,8 @@ async function readErrorEvent(req: Request) {
     referenceId: body.referenceId as string,
     route: body.route as string,
     release: body.release as string,
+    errorName: typeof body.errorName === "string" ? body.errorName : null,
+    errorMessage: typeof body.errorMessage === "string" ? body.errorMessage : null,
     stackTrace: typeof body.stackTrace === "string" ? body.stackTrace : null,
   };
 }
@@ -95,6 +103,8 @@ serve(async (req: Request) => {
     referenceId: string;
     route: string;
     release: string;
+    errorName: string | null;
+    errorMessage: string | null;
     stackTrace: string | null;
   };
   try {
@@ -135,6 +145,8 @@ serve(async (req: Request) => {
     p_reference_id: event.referenceId,
     p_route: event.route,
     p_release: event.release,
+    p_error_name: event.errorName,
+    p_error_message: event.errorMessage,
     p_stack_trace: event.stackTrace,
   });
   if (error) return json(500, { error: "RECORDING_FAILED" }, corsHeaders);

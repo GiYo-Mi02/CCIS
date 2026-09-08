@@ -60,6 +60,8 @@ test('the error boundary reports the reference and stack trace', () => {
   assert.match(source, /functions\.invoke\('report-client-error'/);
   assert.match(source, /referenceId/);
   assert.match(source, /error\.stack/);
+  assert.match(source, /error\.name/);
+  assert.match(source, /error\.message/);
   assert.match(source, /errorInfo\.componentStack/);
   assert.match(source, /stackTrace/);
 });
