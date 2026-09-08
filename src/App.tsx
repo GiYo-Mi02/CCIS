@@ -180,35 +180,35 @@ export default function App({ onAdminSwitch }: AppProps) {
             </Suspense>
             
             {/* Academic & Council Calendar (Timetable) */}
-            <section className="py-16 px-4 max-w-7xl mx-auto sm:px-6 lg:px-8 border-b border-[#1A3C2E]/10" id="event-calendar">
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+            <section className="mx-auto max-w-7xl border-b border-[#123524]/10 px-4 py-16 sm:px-6 lg:px-8" id="event-calendar">
+              <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-12 xl:gap-12">
                 
                 <div className="lg:col-span-5 space-y-6">
-                  <span className="font-mono text-xs uppercase tracking-[0.2em] text-[#5E6E64] font-bold">Timetables</span>
-                  <h2 className="font-sans font-black text-3xl md:text-4xl text-[#1A3C2E]">
+                  <span className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-[#5E6E64]">Timetables</span>
+                  <h2 className="font-marcellus text-3xl leading-tight text-[#123524] md:text-4xl">
                     Academic &amp; Council Calendar
                   </h2>
-                  <p className="text-[#5E6E64] text-sm md:text-base leading-relaxed">
-                    Track major student events, academic milestones, and council assemblies. Color markings differentiate priority timelines:
+                  <p className="text-sm leading-relaxed text-[#5E6E64] md:text-base">
+                    Track major student events, academic milestones, and council assemblies.
                   </p>
                   
-                  <div className="space-y-3 font-sans">
-                    <div className="flex items-center gap-3 bg-[#123524] p-4 rounded-2xl border border-[#123524] shadow-sm text-white">
-                      <span className="w-9 h-9 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center flex-shrink-0">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3 rounded-xl border border-[#123524]/10 bg-white p-4 shadow-sm">
+                      <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-[#FAF7EA] text-[#123524]">
                         <CalendarDays size={18} aria-hidden="true" />
                       </span>
                       <div>
-                        <span className="block font-bold text-sm text-white">General Event Activity</span>
-                        <span className="text-xs text-white/70">Assemblies, sport volunteer calls, tutorials</span>
+                        <span className="block text-sm font-bold text-[#123524]">General Event Activity</span>
+                        <span className="text-xs text-[#5E6E64]">Assemblies, volunteer calls, tutorials</span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 bg-[#FFBC00] p-4 rounded-2xl border border-[#FFBC00] shadow-sm text-[#123524]">
-                      <span className="w-9 h-9 rounded-xl bg-[#123524]/10 border border-[#123524]/20 flex items-center justify-center flex-shrink-0">
+                    <div className="flex items-center gap-3 rounded-xl border border-[#FFBC00]/40 bg-[#FFBC00]/10 p-4 shadow-sm">
+                      <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-[#FFBC00]/20 text-[#8b6800]">
                         <Zap size={18} aria-hidden="true" />
                       </span>
                       <div>
-                        <span className="block font-bold text-sm text-[#123524]">Priority Academic / Deadline Event</span>
-                        <span className="text-xs text-[#123524]/75">Midterms, high-priority submission dates</span>
+                        <span className="block text-sm font-bold text-[#123524]">Priority Academic / Deadline Event</span>
+                        <span className="text-xs text-[#5E6E64]">Midterms and high-priority deadlines</span>
                       </div>
                     </div>
                   </div>
@@ -218,7 +218,7 @@ export default function App({ onAdminSwitch }: AppProps) {
                   </Suspense>
                 </div>
 
-                <div className="lg:col-span-7 bg-white p-6 md:p-8 rounded-3xl border border-zinc-100 shadow-sm">
+                <div className="rounded-2xl border border-[#123524]/10 bg-white p-5 shadow-sm md:p-7 lg:col-span-7">
                   <Suspense fallback={null}>
                     <PublicEventCalendar onNavigate={handleNavigate} />
                   </Suspense>

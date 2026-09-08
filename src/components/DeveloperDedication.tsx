@@ -179,27 +179,38 @@ export default function DeveloperDedication() {
     }
   }, [selectedDev]);
 
+  useEffect(() => {
+    if (!selectedDev) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [selectedDev]);
+
   return (
-    <section className="py-14 lg:py-16 bg-[#FAF7EA]/50 border-b border-[#1A3C2E]/10 font-sans" id="developer-dedication">
+    <section className="border-b border-[#123524]/10 bg-[#FAF7EA]/50 py-16 font-sans" id="developer-dedication">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 xl:gap-10 items-center">
           
           {/* Left Column: Dedication Text, Mission & Tech Stack */}
           <div className="lg:col-span-5 space-y-5 text-left animate-fade-in">
-            <span className="font-mono text-xs uppercase tracking-[0.2em] text-[#5E6E64] font-bold">The Engineering Team</span>
-            <h2 className="font-serif font-black text-3xl md:text-4xl text-[#1A3C2E] leading-tight">
+            <span className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-[#5E6E64]">The Engineering Team</span>
+            <h2 className="font-marcellus text-3xl leading-tight text-[#123524] md:text-4xl">
               Behind the Portal
             </h2>
-            <div className="h-1 w-16 bg-[#F5B400] rounded-full" />
+            <div className="h-1 w-16 rounded-full bg-[#FFBC00]" />
             <p className="text-[#5E6E64] text-sm md:text-base leading-relaxed">
               This portal serves as the digital gateway for the College of Computer and Information Sciences student body. Crafted with modern web technologies, it ensures responsive, secure, and intuitive accessibility to college news, transparency records, and organizational events.
             </p>
 
             {/* Quick Stats Grid */}
             <div className="grid grid-cols-2 gap-4 py-2">
-              <div className="bg-white p-4 rounded-2xl border border-zinc-100 shadow-sm flex items-center gap-3">
-                <div className="p-2 bg-[#FAF7EA] rounded-lg text-[#F5B400]">
+              <div className="flex items-center gap-3 rounded-xl border border-[#123524]/10 bg-white p-4 shadow-sm">
+                <div className="rounded-lg bg-[#FAF7EA] p-2 text-[#FFBC00]">
                   <Code size={18} />
                 </div>
                 <div>
@@ -207,8 +218,8 @@ export default function DeveloperDedication() {
                   <span className="block font-black text-sm text-[#1A3C2E]">CCIS Students</span>
                 </div>
               </div>
-              <div className="bg-white p-4 rounded-2xl border border-zinc-100 shadow-sm flex items-center gap-3">
-                <div className="p-2 bg-[#FAF7EA] rounded-lg text-[#1A3C2E]">
+              <div className="flex items-center gap-3 rounded-xl border border-[#123524]/10 bg-white p-4 shadow-sm">
+                <div className="rounded-lg bg-[#FAF7EA] p-2 text-[#123524]">
                   <ShieldCheck size={18} />
                 </div>
                 <div>
@@ -220,10 +231,10 @@ export default function DeveloperDedication() {
 
             {/* Tech Stack Badges */}
             <div className="pt-2">
-              <span className="block text-xs font-mono text-[#5E6E64] uppercase tracking-wider mb-3">Core Platform Stack</span>
+              <span className="mb-3 block text-xs font-mono uppercase tracking-wider text-[#5E6E64]">Core Platform Stack</span>
               <div className="flex flex-wrap gap-2">
                 {["React 19", "TypeScript", "Vite", "Supabase", "Tailwind CSS v4", "GSAP"].map(tech => (
-                  <span key={tech} className="px-3 py-1.5 rounded-xl bg-white text-[#1A3C2E] text-xs font-mono font-medium border border-zinc-100 hover:border-[#F5B400] transition-colors duration-300 cursor-default shadow-sm">
+                  <span key={tech} className="cursor-default rounded-lg border border-[#123524]/10 bg-white px-3 py-1.5 text-xs font-mono font-medium text-[#123524] shadow-sm transition-colors duration-300 hover:border-[#FFBC00]">
                     {tech}
                   </span>
                 ))}

@@ -323,10 +323,10 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
         {eventsList.map(evt => (
           <div
             key={evt.id}
-            className={`p-4 rounded-2xl border transition-colors flex flex-col sm:flex-row sm:items-start justify-between gap-3 ${
+            className={`flex flex-col justify-between gap-3 rounded-xl border p-4 transition-colors sm:flex-row sm:items-start ${
               evt.category === 'priority'
-                ? 'border-l-4 border-l-[#FFBC00] border-zinc-150 bg-amber-50/10'
-                : 'border-l-4 border-l-[#123524] border-zinc-150'
+                ? 'border-[#FFBC00]/40 bg-[#FFBC00]/5'
+                : 'border-[#123524]/10'
             }`}
           >
             <div className="flex items-start gap-3.5 flex-1 min-w-0 text-left">
@@ -375,7 +375,7 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
   return (
     <div className="space-y-6">
       {/* Month Navigation Control Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-[#123524]/20 font-sans">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#123524]/10 pb-4">
         <div className="flex items-center gap-3">
           <h3 className="font-marcellus text-[#123524] text-lg sm:text-2xl flex items-center gap-2">
             <CalendarRange size={22} className="text-[#FFBC00] shrink-0" />
@@ -383,7 +383,7 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
           </h3>
           <button
             onClick={handleJumpToToday}
-            className="text-[10px] font-bold text-[#123524] bg-stone-100 hover:bg-stone-200 border border-[#123524]/20 px-3 py-1 rounded-full uppercase tracking-wider transition-colors cursor-pointer"
+            className="rounded-full border border-[#123524]/15 bg-[#FAF7EA] px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#123524] transition-colors hover:bg-white"
           >
             Today
           </button>
@@ -393,14 +393,14 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
           <button
             onClick={handlePrevMonth}
             aria-label="Previous month"
-            className="p-1.5 rounded-full border border-[#123524]/20 text-stone-600 hover:bg-zinc-50 transition-colors cursor-pointer"
+            className="rounded-full border border-[#123524]/15 p-1.5 text-stone-600 transition-colors hover:bg-[#FAF7EA]"
           >
             <ChevronLeft size={16} />
           </button>
           <button
             onClick={handleNextMonth}
             aria-label="Next month"
-            className="p-1.5 rounded-full border border-[#123524]/20 text-stone-600 hover:bg-zinc-50 transition-colors cursor-pointer"
+            className="rounded-full border border-[#123524]/15 p-1.5 text-stone-600 transition-colors hover:bg-[#FAF7EA]"
           >
             <ChevronRight size={16} />
           </button>
@@ -426,9 +426,9 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
       </div>
 
       {/* Calendar Grid Container with Crisp Visible Lines */}
-      <div className="border-2 border-[#123524]/30 rounded-2xl overflow-hidden shadow-sm bg-white transition-[background-color,border-color,color,box-shadow] duration-300 hover:shadow-md">
+      <div className="overflow-hidden rounded-xl border border-[#123524]/10 bg-white shadow-sm transition-shadow duration-300 hover:shadow-md">
         {/* Days of Week Header */}
-        <div className="grid grid-cols-7 border-b-2 border-[#123524]/20 bg-stone-100/90 text-center py-2.5 divide-x divide-[#123524]/15">
+        <div className="grid grid-cols-7 divide-x divide-[#123524]/10 border-b border-[#123524]/10 bg-[#FAF7EA]/60 py-2.5 text-center">
           {daysOfWeek.map(day => (
             <span key={day} className="font-mono font-black text-[10px] text-[#123524]/80 uppercase tracking-wider">
               {day}
@@ -438,7 +438,7 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
 
         {/* Days Grid */}
         {loading ? (
-          <div className="grid grid-cols-7 grid-rows-5 gap-2 py-4 border-t border-[#123524]/10">
+          <div className="grid grid-cols-7 grid-rows-5 gap-2 border-t border-[#123524]/10 py-4">
             {Array.from({ length: 35 }).map((_, idx) => (
               <div key={idx} className="h-16 md:h-20 p-1.5 bg-stone-50 rounded-xl flex flex-col justify-between">
                 <Skeleton className="h-3 w-4 bg-stone-200" />
@@ -447,7 +447,7 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-7 grid-rows-5 divide-x-2 divide-y-2 divide-[#123524]/15 border-t border-[#123524]/20">
+          <div className="grid grid-cols-7 grid-rows-5 divide-x divide-y divide-[#123524]/10 border-t border-[#123524]/10">
             {cells.map((cell, idx) => {
               const { dateStr, day, isCurrentMonth } = cell;
               const isSelected = selectedDateStr === dateStr;
@@ -536,8 +536,8 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
 
       {/* 3. SELECTED DAY PANEL (DESKTOP DETAIL BLOCK) */}
       {!isMobile && (
-        <div className="bg-zinc-50/50 p-5 rounded-2xl border border-zinc-200 shadow-inner font-sans animate-fade-in">
-          <div className="border-b-2 border-zinc-200 pb-2.5 mb-3 flex items-center gap-2">
+        <div className="animate-fade-in rounded-xl border border-[#123524]/10 bg-[#FAF7EA]/45 p-5">
+          <div className="mb-3 flex items-center gap-2 border-b border-[#123524]/10 pb-2.5">
             <h4 className="font-sans font-black text-sm uppercase tracking-wider text-[#123524] flex items-center gap-2">
               <span className="inline-block w-2.5 h-2.5 rounded-full bg-[#FFBC00] animate-pulse" />
               Agenda for: {new Date(selectedDateStr).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
