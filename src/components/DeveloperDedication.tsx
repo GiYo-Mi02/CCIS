@@ -101,7 +101,7 @@ function DeveloperCard({ developer, onSelect }: { developer: Developer; onSelect
     <button
       type="button"
       onClick={(event) => onSelect(developer, event.currentTarget)}
-      className="relative w-[280px] max-w-[calc(100vw-3rem)] h-[395px] group overflow-visible mt-16 mb-6 flex flex-col justify-end text-left transition-colors duration-500 cursor-pointer"
+      className="relative w-full max-w-[250px] h-[390px] group overflow-visible mt-0 mb-0 flex flex-col justify-end text-left transition-colors duration-500 cursor-pointer"
       id={`dev-card-${developer.initials.toLowerCase()}`}
     >
       <div className="absolute inset-x-0 bottom-0 top-10 rounded-3xl border-2 border-[#F5B400]/15 translate-x-3 translate-y-3 -rotate-3 pointer-events-none group-hover:translate-x-0 group-hover:translate-y-0 group-hover:rotate-0 group-hover:border-[#F5B400]/35 transition-[background-color,border-color,color,box-shadow,transform] duration-500" />
@@ -109,7 +109,7 @@ function DeveloperCard({ developer, onSelect }: { developer: Developer; onSelect
       <div className="absolute top-16 right-4 font-mono font-black text-[#F5B400]/10 group-hover:text-[#F5B400]/30 text-[9px] uppercase tracking-[0.3em] transition-[background-color,border-color,color,box-shadow,transform] duration-500 [writing-mode:vertical-lr] select-none pointer-events-none group-hover:translate-y-2">
         {developer.department}
       </div>
-      <div className="absolute bottom-20 left-1/2 -translate-x-1/2 w-[88%] h-[98%] overflow-hidden rounded-2xl border border-white/10 shadow-lg bg-white/5 pointer-events-none z-10 group-hover:shadow-2xl group-hover:scale-106 group-hover:-translate-y-4 group-hover:border-[#F5B400]/30 transition-[background-color,border-color,color,box-shadow,transform] duration-500 origin-bottom">
+      <div className="absolute bottom-20 left-1/2 -translate-x-1/2 w-[92%] h-[92%] overflow-hidden rounded-2xl border border-white/10 shadow-lg bg-white/5 pointer-events-none z-10 group-hover:shadow-2xl group-hover:scale-106 group-hover:-translate-y-4 group-hover:border-[#F5B400]/30 transition-[background-color,border-color,color,box-shadow,transform] duration-500 origin-bottom">
         {developer.photoUrl ? (
           <div className="relative w-full h-full">
             <img src={developer.photoUrl} alt={developer.name} className="w-full h-full object-cover select-none" />
@@ -180,13 +180,13 @@ export default function DeveloperDedication() {
   }, [selectedDev]);
 
   return (
-    <section className="py-16 bg-[#FAF7EA]/50 border-b border-[#1A3C2E]/10 font-sans" id="developer-dedication">
+    <section className="py-14 lg:py-16 bg-[#FAF7EA]/50 border-b border-[#1A3C2E]/10 font-sans" id="developer-dedication">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 xl:gap-10 items-center">
           
           {/* Left Column: Dedication Text, Mission & Tech Stack */}
-          <div className="lg:col-span-5 space-y-6 text-left animate-fade-in">
+          <div className="lg:col-span-5 space-y-5 text-left animate-fade-in">
             <span className="font-mono text-xs uppercase tracking-[0.2em] text-[#5E6E64] font-bold">The Engineering Team</span>
             <h2 className="font-serif font-black text-3xl md:text-4xl text-[#1A3C2E] leading-tight">
               Behind the Portal
@@ -232,7 +232,7 @@ export default function DeveloperDedication() {
           </div>
 
           {/* Right Column: Clickable 3D Officer-Style Cards */}
-          <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-3 gap-6 md:gap-8 justify-items-center">
+          <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-3 gap-4 xl:gap-2 justify-items-center min-w-0">
             {[LEAD_DEVELOPER, QA_DEVELOPER, CHARLES_TOGLE].map((developer) => (
               <DeveloperCard
                 key={developer.name}
