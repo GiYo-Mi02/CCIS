@@ -85,7 +85,7 @@ const CHARLES_TOGLE: Developer = {
   linkedin: "#",
   portfolioUrl: "https://6digits.dev",
   photoUrl: "images/charles-togle.webp",
-  bio: "Charles contributed across the CCIS Centralized Portal's application and infrastructure layers. His work spans student-facing experiences, administrative operations, access control, media workflows, observability, and the engineering safeguards that keep the platform dependable as it grows.",
+  bio: "Charles contributed across the CCIS Centralized Portal's application and infrastructure layers. His work spans student-facing experiences, administrative operations, access control, media workflows, observability, and automated security and reliability checks that keep the platform dependable as it grows.",
   tags: ["Full-Stack Dev", "Platform Security", "Product Engineer"],
   contributions: [
     "Admin Role Preview & Permission-Aware Operations",
@@ -252,7 +252,7 @@ export default function DeveloperDedication() {
       {selectedDev && createPortal(
         <dialog
           ref={dialogRef}
-          className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto bg-black/70 p-3 font-sans backdrop-blur-xs animate-fade-in sm:items-center sm:p-4"
+          className="fixed inset-0 z-[9999] m-0 flex h-full w-full max-h-none max-w-none items-start justify-center overflow-y-auto bg-black/70 p-3 font-sans backdrop-blur-xs animate-fade-in sm:items-center sm:p-4"
           aria-label="Developer details"
         >
           <div 
