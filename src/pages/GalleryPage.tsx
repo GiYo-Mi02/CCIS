@@ -470,12 +470,12 @@ export default function GalleryPage({ isAdmin = false }: GalleryPageProps) {
                     return (
                       <div
                         key={item.id}
-                        draggable={true}
-                        onDragStart={(e) => handleDragStart(e, item.id)}
-                        onDragOver={(e) => handleDragOver(e)}
-                        onDrop={(e) => handleDrop(e, item.id)}
-                        onDragEnd={handleDragEnd}
-                        className={`group relative overflow-hidden rounded-2xl bg-white border border-[#1A3C2E]/25 shadow-xs transition-[box-shadow,border-color,transform] duration-300 hover:shadow-xl hover:border-[#1A3C2E] hover:-translate-y-2 focus-within:ring-2 focus-within:ring-[#1A3C2E] cursor-grab active:cursor-grabbing ${
+                        draggable={isAdmin}
+                        onDragStart={isAdmin ? (e) => handleDragStart(e, item.id) : undefined}
+                        onDragOver={isAdmin ? handleDragOver : undefined}
+                        onDrop={isAdmin ? (e) => handleDrop(e, item.id) : undefined}
+                        onDragEnd={isAdmin ? handleDragEnd : undefined}
+                        className={`group relative overflow-hidden rounded-2xl bg-white border border-[#1A3C2E]/25 shadow-xs transition-[box-shadow,border-color,transform] duration-300 hover:shadow-xl hover:border-[#1A3C2E] hover:-translate-y-2 focus-within:ring-2 focus-within:ring-[#1A3C2E] ${isAdmin ? 'cursor-grab active:cursor-grabbing' : ''} ${
                           draggedItemId === item.id ? 'opacity-40 border-dashed border-2 border-[#1A3C2E]' : ''
                         }`}
                       >
