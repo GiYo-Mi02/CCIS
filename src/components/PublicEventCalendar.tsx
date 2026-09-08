@@ -163,15 +163,26 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
   const [isMobile, setIsMobile] = useState(false);
   const [showMobileModal, setShowMobileModal] = useState(false);
   const [hoveredDate, setHoveredDate] = useState<string | null>(null);
-  const [hoveredPosition, setHoveredPosition] = useState<{ x: number; y: number } | null>(null);
+  const [hoveredPosition, setHoveredPosition] = useState<{ x: number; y: number; placement: 'top' | 'bottom' } | null>(null);
 
   const handleMouseEnter = (e: React.MouseEvent<HTMLButtonElement>, dateStr: string, cellEvents: EventItemDB[]) => {
     if (cellEvents.length === 0 || isMobile) return;
     const rect = e.currentTarget.getBoundingClientRect();
+    const tooltipHeight = 270;
+    const tooltipGap = 12;
+    const canPlaceAbove = rect.top >= tooltipHeight + tooltipGap;
+    const canPlaceBelow = window.innerHeight - rect.bottom >= tooltipHeight + tooltipGap;
+    const placement = canPlaceAbove || !canPlaceBelow ? 'top' : 'bottom';
+    const horizontalPadding = 12;
+    const halfTooltipWidth = Math.min(128, (window.innerWidth - horizontalPadding * 2) / 2);
     setHoveredDate(dateStr);
     setHoveredPosition({
-      x: rect.left + rect.width / 2,
-      y: rect.top
+      x: Math.min(
+        Math.max(rect.left + rect.width / 2, horizontalPadding + halfTooltipWidth),
+        window.innerWidth - horizontalPadding - halfTooltipWidth,
+      ),
+      y: placement === 'top' ? rect.top : rect.bottom,
+      placement,
     });
   };
 
@@ -364,9 +375,9 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
   return (
     <div className="space-y-6">
       {/* Month Navigation Control Header */}
-      <div className="flex items-center justify-between pb-3 border-b border-[#123524]/20 font-sans">
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-[#123524]/20 font-sans">
         <div className="flex items-center gap-3">
-          <h3 className="font-marcellus text-[#123524] text-xl sm:text-2xl flex items-center gap-2">
+          <h3 className="font-marcellus text-[#123524] text-lg sm:text-2xl flex items-center gap-2">
             <CalendarRange size={22} className="text-[#FFBC00] shrink-0" />
             {monthLabels[month]} {year}
           </h3>
@@ -398,7 +409,7 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
       </div>
 
       {/* Filter Chips Bar */}
-      <div className="flex gap-2 font-sans">
+      <div className="flex flex-wrap gap-2 font-sans">
         {(['all', 'general', 'priority'] as const).map(type => (
           <button
             key={type}
@@ -576,11 +587,11 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
             className="fixed z-[9999] pointer-events-none transition-colors duration-200"
             style={{
               left: `${hoveredPosition.x}px`,
-              top: `${hoveredPosition.y - 12}px`,
-              transform: 'translate(-50%, -100%)'
+              top: `${hoveredPosition.y + (hoveredPosition.placement === 'top' ? -12 : 12)}px`,
+              transform: `translate(-50%, ${hoveredPosition.placement === 'top' ? '-100%' : '0'})`,
             }}
           >
-            <div className="bg-[#FAF7EA] w-64 rounded-2xl shadow-xl border border-stone-200/60 overflow-hidden flex flex-col text-left animate-fade-in">
+            <div className="relative max-h-[calc(100vh-1.5rem)] w-[min(16rem,calc(100vw-1.5rem))] overflow-y-auto rounded-2xl border border-stone-200/60 bg-[#FAF7EA] shadow-xl flex flex-col text-left animate-fade-in">
               {(() => {
                 const cellEvents = eventsMap.get(hoveredDate) || [];
                 const firstEvent = cellEvents[0];
@@ -630,8 +641,12 @@ export default function PublicEventCalendar({ onNavigate }: { onNavigate?: (tab:
                 );
               })()}
             </div>
-            {/* Tooltip arrow */}
-            <div className="w-3 h-3 bg-[#FAF7EA] border-r border-b border-stone-200/60 rotate-45 mx-auto -mt-1.5 shadow-sm" />
+            {/* Keep the arrow attached to whichever side has room. */}
+            <div className={`absolute left-1/2 h-3 w-3 -translate-x-1/2 bg-[#FAF7EA] border-stone-200/60 shadow-sm ${
+              hoveredPosition.placement === 'top'
+                ? 'bottom-[-0.375rem] rotate-45 border-r border-b'
+                : 'top-[-0.375rem] rotate-[225deg] border-r border-b'
+            }`} />
           </div>,
           document.body
         )

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Github, Linkedin, Mail, Code, ShieldCheck, X, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Github, Linkedin, Mail, Code, ShieldCheck, X, Sparkles, CheckCircle2, Globe } from 'lucide-react';
 
 // ============================================================================
 // DEVELOPER INFO CONFIGURATION
@@ -13,9 +13,10 @@ interface Developer {
   initials: string;
   department: string;
   quote: string;
-  email: string;
+  email?: string;
   github: string;
   linkedin: string;
+  portfolioUrl?: string;
   bio: string;
   contributions: string[];
   tags: string[];
@@ -73,6 +74,67 @@ const QA_DEVELOPER: Developer = {
     "Email Worker & Background Notification Queue Verification"
   ]
 };
+
+const CHARLES_TOGLE: Developer = {
+  name: "Charles Togle",
+  role: "Full-Stack Engineer",
+  initials: "CT",
+  department: "ENGINEERING",
+  quote: "Built the systems that keep the portal secure, reliable, and ready to scale.",
+  github: "https://github.com/CharlesTogle",
+  linkedin: "#",
+  portfolioUrl: "https://6digits.dev",
+  photoUrl: "images/charles-togle.webp",
+  bio: "Charles contributed across the CCIS Centralized Portal's application and infrastructure layers. His work spans student-facing experiences, administrative operations, access control, media workflows, observability, and the engineering safeguards that keep the platform dependable as it grows.",
+  tags: ["Full-Stack Dev", "Platform Security", "Product Engineer"],
+  contributions: [
+    "Admin Role Preview & Permission-Aware Operations",
+    "Profile, Media, and Storage Authorization Hardening",
+    "Event Calendar, Registration, and Officer Management Workflows",
+    "Client Error Telemetry & Production Release Readiness",
+    "Accessibility, Responsive UI, and Performance Improvements"
+  ]
+};
+
+function DeveloperCard({ developer, onSelect }: { developer: Developer; onSelect: (developer: Developer, trigger: HTMLButtonElement) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={(event) => onSelect(developer, event.currentTarget)}
+      className="relative w-[280px] max-w-[calc(100vw-3rem)] h-[395px] group overflow-visible mt-16 mb-6 flex flex-col justify-end text-left transition-colors duration-500 cursor-pointer"
+      id={`dev-card-${developer.initials.toLowerCase()}`}
+    >
+      <div className="absolute inset-x-0 bottom-0 top-10 rounded-3xl border-2 border-[#F5B400]/15 translate-x-3 translate-y-3 -rotate-3 pointer-events-none group-hover:translate-x-0 group-hover:translate-y-0 group-hover:rotate-0 group-hover:border-[#F5B400]/35 transition-[background-color,border-color,color,box-shadow,transform] duration-500" />
+      <div className="absolute inset-x-0 bottom-0 top-10 bg-gradient-to-br from-[#163628] via-[#0E2219] to-[#060D0A] rounded-3xl border border-white/10 shadow-2xl group-hover:shadow-[0_30px_60px_rgba(0,0,0,0.6)] group-hover:shadow-[#123524]/30 transition-[background-color,border-color,color,box-shadow,transform] duration-500 origin-bottom transform group-hover:scale-[1.02] group-hover:-translate-y-3.5 -rotate-1 group-hover:rotate-0 overflow-hidden" />
+      <div className="absolute top-16 right-4 font-mono font-black text-[#F5B400]/10 group-hover:text-[#F5B400]/30 text-[9px] uppercase tracking-[0.3em] transition-[background-color,border-color,color,box-shadow,transform] duration-500 [writing-mode:vertical-lr] select-none pointer-events-none group-hover:translate-y-2">
+        {developer.department}
+      </div>
+      <div className="absolute bottom-20 left-1/2 -translate-x-1/2 w-[88%] h-[98%] overflow-hidden rounded-2xl border border-white/10 shadow-lg bg-white/5 pointer-events-none z-10 group-hover:shadow-2xl group-hover:scale-106 group-hover:-translate-y-4 group-hover:border-[#F5B400]/30 transition-[background-color,border-color,color,box-shadow,transform] duration-500 origin-bottom">
+        {developer.photoUrl ? (
+          <div className="relative w-full h-full">
+            <img src={developer.photoUrl} alt={developer.name} className="w-full h-full object-cover select-none" />
+            <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none" />
+          </div>
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-[#1A3C2E]/80 to-[#123524] text-[#F5B400] flex flex-col items-center justify-center font-serif font-black text-4xl select-none relative">
+            {developer.initials}
+            <span className="font-mono text-[9px] font-bold text-[#F5B400]/60 uppercase tracking-widest mt-2 flex items-center gap-1"><Code size={10} /> {developer.role}</span>
+          </div>
+        )}
+      </div>
+      <div className="absolute bottom-4 left-4 right-4 bg-[#07130F]/90 backdrop-blur-md border border-white/10 p-3.5 rounded-2xl z-20 text-left shadow-2xl group-hover:shadow-[0_15px_30px_rgba(0,0,0,0.5)] group-hover:border-[#F5B400]/40 group-hover:-translate-y-4 transition-[background-color,border-color,color,box-shadow,transform] duration-500 flex flex-col justify-between">
+        <div>
+          <h3 className="font-sans font-black text-white text-xs md:text-sm group-hover:text-[#F5B400] transition-colors leading-tight mb-0.5 truncate">{developer.name}</h3>
+          <span className="block font-mono text-[8px] md:text-[9px] font-black text-[#F5B400]/80 uppercase tracking-wider leading-none">{developer.role}</span>
+        </div>
+        <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-white/10">
+          <span className="text-[8px] font-mono text-stone-400 uppercase tracking-wider">Click to view details</span>
+          <Sparkles size={10} className="text-[#F5B400] animate-pulse" />
+        </div>
+      </div>
+    </button>
+  );
+}
 
 export default function DeveloperDedication() {
   const [selectedDev, setSelectedDev] = useState<Developer | null>(null);
@@ -171,131 +233,16 @@ export default function DeveloperDedication() {
 
           {/* Right Column: Clickable 3D Officer-Style Cards */}
           <div className="lg:col-span-7 flex flex-wrap gap-6 md:gap-8 justify-center items-center">
-            
-            {/* Card 1: Lead Developer */}
-            <button
-              type="button"
-              onClick={(event) => {
-                lastTriggerRef.current = event.currentTarget;
-                setSelectedDev(LEAD_DEVELOPER);
-              }}
-              className="relative w-[280px] max-w-[calc(100vw-3rem)] h-[395px] group overflow-visible mt-16 mb-6 flex flex-col justify-end text-left transition-colors duration-500 cursor-pointer"
-              id="dev-card-lead"
-            >
-              {/* 1. Offset Angled Accent Border Frame */}
-              <div className="absolute inset-x-0 bottom-0 top-10 rounded-3xl border-2 border-[#F5B400]/15 translate-x-3 translate-y-3 -rotate-3 pointer-events-none group-hover:translate-x-0 group-hover:translate-y-0 group-hover:rotate-0 group-hover:border-[#F5B400]/35 transition-[background-color,border-color,color,box-shadow,transform] duration-500" />
-
-              {/* 2. Main Skewed/Tilted Background Panel Card with Dynamic Elevation & Ambient Glow */}
-              <div className="absolute inset-x-0 bottom-0 top-10 bg-gradient-to-br from-[#163628] via-[#0E2219] to-[#060D0A] rounded-3xl border border-white/10 shadow-2xl group-hover:shadow-[0_30px_60px_rgba(0,0,0,0.6)] group-hover:shadow-[#123524]/30 transition-[background-color,border-color,color,box-shadow,transform] duration-500 origin-bottom transform group-hover:scale-[1.02] group-hover:-translate-y-3.5 -rotate-1 group-hover:rotate-0 overflow-hidden" />
-
-              {/* 3. Rotated/Vertical Department Label */}
-              <div className="absolute top-16 right-4 font-mono font-black text-[#F5B400]/10 group-hover:text-[#F5B400]/30 text-[9px] uppercase tracking-[0.3em] transition-[background-color,border-color,color,box-shadow,transform] duration-500 [writing-mode:vertical-lr] select-none pointer-events-none group-hover:translate-y-2">
-                {LEAD_DEVELOPER.department}
-              </div>
-
-              {/* 4. Overlapping 3D Pop-out Portrait Frame */}
-              <div className="absolute bottom-20 left-1/2 -translate-x-1/2 w-[88%] h-[98%] overflow-hidden rounded-2xl border border-white/10 shadow-lg bg-white/5 pointer-events-none z-10 group-hover:shadow-2xl group-hover:scale-106 group-hover:-translate-y-4 group-hover:border-[#F5B400]/30 transition-[background-color,border-color,color,box-shadow,transform] duration-500 origin-bottom">
-                {LEAD_DEVELOPER.photoUrl ? (
-                  <div className="relative w-full h-full">
-                    <img 
-                      src={LEAD_DEVELOPER.photoUrl} 
-                      alt={LEAD_DEVELOPER.name} 
-                      className="w-full h-full object-cover select-none" 
-                    />
-                    <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none" />
-                  </div>
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-[#1A3C2E]/80 to-[#123524] text-[#F5B400] flex flex-col items-center justify-center font-serif font-black text-4xl select-none relative">
-                    {LEAD_DEVELOPER.initials}
-                    <span className="font-mono text-[9px] font-bold text-[#F5B400]/60 uppercase tracking-widest mt-2 flex items-center gap-1">
-                      <Code size={10} /> Lead Dev
-                    </span>
-                    <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none" />
-                  </div>
-                )}
-              </div>
-
-              {/* 5. Floating Glassmorphic Footer Info Plate */}
-              <div className="absolute bottom-4 left-4 right-4 bg-[#07130F]/90 backdrop-blur-md border border-white/10 p-3.5 rounded-2xl z-20 text-left shadow-2xl group-hover:shadow-[0_15px_30px_rgba(0,0,0,0.5)] group-hover:border-[#F5B400]/40 group-hover:-translate-y-4 transition-[background-color,border-color,color,box-shadow,transform] duration-500 flex flex-col justify-between">
-                <div>
-                  <h3 className="font-sans font-black text-white text-xs md:text-sm group-hover:text-[#F5B400] transition-colors leading-tight mb-0.5 truncate">
-                    {LEAD_DEVELOPER.name}
-                  </h3>
-                  <span className="block font-mono text-[8px] md:text-[9px] font-black text-[#F5B400]/80 uppercase tracking-wider leading-none">
-                    {LEAD_DEVELOPER.role}
-                  </span>
-                </div>
-                
-                {/* Click action indicator */}
-                <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-white/10">
-                  <span className="text-[8px] font-mono text-stone-400 uppercase tracking-wider">Click to view details</span>
-                  <Sparkles size={10} className="text-[#F5B400] animate-pulse" />
-                </div>
-              </div>
-            </button>
-
-            {/* Card 2: QA Specialist */}
-            <button
-              type="button"
-              onClick={(event) => {
-                lastTriggerRef.current = event.currentTarget;
-                setSelectedDev(QA_DEVELOPER);
-              }}
-              className="relative w-[280px] max-w-[calc(100vw-3rem)] h-[395px] group overflow-visible mt-16 mb-6 flex flex-col justify-end text-left transition-colors duration-500 cursor-pointer"
-              id="dev-card-qa"
-            >
-              {/* 1. Offset Angled Accent Border Frame */}
-              <div className="absolute inset-x-0 bottom-0 top-10 rounded-3xl border-2 border-[#F5B400]/15 translate-x-3 translate-y-3 -rotate-3 pointer-events-none group-hover:translate-x-0 group-hover:translate-y-0 group-hover:rotate-0 group-hover:border-[#F5B400]/35 transition-[background-color,border-color,color,box-shadow,transform] duration-500" />
-
-              {/* 2. Main Skewed/Tilted Background Panel Card with Dynamic Elevation & Ambient Glow */}
-              <div className="absolute inset-x-0 bottom-0 top-10 bg-gradient-to-br from-[#163628] via-[#0E2219] to-[#060D0A] rounded-3xl border border-white/10 shadow-2xl group-hover:shadow-[0_30px_60px_rgba(0,0,0,0.6)] group-hover:shadow-[#123524]/30 transition-[background-color,border-color,color,box-shadow,transform] duration-500 origin-bottom transform group-hover:scale-[1.02] group-hover:-translate-y-3.5 -rotate-1 group-hover:rotate-0 overflow-hidden" />
-
-              {/* 3. Rotated/Vertical Department Label */}
-              <div className="absolute top-16 right-4 font-mono font-black text-[#F5B400]/10 group-hover:text-[#F5B400]/30 text-[9px] uppercase tracking-[0.3em] transition-[background-color,border-color,color,box-shadow,transform] duration-500 [writing-mode:vertical-lr] select-none pointer-events-none group-hover:translate-y-2">
-                {QA_DEVELOPER.department}
-              </div>
-
-              {/* 4. Overlapping 3D Pop-out Portrait Frame */}
-              <div className="absolute bottom-20 left-1/2 -translate-x-1/2 w-[88%] h-[98%] overflow-hidden rounded-2xl border border-white/10 shadow-lg bg-white/5 pointer-events-none z-10 group-hover:shadow-2xl group-hover:scale-106 group-hover:-translate-y-4 group-hover:border-[#F5B400]/30 transition-[background-color,border-color,color,box-shadow,transform] duration-500 origin-bottom">
-                {QA_DEVELOPER.photoUrl ? (
-                  <div className="relative w-full h-full">
-                    <img 
-                      src={QA_DEVELOPER.photoUrl} 
-                      alt={QA_DEVELOPER.name} 
-                      className="w-full h-full object-cover select-none" 
-                    />
-                    <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none" />
-                  </div>
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-[#1A3C2E]/80 to-[#123524] text-[#F5B400] flex flex-col items-center justify-center font-serif font-black text-4xl select-none relative">
-                    {QA_DEVELOPER.initials}
-                    <span className="font-mono text-[9px] font-bold text-[#F5B400]/60 uppercase tracking-widest mt-2 flex items-center gap-1">
-                      <ShieldCheck size={10} /> QA Specialist
-                    </span>
-                    <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none" />
-                  </div>
-                )}
-              </div>
-
-              {/* 5. Floating Glassmorphic Footer Info Plate */}
-              <div className="absolute bottom-4 left-4 right-4 bg-[#07130F]/90 backdrop-blur-md border border-white/10 p-3.5 rounded-2xl z-20 text-left shadow-2xl group-hover:shadow-[0_15px_30px_rgba(0,0,0,0.5)] group-hover:border-[#F5B400]/40 group-hover:-translate-y-4 transition-[background-color,border-color,color,box-shadow,transform] duration-500 flex flex-col justify-between">
-                <div>
-                  <h3 className="font-sans font-black text-white text-xs md:text-sm group-hover:text-[#F5B400] transition-colors leading-tight mb-0.5 truncate">
-                    {QA_DEVELOPER.name}
-                  </h3>
-                  <span className="block font-mono text-[8px] md:text-[9px] font-black text-[#F5B400]/80 uppercase tracking-wider leading-none">
-                    {QA_DEVELOPER.role}
-                  </span>
-                </div>
-                
-                {/* Click action indicator */}
-                <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-white/10">
-                  <span className="text-[8px] font-mono text-stone-400 uppercase tracking-wider">Click to view details</span>
-                  <Sparkles size={10} className="text-[#F5B400] animate-pulse" />
-                </div>
-              </div>
-            </button>
-
+            {[LEAD_DEVELOPER, QA_DEVELOPER, CHARLES_TOGLE].map((developer) => (
+              <DeveloperCard
+                key={developer.name}
+                developer={developer}
+                onSelect={(selected, trigger) => {
+                  lastTriggerRef.current = trigger;
+                  setSelectedDev(selected);
+                }}
+              />
+            ))}
           </div>
 
         </div>
@@ -387,12 +334,14 @@ export default function DeveloperDedication() {
               </div>
 
               <div className="mt-7 flex flex-col gap-4 border-t border-white/10 pt-5 sm:flex-row sm:items-center sm:justify-between">
-                <a
-                  href={`mailto:${selectedDev.email}`}
-                  className="flex min-w-0 items-center gap-2 break-all font-mono text-[11px] text-stone-300 transition-[width,height,margin-top,opacity] hover:text-[#FFBC00]"
-                >
-                  <Mail size={14} className="shrink-0" /> {selectedDev.email}
-                </a>
+                {selectedDev.email ? (
+                  <a
+                    href={`mailto:${selectedDev.email}`}
+                    className="flex min-w-0 items-center gap-2 break-all font-mono text-[11px] text-stone-300 transition-[width,height,margin-top,opacity] hover:text-[#FFBC00]"
+                  >
+                    <Mail size={14} className="shrink-0" /> {selectedDev.email}
+                  </a>
+                ) : <span />}
                 <div className="flex items-center gap-3">
                   <a
                     href={selectedDev.github}
@@ -403,13 +352,25 @@ export default function DeveloperDedication() {
                   >
                     <Github size={14} />
                   </a>
-                  <a
-                    href={selectedDev.linkedin}
-                    className="flex items-center justify-center rounded-xl border border-white/10 bg-white/5 p-2 text-stone-300 shadow-sm transition-colors hover:border-[#FFBC00] hover:bg-white/10 hover:text-[#FFBC00]"
-                    aria-label="LinkedIn Profile"
-                  >
-                    <Linkedin size={14} />
-                  </a>
+                  {selectedDev.portfolioUrl ? (
+                    <a
+                      href={selectedDev.portfolioUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center rounded-xl border border-white/10 bg-white/5 p-2 text-stone-300 shadow-sm transition-colors hover:border-[#FFBC00] hover:bg-white/10 hover:text-[#FFBC00]"
+                      aria-label="Portfolio Website"
+                    >
+                      <Globe size={14} />
+                    </a>
+                  ) : (
+                    <a
+                      href={selectedDev.linkedin}
+                      className="flex items-center justify-center rounded-xl border border-white/10 bg-white/5 p-2 text-stone-300 shadow-sm transition-colors hover:border-[#FFBC00] hover:bg-white/10 hover:text-[#FFBC00]"
+                      aria-label="LinkedIn Profile"
+                    >
+                      <Linkedin size={14} />
+                    </a>
+                  )}
                 </div>
               </div>
             </div>

@@ -51,8 +51,9 @@ test('Info Hub does not block static About tabs on organization data', () => {
 });
 
 test('developer cards retain their modal and the modal uses a responsive photo-content split', () => {
-  assert.match(developerDedication, /setSelectedDev\(LEAD_DEVELOPER\)/);
-  assert.match(developerDedication, /setSelectedDev\(QA_DEVELOPER\)/);
+  assert.match(developerDedication, /\[LEAD_DEVELOPER, QA_DEVELOPER, CHARLES_TOGLE\]/);
+  assert.match(developerDedication, /https:\/\/6digits\.dev/);
+  assert.match(developerDedication, /https:\/\/github\.com\/CharlesTogle/);
   assert.match(developerDedication, /Click to view details/);
   assert.match(developerDedication, /createPortal/);
   assert.match(
